@@ -1,0 +1,468 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.AspNetCore.Authentication.JwtBearer": {
+        "type": "Direct",
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "oGnE+X/SN6jdqao9WOkOIfyZ5+a0AtluJWy1Mxndq+kcWG6sx5k6l6tucu8/wJ7o9fHfLgVCzm/c4v/KVgVk6w==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.0.1"
+        }
+      },
+      "Microsoft.AspNetCore.OpenApi": {
+        "type": "Direct",
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "cw24xHE2QaWwyEG9GQwFbjboyabub6Vd80DIItUGENzcQOa/BEnTrXsg2GADqWTmY/3ycqk9ToLGjgvF/VRlGA==",
+        "dependencies": {
+          "Microsoft.OpenApi": "2.0.0"
+        }
+      },
+      "Azure.Core": {
+        "type": "Transitive",
+        "resolved": "1.47.1",
+        "contentHash": "oPcncSsDHuxB8SC522z47xbp2+ttkcKv2YZ90KXhRKN0YQd2+7l1UURT9EBzUNEXtkLZUOAB5xbByMTrYRh3yA==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "8.0.0",
+          "System.ClientModel": "1.5.1",
+          "System.Memory.Data": "8.0.1"
+        }
+      },
+      "Azure.Identity": {
+        "type": "Transitive",
+        "resolved": "1.14.2",
+        "contentHash": "YhNMwOTwT+I2wIcJKSdP0ADyB2aK+JaYWZxO8LSRDm5w77LFr0ykR9xmt2ZV5T1gaI7xU6iNFIh/yW1dAlpddQ==",
+        "dependencies": {
+          "Azure.Core": "1.46.1",
+          "Microsoft.Identity.Client": "4.73.1",
+          "Microsoft.Identity.Client.Extensions.Msal": "4.73.1"
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "3WA9q9yVqJp222P3x1wYIGDAkpjAku0TMUaaQV22g6L67AI0LdOIrVS7Ht2vJfLHGSPVuqN94vIr15qn+HEkHw=="
+      },
+      "Microsoft.Bcl.Cryptography": {
+        "type": "Transitive",
+        "resolved": "9.0.4",
+        "contentHash": "YgZYAWzyNuPVtPq6WNm0bqOWNjYaWgl5mBWTGZyNoXitYBUYSp6iUB9AwK0V1mo793qRJUXz2t6UZrWITZSvuQ=="
+      },
+      "Microsoft.Data.SqlClient": {
+        "type": "Transitive",
+        "resolved": "6.1.1",
+        "contentHash": "syGQmIUPAYYHAHyTD8FCkTNThpQWvoA7crnIQRMfp8dyB5A2cWU3fQexlRTFkVmV7S0TjVmthi0LJEFVjHo8AQ==",
+        "dependencies": {
+          "Azure.Core": "1.47.1",
+          "Azure.Identity": "1.14.2",
+          "Microsoft.Bcl.Cryptography": "9.0.4",
+          "Microsoft.Data.SqlClient.SNI.runtime": "6.0.2",
+          "Microsoft.IdentityModel.JsonWebTokens": "7.7.1",
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "7.7.1",
+          "Microsoft.SqlServer.Server": "1.0.0",
+          "System.Configuration.ConfigurationManager": "9.0.4",
+          "System.Security.Cryptography.Pkcs": "9.0.4"
+        }
+      },
+      "Microsoft.Data.SqlClient.SNI.runtime": {
+        "type": "Transitive",
+        "resolved": "6.0.2",
+        "contentHash": "f+pRODTWX7Y67jXO3T5S2dIPZ9qMJNySjlZT/TKmWVNWe19N8jcWmHaqHnnchaq3gxEKv1SWVY5EFzOD06l41w=="
+      },
+      "Microsoft.EntityFrameworkCore": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "EJx+fIBMgBlgD+ublKCn+GTOJkw3UqV7xOjYWBRVdUYyIm8UfvAsmSOPFiIInsWTHyMEYUJ9gCJY1jwX+6UB7w==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Abstractions": "10.0.8",
+          "Microsoft.EntityFrameworkCore.Analyzers": "10.0.8"
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "jbKDXWPZQhuPHygMnwzNOqxBADVcpRVytcKYZsA++QqhPkpF93Ta8o5mbJQGrARSjlkr9WtOaADV97EDMOZ7DA=="
+      },
+      "Microsoft.EntityFrameworkCore.Analyzers": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "M3BZ8JH8rB6BE7dO2g9iVbrHLnEz9wMXT6q+tDR6Nq3gyP3KmBj5OTiZGxyF3vesjOQNKanYoPGSNBR4kR2llg=="
+      },
+      "Microsoft.EntityFrameworkCore.Relational": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "UU3diAD2wwZveye2rnrwaF/wvJ9tm5iL2fuY9TTap6/iGQK1OO29M1BzXZRlRPVH/dByt5w/pISBSFtyR7hTqw==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.8"
+        }
+      },
+      "Microsoft.Identity.Client": {
+        "type": "Transitive",
+        "resolved": "4.73.1",
+        "contentHash": "NnDLS8QwYqO5ZZecL2oioi1LUqjh5Ewk4bMLzbgiXJbQmZhDLtKwLxL3DpGMlQAJ2G4KgEnvGPKa+OOgffeJbw==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Abstractions": "6.35.0"
+        }
+      },
+      "Microsoft.Identity.Client.Extensions.Msal": {
+        "type": "Transitive",
+        "resolved": "4.73.1",
+        "contentHash": "xDztAiV2F0wI0W8FLKv5cbaBefyLD6JVaAsvgSN7bjWNCzGYzHbcOEIP5s4TJXUpQzMfUyBsFl1mC6Zmgpz0PQ==",
+        "dependencies": {
+          "Microsoft.Identity.Client": "4.73.1",
+          "System.Security.Cryptography.ProtectedData": "4.5.0"
+        }
+      },
+      "Microsoft.IdentityModel.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "OtlIWcyX01olfdevPKZdIPfBEvbcioDyBiE/Z2lHsopsMD7twcKtlN9kMevHmI5IIPhFpfwCIiR6qHQz1WHUIw=="
+      },
+      "Microsoft.IdentityModel.JsonWebTokens": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "s6++gF9x0rQApQzOBbSyp4jUaAlwm+DroKfL8gdOHxs83k8SJfUXhuc46rDB3rNXBQ1MVRxqKUrqFhO/M0E97g==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Tokens": "8.0.1"
+        }
+      },
+      "Microsoft.IdentityModel.Logging": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "UCPF2exZqBXe7v/6sGNiM6zCQOUXXQ9+v5VTb9gPB8ZSUPnX53BxlN78v2jsbIvK9Dq4GovQxo23x8JgWvm/Qg==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Abstractions": "8.0.1"
+        }
+      },
+      "Microsoft.IdentityModel.Protocols": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "uA2vpKqU3I2mBBEaeJAWPTjT9v1TZrGWKdgK6G5qJd03CLx83kdiqO9cmiK8/n1erkHzFBwU/RphP83aAe3i3g==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Tokens": "8.0.1"
+        }
+      },
+      "Microsoft.IdentityModel.Protocols.OpenIdConnect": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "AQDbfpL+yzuuGhO/mQhKNsp44pm5Jv8/BI4KiFXR7beVGZoSH35zMV3PrmcfvSTsyI6qrcR898NzUauD6SRigg==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols": "8.0.1",
+          "System.IdentityModel.Tokens.Jwt": "8.0.1"
+        }
+      },
+      "Microsoft.IdentityModel.Tokens": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "kDimB6Dkd3nkW2oZPDkMkVHfQt3IDqO5gL0oa8WVy3OP4uE8Ij+8TXnqg9TOd9ufjsY3IDiGz7pCUbnfL18tjg==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Logging": "8.0.1"
+        }
+      },
+      "Microsoft.SqlServer.Server": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "N4KeF3cpcm1PUHym1RmakkzfkEv3GRMyofVv40uXsQhCQeglr2OHNcUk2WOG51AKpGO8ynGpo9M/kFXSzghwug=="
+      },
+      "System.ClientModel": {
+        "type": "Transitive",
+        "resolved": "1.5.1",
+        "contentHash": "k2jKSO0X45IqhVOT9iQB4xralNN9foRQsRvXBTyRpAVxyzCJlG895T9qYrQWbcJ6OQXxOouJQ37x5nZH5XKK+A==",
+        "dependencies": {
+          "System.Memory.Data": "8.0.1"
+        }
+      },
+      "System.Configuration.ConfigurationManager": {
+        "type": "Transitive",
+        "resolved": "9.0.4",
+        "contentHash": "dvjqKp+2LpGid6phzrdrS/2mmEPxFl3jE1+L7614q4ZChKbLJCpHXg6sBILlCCED1t//EE+un/UdAetzIMpqnw==",
+        "dependencies": {
+          "System.Security.Cryptography.ProtectedData": "9.0.4"
+        }
+      },
+      "System.IdentityModel.Tokens.Jwt": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "GJw3bYkWpOgvN3tJo5X4lYUeIFA2HD293FPUhKmp7qxS+g5ywAb34Dnd3cDAFLkcMohy5XTpoaZ4uAHuw0uSPQ==",
+        "dependencies": {
+          "Microsoft.IdentityModel.JsonWebTokens": "8.0.1",
+          "Microsoft.IdentityModel.Tokens": "8.0.1"
+        }
+      },
+      "System.Memory.Data": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "BVYuec3jV23EMRDeR7Dr1/qhx7369dZzJ9IWy2xylvb4YfXsrUxspWc4UWYid/tj4zZK58uGZqn2WQiaDMhmAg=="
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Transitive",
+        "resolved": "9.0.4",
+        "contentHash": "o94k2RKuAce3GeDMlUvIXlhVa1kWpJw95E6C9LwW0KlG0nj5+SgCiIxJ2Eroqb9sLtG1mEMbFttZIBZ13EJPvQ=="
+      },
+      "restaurant.modules.audit.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.audit.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.audit.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Audit.Application": "[1.0.0, )",
+          "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.audit.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Audit.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.billing.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.billing.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.billing.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Billing.Application": "[1.0.0, )",
+          "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.billing.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Billing.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.catalog.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.catalog.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.catalog.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Catalog.Application": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.catalog.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Catalog.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.fulfillment.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Fulfillment.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.fulfillment.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.fulfillment.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Fulfillment.Application": "[1.0.0, )",
+          "Restaurant.Modules.Fulfillment.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.fulfillment.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Fulfillment.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.identity.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Identity.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.identity.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.identity.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "[10.0.8, )",
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Identity.Application": "[1.0.0, )",
+          "Restaurant.Modules.Identity.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.identity.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Identity.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.inventory.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Inventory.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.inventory.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.inventory.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Inventory.Application": "[1.0.0, )",
+          "Restaurant.Modules.Inventory.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.inventory.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Inventory.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.reporting.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Reporting.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.reporting.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.reporting.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Reporting.Application": "[1.0.0, )",
+          "Restaurant.Modules.Reporting.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.reporting.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Reporting.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.sales.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.sales.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.sales.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Sales.Application": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.sales.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Sales.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.seating.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.seating.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.seating.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Seating.Application": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.seating.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Seating.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.workforce.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Workforce.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.workforce.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.workforce.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.Workforce.Application": "[1.0.0, )",
+          "Restaurant.Modules.Workforce.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.workforce.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Workforce.Application": "[1.0.0, )"
+        }
+      },
+      "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "GvUGVaFpAihzb0MEUVunhwFNVI/s9wCtOidbaz4JucM3W/YiMtccki9Gm+qcoxlPxQyGpAxX11bvEghL87TMGA==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.8"
+        }
+      },
+      "Microsoft.EntityFrameworkCore.SqlServer": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "A+FLIsTH9l5DG2iD6QW6Mfwlvr+BjWme/jJ2hvwmmENTr7lR1UWmgCtKCjDYcHxqdAD15bb4PgQnSzw12DV/pw==",
+        "dependencies": {
+          "Microsoft.Data.SqlClient": "6.1.1",
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.8"
+        }
+      },
+      "Microsoft.OpenApi": {
+        "type": "CentralTransitive",
+        "requested": "[2.7.5, )",
+        "resolved": "2.7.5",
+        "contentHash": "0FA67RSnRM4tcBKqiqVu/HPdZ9+QOKbmeRjxRUGTCjPU4C0bmUhd97Dso7Yild5P7nOV6GxJ2xrK0Kv/O9xp0w=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw=="
+      }
+    }
+  }
+}

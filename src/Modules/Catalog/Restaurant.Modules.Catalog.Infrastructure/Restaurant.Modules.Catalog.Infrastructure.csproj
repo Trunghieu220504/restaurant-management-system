@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Restaurant.Modules.Catalog.Domain/Restaurant.Modules.Catalog.Domain.csproj" />
+    <ProjectReference Include="../Restaurant.Modules.Catalog.Application/Restaurant.Modules.Catalog.Application.csproj" />
+  </ItemGroup>
+</Project>

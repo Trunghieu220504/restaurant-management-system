@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>restaurant-management-api-development</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Restaurant.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Presentation/Restaurant.Modules.Identity.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Seating/Restaurant.Modules.Seating.Infrastructure/Restaurant.Modules.Seating.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Seating/Restaurant.Modules.Seating.Presentation/Restaurant.Modules.Seating.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Catalog/Restaurant.Modules.Catalog.Infrastructure/Restaurant.Modules.Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Catalog/Restaurant.Modules.Catalog.Presentation/Restaurant.Modules.Catalog.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Sales/Restaurant.Modules.Sales.Infrastructure/Restaurant.Modules.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Sales/Restaurant.Modules.Sales.Presentation/Restaurant.Modules.Sales.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/Restaurant.Modules.Fulfillment.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Fulfillment/Restaurant.Modules.Fulfillment.Presentation/Restaurant.Modules.Fulfillment.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Billing/Restaurant.Modules.Billing.Infrastructure/Restaurant.Modules.Billing.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Billing/Restaurant.Modules.Billing.Presentation/Restaurant.Modules.Billing.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Infrastructure/Restaurant.Modules.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Presentation/Restaurant.Modules.Inventory.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Workforce/Restaurant.Modules.Workforce.Infrastructure/Restaurant.Modules.Workforce.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Workforce/Restaurant.Modules.Workforce.Presentation/Restaurant.Modules.Workforce.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Audit/Restaurant.Modules.Audit.Infrastructure/Restaurant.Modules.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Audit/Restaurant.Modules.Audit.Presentation/Restaurant.Modules.Audit.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Reporting/Restaurant.Modules.Reporting.Infrastructure/Restaurant.Modules.Reporting.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Reporting/Restaurant.Modules.Reporting.Presentation/Restaurant.Modules.Reporting.Presentation.csproj" />
+  </ItemGroup>
+</Project>

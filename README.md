@@ -2,7 +2,34 @@
 
 Ứng dụng quản lý một nhà hàng quy mô vừa, hỗ trợ **ăn tại bàn và mua mang về**. Hệ thống kết nối khách hàng, nhân viên phục vụ, bếp, bar và quản lý trong luồng đặt món, chế biến, phục vụ, thanh toán và kiểm soát nguyên liệu.
 
-> **Trạng thái dự án:** Đang khởi tạo repository dựa trên tài liệu phân tích và thiết kế. Repository hiện chưa có mã nguồn ứng dụng, migration hoặc cấu hình triển khai. Các nội dung dưới đây mô tả phạm vi và định hướng xây dựng, không phải tính năng đã triển khai.
+> **Trạng thái dự án:** Đã khởi tạo base backend .NET 10 theo Clean Architecture + Modular Monolith, gồm 10 module, DbContext/schema độc lập, API Host, JWT validation, health checks và kiểm thử. Các chức năng nhà hàng bên dưới là phạm vi sẽ triển khai; hiện chưa có luồng nghiệp vụ, migration hoặc frontend.
+
+## Chạy base backend
+
+Yêu cầu .NET SDK theo [global.json](global.json). Từ thư mục gốc repo:
+
+```powershell
+dotnet restore RestaurantManagement.slnx --locked-mode
+dotnet build RestaurantManagement.slnx -c Release --no-restore
+dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
+
+# Key riêng cho phiên phát triển, không in hoặc commit.
+$jwtBytes = New-Object byte[] 48
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($jwtBytes)
+$rng.Dispose()
+$env:Jwt__SigningKey = [Convert]::ToBase64String($jwtBytes)
+
+dotnet run --project src/Host/Restaurant.Api --launch-profile http --no-restore
+```
+
+API local: `http://localhost:5080`. Liveness: `/health/live`; OpenAPI JSON trong
+Development: `/openapi/v1.json`. Chưa có Swagger UI. `/health/ready` cần SQL Server;
+host không tự tạo database hoặc chạy migration. Endpoint `/api/system/modules`
+cần JWT có role `Admin`; base chưa có endpoint phát hành token.
+
+Xem [cấu trúc và cấu hình backend](docs/backend-foundation.md),
+[Git workflow](CONTRIBUTING.md) và [GitHub Actions](.github/workflows/backend-ci.yml).
 
 ## Mục tiêu
 
@@ -70,7 +97,9 @@ Giao hàng, đa chi nhánh, đặt bàn trước, quản lý lô/hạn sử dụ
 
 ## Công nghệ dự kiến
 
-Các phiên bản dưới đây là baseline từ tài liệu thiết kế. Phiên bản vá, tương thích dependency và giấy phép sẽ được rà soát khi khởi tạo ứng dụng; repository chưa có lockfile xác nhận cấu hình chạy.
+Các phiên bản dưới đây là baseline sản phẩm từ tài liệu thiết kế. Dependency backend
+đã triển khai được quản lý tại `Directory.Packages.props` và các `packages.lock.json`;
+những thành phần còn lại được bổ sung khi triển khai chức năng tương ứng.
 
 | Thành phần | Lựa chọn |
 | --- | --- |
@@ -160,17 +189,22 @@ Mười nhóm chức năng phục vụ mô tả nghiệp vụ; các module là r
 
 ## Trạng thái triển khai và bước tiếp theo
 
-Repository hiện có README này. Chưa có solution .NET, ứng dụng Next.js, Dockerfile, Compose hoặc bộ kiểm thử, nên chưa có lệnh chạy ứng dụng để cung cấp.
+Đã có solution `RestaurantManagement.slnx`: một API Host, 40 project thuộc 10 module,
+hai project kiểm thử và CI restore/build/test/publish. Domain/Application là khung
+để phát triển; Identity có EF model chuẩn, các module khác chưa có entity nghiệp vụ.
 
-1. Khởi tạo backend/frontend và khóa phiên bản dependency.
-2. Thiết lập module, DbContext/schema và migration độc lập.
-3. Xây dựng luồng order → chế biến → phục vụ → thanh toán.
+1. Triển khai đăng nhập/refresh token, quyền nghiệp vụ và frontend Next.js.
+2. Thêm entity, EF configuration và migration riêng cho từng module.
+3. Xây dựng luồng order → chế biến → phục vụ → thanh toán, kèm transaction và Outbox.
 4. Bổ sung kho định lượng, sự cố/hoàn tiền, ca, chấm công và báo cáo.
-5. Hoàn thiện kiểm thử, CI, triển khai và vận hành.
+5. Tích hợp MinIO, SignalR, Hangfire, Serilog và cấu hình Docker/Nginx để triển khai.
 
 ## Tài liệu
 
-Tài liệu phân tích, đặc tả use case, sơ đồ, thiết kế dữ liệu và báo cáo đang nằm trong workspace tài liệu riêng, chưa được đưa vào repository này. Khi bổ sung, cần đồng bộ với thiết kế hiện hành và phân biệt script DB minh họa với migration triển khai ứng dụng.
+Hướng dẫn base code nằm tại [docs/backend-foundation.md](docs/backend-foundation.md).
+Thiết kế nền tảng được ghi tại [backend foundation design](docs/superpowers/specs/2026-10-29-backend-foundation-design.md).
+Tài liệu phân tích chi tiết, use case, sơ đồ và báo cáo vẫn ở workspace tài liệu riêng;
+chưa được chép vào repo. Script DB minh họa không thay thế migration sản phẩm.
 
 ## Giấy phép
 
