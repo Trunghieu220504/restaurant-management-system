@@ -1,0 +1,60 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, "feature/**", "fix/**", "chore/**", "docs/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Restore locked dependencies
+        run: dotnet restore RestaurantManagement.slnx --locked-mode
+      - name: Check formatting
+        run: dotnet format whitespace RestaurantManagement.slnx --verify-no-changes --no-restore
+      - name: Build
+        run: dotnet build RestaurantManagement.slnx -c Release --no-restore
+      - name: Test
+        run: dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore --logger trx --results-directory TestResults
+      - name: Publish API
+        run: dotnet publish src/Host/Restaurant.Api/Restaurant.Api.csproj -c Release --no-build --no-restore -o artifacts/api
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload API artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: restaurant-api
+          path: artifacts/api/
+          retention-days: 7

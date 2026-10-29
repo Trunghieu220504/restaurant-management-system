@@ -1,0 +1,69 @@
+<Solution>
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/Restaurant.Api/Restaurant.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Restaurant.Modules.Identity.Domain/Restaurant.Modules.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/Restaurant.Modules.Identity.Application/Restaurant.Modules.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Restaurant.Modules.Identity.Infrastructure.csproj" />
+    <Project Path="src/Modules/Identity/Restaurant.Modules.Identity.Presentation/Restaurant.Modules.Identity.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Seating/">
+    <Project Path="src/Modules/Seating/Restaurant.Modules.Seating.Domain/Restaurant.Modules.Seating.Domain.csproj" />
+    <Project Path="src/Modules/Seating/Restaurant.Modules.Seating.Application/Restaurant.Modules.Seating.Application.csproj" />
+    <Project Path="src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/Restaurant.Modules.Seating.Infrastructure.csproj" />
+    <Project Path="src/Modules/Seating/Restaurant.Modules.Seating.Presentation/Restaurant.Modules.Seating.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Catalog/">
+    <Project Path="src/Modules/Catalog/Restaurant.Modules.Catalog.Domain/Restaurant.Modules.Catalog.Domain.csproj" />
+    <Project Path="src/Modules/Catalog/Restaurant.Modules.Catalog.Application/Restaurant.Modules.Catalog.Application.csproj" />
+    <Project Path="src/Modules/Catalog/Restaurant.Modules.Catalog.Infrastructure/Restaurant.Modules.Catalog.Infrastructure.csproj" />
+    <Project Path="src/Modules/Catalog/Restaurant.Modules.Catalog.Presentation/Restaurant.Modules.Catalog.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Sales/">
+    <Project Path="src/Modules/Sales/Restaurant.Modules.Sales.Domain/Restaurant.Modules.Sales.Domain.csproj" />
+    <Project Path="src/Modules/Sales/Restaurant.Modules.Sales.Application/Restaurant.Modules.Sales.Application.csproj" />
+    <Project Path="src/Modules/Sales/Restaurant.Modules.Sales.Infrastructure/Restaurant.Modules.Sales.Infrastructure.csproj" />
+    <Project Path="src/Modules/Sales/Restaurant.Modules.Sales.Presentation/Restaurant.Modules.Sales.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Fulfillment/">
+    <Project Path="src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Domain/Restaurant.Modules.Fulfillment.Domain.csproj" />
+    <Project Path="src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Application/Restaurant.Modules.Fulfillment.Application.csproj" />
+    <Project Path="src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/Restaurant.Modules.Fulfillment.Infrastructure.csproj" />
+    <Project Path="src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Presentation/Restaurant.Modules.Fulfillment.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Billing/">
+    <Project Path="src/Modules/Billing/Restaurant.Modules.Billing.Domain/Restaurant.Modules.Billing.Domain.csproj" />
+    <Project Path="src/Modules/Billing/Restaurant.Modules.Billing.Application/Restaurant.Modules.Billing.Application.csproj" />
+    <Project Path="src/Modules/Billing/Restaurant.Modules.Billing.Infrastructure/Restaurant.Modules.Billing.Infrastructure.csproj" />
+    <Project Path="src/Modules/Billing/Restaurant.Modules.Billing.Presentation/Restaurant.Modules.Billing.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Inventory/">
+    <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Domain/Restaurant.Modules.Inventory.Domain.csproj" />
+    <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Application/Restaurant.Modules.Inventory.Application.csproj" />
+    <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Infrastructure/Restaurant.Modules.Inventory.Infrastructure.csproj" />
+    <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Presentation/Restaurant.Modules.Inventory.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Workforce/">
+    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Domain/Restaurant.Modules.Workforce.Domain.csproj" />
+    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Application/Restaurant.Modules.Workforce.Application.csproj" />
+    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Infrastructure/Restaurant.Modules.Workforce.Infrastructure.csproj" />
+    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Presentation/Restaurant.Modules.Workforce.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Audit/">
+    <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Domain/Restaurant.Modules.Audit.Domain.csproj" />
+    <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Application/Restaurant.Modules.Audit.Application.csproj" />
+    <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Infrastructure/Restaurant.Modules.Audit.Infrastructure.csproj" />
+    <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Presentation/Restaurant.Modules.Audit.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Reporting/">
+    <Project Path="src/Modules/Reporting/Restaurant.Modules.Reporting.Domain/Restaurant.Modules.Reporting.Domain.csproj" />
+    <Project Path="src/Modules/Reporting/Restaurant.Modules.Reporting.Application/Restaurant.Modules.Reporting.Application.csproj" />
+    <Project Path="src/Modules/Reporting/Restaurant.Modules.Reporting.Infrastructure/Restaurant.Modules.Reporting.Infrastructure.csproj" />
+    <Project Path="src/Modules/Reporting/Restaurant.Modules.Reporting.Presentation/Restaurant.Modules.Reporting.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Restaurant.ArchitectureTests/Restaurant.ArchitectureTests.csproj" />
+    <Project Path="tests/Restaurant.IntegrationTests/Restaurant.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
