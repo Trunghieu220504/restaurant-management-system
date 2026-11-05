@@ -8,7 +8,7 @@ public sealed class DependencyTests
     private static readonly string[] Modules =
     [
         "Identity", "Seating", "Catalog", "Sales", "Fulfillment",
-        "Billing", "Inventory", "Workforce", "Audit", "Reporting"
+        "Billing", "Inventory", "SalesDay", "Audit", "Reporting"
     ];
 
     [Fact]

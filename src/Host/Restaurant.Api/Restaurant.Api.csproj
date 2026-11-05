@@ -21,8 +21,8 @@
     <ProjectReference Include="../../Modules/Billing/Restaurant.Modules.Billing.Presentation/Restaurant.Modules.Billing.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Infrastructure/Restaurant.Modules.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Presentation/Restaurant.Modules.Inventory.Presentation.csproj" />
-    <ProjectReference Include="../../Modules/Workforce/Restaurant.Modules.Workforce.Infrastructure/Restaurant.Modules.Workforce.Infrastructure.csproj" />
-    <ProjectReference Include="../../Modules/Workforce/Restaurant.Modules.Workforce.Presentation/Restaurant.Modules.Workforce.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/SalesDay/Restaurant.Modules.SalesDay.Infrastructure/Restaurant.Modules.SalesDay.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/SalesDay/Restaurant.Modules.SalesDay.Presentation/Restaurant.Modules.SalesDay.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Audit/Restaurant.Modules.Audit.Infrastructure/Restaurant.Modules.Audit.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Audit/Restaurant.Modules.Audit.Presentation/Restaurant.Modules.Audit.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Reporting/Restaurant.Modules.Reporting.Infrastructure/Restaurant.Modules.Reporting.Infrastructure.csproj" />
