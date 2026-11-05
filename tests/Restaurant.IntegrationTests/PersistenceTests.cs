@@ -57,7 +57,7 @@ public sealed class PersistenceTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Contains("[identity].[AspNetUsers]", script);
         Assert.Contains("[identity].[AspNetRoles]", script);
         Assert.Contains("[identity].[AspNetUserTokens]", script);
-        Assert.Equal(7, context.Model.GetEntityTypes().Count());
+        Assert.Equal(10, context.Model.GetEntityTypes().Count());
     }
 
     [Fact]

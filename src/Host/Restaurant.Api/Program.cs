@@ -2,6 +2,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Restaurant.Api.Configuration;
 using Restaurant.Api.Modules;
 
+if (args.Contains("--bootstrap-admin", StringComparer.Ordinal))
+{
+    Environment.ExitCode = await AdminBootstrapCommand.RunAsync(args);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();

@@ -202,6 +202,10 @@ hai project kiểm thử và CI restore/build/test/publish. Domain/Application l
 
 ## Tài liệu
 
+Identity migration and explicit admin bootstrap are documented in
+[docs/identity-initialization.md](docs/identity-initialization.md). This does not
+implement login, refresh tokens or operational permission handlers.
+
 Current imported scope, proposed data design and report limitations are indexed
 in [docs/SYNC_STATUS.md](docs/SYNC_STATUS.md). This index supersedes older notes
 below claiming all analysis documents remain outside this repository.
