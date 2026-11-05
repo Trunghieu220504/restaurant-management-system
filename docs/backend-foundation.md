@@ -25,7 +25,7 @@ restaurant-management-system/
 |       |-- Fulfillment/
 |       |-- Billing/
 |       |-- Inventory/
-|       |-- Workforce/
+|       |-- SalesDay/
 |       |-- Audit/
 |       `-- Reporting/
 |-- tests/
@@ -124,7 +124,7 @@ Nếu cổng đã được sử dụng, truyền `--urls http://localhost:5081` 
 OpenAPI JSON trong Development: `/openapi/v1.json`. Chưa có Swagger UI.
 `/health/live` trả 200 khi host hoạt động, kể cả khi chưa có database.
 `/health/ready` trả 503 khi không kết nối được SQL Server; 200 chỉ xác nhận
-kết nối/truy vấn SQL, chưa kiểm tra phiên bản migration hay MinIO.
+kết nối/truy vấn SQL, chưa kiểm tra phiên bản migration hay Cloudflare R2.
 
 Chuỗi kết nối Development mặc định dùng Windows Authentication với
 `localhost/RestaurantManagement`. Đổi theo SQL Server của bạn:
@@ -177,7 +177,7 @@ Tạo thư mục `artifacts` trước lệnh xuất script nếu chưa có. Đ�
 báo cáo làm migration. Thay đổi database thật không được thực hiện bởi CI hiện tại.
 
 Transaction liên module và Outbox mới ở mức thiết kế. Không mặc định rằng hai
-SaveChanges ở hai context là nguyên tử; khi làm hoàn thành món/trừ kho cần điều phối
+SaveChanges ở hai context là nguyên tử; khi làm chốt ngày bán (đếm tồn cuối, tổng hợp doanh thu/giá vốn) cần điều phối
 chung DbConnection/DbTransaction và kiểm thử rollback.
 
 ## Kiểm thử
@@ -195,4 +195,4 @@ transaction hay nghiệp vụ đã hoạt động trên SQL Server thật.
 ## Bước tiếp theo
 Triển khai Identity login/refresh token và policy nghiệp vụ; sau đó xây dựng use case
 xuyên suốt order, fulfillment, inventory, billing theo tài liệu đã chốt.
-Next.js, MinIO, Nginx/Docker, SignalR, Hangfire và Serilog chưa được cài trong base này.
+Next.js, Cloudflare R2, Nginx/Docker, SignalR, Hangfire và Serilog chưa được cài trong base này.
