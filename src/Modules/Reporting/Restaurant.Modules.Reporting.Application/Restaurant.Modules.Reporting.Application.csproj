@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Restaurant.Modules.Reporting.Domain/Restaurant.Modules.Reporting.Domain.csproj" />
+  </ItemGroup>
+</Project>

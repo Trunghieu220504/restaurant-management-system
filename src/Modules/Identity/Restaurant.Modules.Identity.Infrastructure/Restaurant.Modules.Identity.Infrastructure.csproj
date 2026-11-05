@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Restaurant.Modules.Identity.Domain/Restaurant.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="../Restaurant.Modules.Identity.Application/Restaurant.Modules.Identity.Application.csproj" />
+  </ItemGroup>
+</Project>

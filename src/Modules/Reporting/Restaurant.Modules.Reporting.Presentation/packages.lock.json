@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "restaurant.modules.reporting.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.Reporting.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.reporting.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}
