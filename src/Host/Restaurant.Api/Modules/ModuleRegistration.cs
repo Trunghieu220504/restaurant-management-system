@@ -13,8 +13,8 @@ using Restaurant.Modules.Billing.Infrastructure;
 using Restaurant.Modules.Billing.Presentation;
 using Restaurant.Modules.Inventory.Infrastructure;
 using Restaurant.Modules.Inventory.Presentation;
-using Restaurant.Modules.Workforce.Infrastructure;
-using Restaurant.Modules.Workforce.Presentation;
+using Restaurant.Modules.SalesDay.Infrastructure;
+using Restaurant.Modules.SalesDay.Presentation;
 using Restaurant.Modules.Audit.Infrastructure;
 using Restaurant.Modules.Audit.Presentation;
 using Restaurant.Modules.Reporting.Infrastructure;
@@ -40,7 +40,7 @@ public static class ModuleRegistration
         services.AddFulfillmentModule();
         services.AddBillingModule();
         services.AddInventoryModule();
-        services.AddWorkforceModule();
+        services.AddSalesDayModule();
         services.AddAuditModule();
         services.AddReportingModule();
         services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver", tags: ["ready"]);
@@ -56,11 +56,11 @@ public static class ModuleRegistration
         endpoints.MapFulfillmentEndpoints();
         endpoints.MapBillingEndpoints();
         endpoints.MapInventoryEndpoints();
-        endpoints.MapWorkforceEndpoints();
+        endpoints.MapSalesDayEndpoints();
         endpoints.MapAuditEndpoints();
         endpoints.MapReportingEndpoints();
     }
 
     public static IReadOnlyList<string> Names { get; } = Array.AsReadOnly<string>(
-        ["Identity", "Seating", "Catalog", "Sales", "Fulfillment", "Billing", "Inventory", "Workforce", "Audit", "Reporting"]);
+        ["Identity", "Seating", "Catalog", "Sales", "Fulfillment", "Billing", "Inventory", "SalesDay", "Audit", "Reporting"]);
 }

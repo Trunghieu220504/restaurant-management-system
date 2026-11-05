@@ -662,10 +662,10 @@
           "Restaurant.Modules.Reporting.Presentation": "[1.0.0, )",
           "Restaurant.Modules.Sales.Infrastructure": "[1.0.0, )",
           "Restaurant.Modules.Sales.Presentation": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Infrastructure": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Presentation": "[1.0.0, )",
           "Restaurant.Modules.Seating.Infrastructure": "[1.0.0, )",
-          "Restaurant.Modules.Seating.Presentation": "[1.0.0, )",
-          "Restaurant.Modules.Workforce.Infrastructure": "[1.0.0, )",
-          "Restaurant.Modules.Workforce.Presentation": "[1.0.0, )"
+          "Restaurant.Modules.Seating.Presentation": "[1.0.0, )"
         }
       },
       "restaurant.modules.audit.application": {
@@ -853,6 +853,29 @@
           "Restaurant.Modules.Sales.Application": "[1.0.0, )"
         }
       },
+      "restaurant.modules.salesday.application": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.salesday.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.salesday.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
+          "Restaurant.Modules.SalesDay.Application": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
+        }
+      },
+      "restaurant.modules.salesday.presentation": {
+        "type": "Project",
+        "dependencies": {
+          "Restaurant.Modules.SalesDay.Application": "[1.0.0, )"
+        }
+      },
       "restaurant.modules.seating.application": {
         "type": "Project",
         "dependencies": {
@@ -874,29 +897,6 @@
         "type": "Project",
         "dependencies": {
           "Restaurant.Modules.Seating.Application": "[1.0.0, )"
-        }
-      },
-      "restaurant.modules.workforce.application": {
-        "type": "Project",
-        "dependencies": {
-          "Restaurant.Modules.Workforce.Domain": "[1.0.0, )"
-        }
-      },
-      "restaurant.modules.workforce.domain": {
-        "type": "Project"
-      },
-      "restaurant.modules.workforce.infrastructure": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
-          "Restaurant.Modules.Workforce.Application": "[1.0.0, )",
-          "Restaurant.Modules.Workforce.Domain": "[1.0.0, )"
-        }
-      },
-      "restaurant.modules.workforce.presentation": {
-        "type": "Project",
-        "dependencies": {
-          "Restaurant.Modules.Workforce.Application": "[1.0.0, )"
         }
       },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {

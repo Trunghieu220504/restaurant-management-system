@@ -9,7 +9,7 @@ using Restaurant.Modules.Sales.Infrastructure.Persistence;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
 using Restaurant.Modules.Billing.Infrastructure.Persistence;
 using Restaurant.Modules.Inventory.Infrastructure.Persistence;
-using Restaurant.Modules.Workforce.Infrastructure.Persistence;
+using Restaurant.Modules.SalesDay.Infrastructure.Persistence;
 using Restaurant.Modules.Audit.Infrastructure.Persistence;
 using Restaurant.Modules.Reporting.Infrastructure.Persistence;
 using Xunit;
@@ -27,7 +27,7 @@ public sealed class PersistenceTests(ApiFactory factory) : IClassFixture<ApiFact
         { typeof(FulfillmentDbContext), "fulfillment" },
         { typeof(BillingDbContext), "billing" },
         { typeof(InventoryDbContext), "inventory" },
-        { typeof(WorkforceDbContext), "workforce" },
+        { typeof(SalesDayDbContext), "salesday" },
         { typeof(AuditDbContext), "audit" },
         { typeof(ReportingDbContext), "reporting" },
     };

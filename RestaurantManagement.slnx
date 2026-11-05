@@ -44,11 +44,11 @@
     <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Infrastructure/Restaurant.Modules.Inventory.Infrastructure.csproj" />
     <Project Path="src/Modules/Inventory/Restaurant.Modules.Inventory.Presentation/Restaurant.Modules.Inventory.Presentation.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/Workforce/">
-    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Domain/Restaurant.Modules.Workforce.Domain.csproj" />
-    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Application/Restaurant.Modules.Workforce.Application.csproj" />
-    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Infrastructure/Restaurant.Modules.Workforce.Infrastructure.csproj" />
-    <Project Path="src/Modules/Workforce/Restaurant.Modules.Workforce.Presentation/Restaurant.Modules.Workforce.Presentation.csproj" />
+  <Folder Name="/src/Modules/SalesDay/">
+    <Project Path="src/Modules/SalesDay/Restaurant.Modules.SalesDay.Domain/Restaurant.Modules.SalesDay.Domain.csproj" />
+    <Project Path="src/Modules/SalesDay/Restaurant.Modules.SalesDay.Application/Restaurant.Modules.SalesDay.Application.csproj" />
+    <Project Path="src/Modules/SalesDay/Restaurant.Modules.SalesDay.Infrastructure/Restaurant.Modules.SalesDay.Infrastructure.csproj" />
+    <Project Path="src/Modules/SalesDay/Restaurant.Modules.SalesDay.Presentation/Restaurant.Modules.SalesDay.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Audit/">
     <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Domain/Restaurant.Modules.Audit.Domain.csproj" />

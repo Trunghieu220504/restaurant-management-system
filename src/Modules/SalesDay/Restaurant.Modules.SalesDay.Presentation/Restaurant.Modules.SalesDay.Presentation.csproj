@@ -3,6 +3,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Restaurant.Modules.Workforce.Application/Restaurant.Modules.Workforce.Application.csproj" />
+    <ProjectReference Include="../Restaurant.Modules.SalesDay.Application/Restaurant.Modules.SalesDay.Application.csproj" />
   </ItemGroup>
 </Project>
