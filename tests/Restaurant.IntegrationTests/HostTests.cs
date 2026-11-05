@@ -38,7 +38,7 @@ public sealed class HostTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Theory]
-    [InlineData("Staff", "restaurant-tests", "restaurant-tests-client", false, HttpStatusCode.Forbidden)]
+    [InlineData("Staff", "restaurant-tests", "restaurant-tests-client", false, HttpStatusCode.Unauthorized)]
     [InlineData("Admin", "wrong-issuer", "restaurant-tests-client", false, HttpStatusCode.Unauthorized)]
     [InlineData("Admin", "restaurant-tests", "wrong-audience", false, HttpStatusCode.Unauthorized)]
     [InlineData("Admin", "restaurant-tests", "restaurant-tests-client", true, HttpStatusCode.Unauthorized)]
@@ -52,16 +52,12 @@ public sealed class HostTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task Valid_admin_can_read_all_registered_modules()
+    public async Task Signed_admin_token_without_database_session_is_rejected()
     {
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("Admin"));
         using var response = await client.GetAsync("/api/system/modules");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var modules = await response.Content.ReadFromJsonAsync<string[]>();
-        Assert.NotNull(modules);
-        Assert.Equal(10, modules.Length);
-        Assert.Contains("Inventory", modules);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
@@ -95,7 +91,7 @@ public sealed class HostTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateToken("Admin"));
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/openapi/v1.json")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/openapi/v1.json")).StatusCode);
     }
 
     [Fact]

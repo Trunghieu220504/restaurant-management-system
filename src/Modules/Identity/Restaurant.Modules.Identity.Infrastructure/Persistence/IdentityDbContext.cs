@@ -15,6 +15,18 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
+        // New IdentityUser instances have no CLR activity property; let SQL supply true.
+        modelBuilder.Entity<IdentityUser<Guid>>().Property<bool>("IsActive").HasDefaultValue(true).HasSentinel(false);
+        modelBuilder.Entity<LoginSession>(entity =>
+        {
+            entity.ToTable("LoginSession", t => t.HasCheckConstraint("CK_LoginSession_Expiry", "[ExpiresAt] > [CreatedAt]"));
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.SecurityStamp).HasMaxLength(256).IsRequired();
+            entity.Property(s => s.RowVersion).IsRowVersion();
+            entity.HasIndex(s => new { s.UserId, s.RevokedAt });
+            entity.HasIndex(s => s.ExpiresAt);
+            entity.HasOne<IdentityUser<Guid>>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Permission>(entity =>
         {
             entity.ToTable("Permission");

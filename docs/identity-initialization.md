@@ -11,7 +11,8 @@ Staff (Nhan vien), Kitchen (Bep), Bar (Bar). Policy SystemAdministration hien
 co van nhan role Admin. Admin chi co identity.accounts.manage va
 identity.roles.manage; Manager chi quan ly tai khoan cap duoi. Ma quyen la
 hop dong cho cac use case sau, KHONG phai authorization handler da trien khai.
-Hien chua co API login, tao tai khoan, refresh token hay phan quyen chi tiet.
+Login/me/logout/doi mat khau da duoc bo sung, xem identity-authentication.md.
+Tao tai khoan qua API, refresh token va phan quyen nghiep vu chi tiet van chua co.
 
 Danh muc quyen va mapping nam trong IdentityCatalog.cs; migration quan ly seed
 bang ID co dinh. Chay API khong seed lai hay ghi de thay doi phan quyen.
