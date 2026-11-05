@@ -85,7 +85,9 @@ mat khau ngau nhien duoc che log, chay 6 test that va huy container sau job.
 
 Test SQL gom migration lap lai, giu grant da sua, hash password, khong tao lai,
 khong nang quyen account cu, bootstrap dong thoi, password yeu va rollback loi.
-Test SQL chua chay local neu khong co instance test. Theo doi job rieng tren PR.
+Test SQL khong chay local vi Docker daemon khong san sang. Tren GitHub PR #7,
+hai job CI da thanh cong cho commit 9a2cfbf, gom 6 test SQL Server that trong
+instance tam. Day khong phai migration hay tao tai khoan tren database nha hang.
 
 Nhanh feature/identity-initialization ke thua chore/sync-salesday-docs, da vao main
 qua PR #6 trong luc trien khai. develop van o README ban dau; PR vao develop se
