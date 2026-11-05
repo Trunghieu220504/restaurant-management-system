@@ -132,6 +132,12 @@ namespace Restaurant.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasSentinel(false);
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
@@ -255,6 +261,47 @@ namespace Restaurant.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", "identity");
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.Identity.Domain.LoginSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("UserId", "RevokedAt");
+
+                    b.ToTable("LoginSession", "identity", t =>
+                        {
+                            t.HasCheckConstraint("CK_LoginSession_Expiry", "[ExpiresAt] > [CreatedAt]");
+                        });
                 });
 
             modelBuilder.Entity("Restaurant.Modules.Identity.Domain.Permission", b =>
@@ -700,6 +747,15 @@ namespace Restaurant.Modules.Identity.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.Identity.Domain.LoginSession", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser<System.Guid>", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

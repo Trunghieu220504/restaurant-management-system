@@ -194,7 +194,7 @@ Mười nhóm chức năng phục vụ mô tả nghiệp vụ; các module là r
 hai project kiểm thử và CI restore/build/test/publish. Domain/Application là khung
 để phát triển; Identity có EF model chuẩn, các module khác chưa có entity nghiệp vụ.
 
-1. Triển khai đăng nhập/refresh token, quyền nghiệp vụ và frontend Next.js.
+1. Da co login/me/logout/change-password voi phien SQL va JWT ngan han; tiep theo la refresh token, quyen nghiep vu va frontend Next.js.
 2. Thêm entity, EF configuration và migration riêng cho từng module.
 3. Xây dựng luồng order → chế biến → phục vụ → thanh toán, kèm transaction và Outbox.
 4. Bổ sung nhập nguyên liệu/tồn cuối theo ngày, sự cố/hoàn tiền, chốt ngày bán và báo cáo lợi nhuận.
@@ -203,8 +203,10 @@ hai project kiểm thử và CI restore/build/test/publish. Domain/Application l
 ## Tài liệu
 
 Identity migration and explicit admin bootstrap are documented in
-[docs/identity-initialization.md](docs/identity-initialization.md). This does not
-implement login, refresh tokens or operational permission handlers.
+[docs/identity-initialization.md](docs/identity-initialization.md).
+Login/current account/logout/password change are documented in
+[docs/identity-authentication.md](docs/identity-authentication.md). Refresh tokens
+and operational permission handlers remain future work.
 
 Current imported scope, proposed data design and report limitations are indexed
 in [docs/SYNC_STATUS.md](docs/SYNC_STATUS.md). This index supersedes older notes
