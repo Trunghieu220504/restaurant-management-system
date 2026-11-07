@@ -29,7 +29,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
           global-json-file: global.json
           cache: true
@@ -58,3 +58,49 @@ jobs:
           name: restaurant-api
           path: artifacts/api/
           retention-days: 7
+
+  identity-sql-tests:
+    name: Identity SQL Server tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          global-json-file: global.json
+      - name: Start disposable SQL Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 24)Aa1!"
+          echo "::add-mask::$password"
+          export MSSQL_SA_PASSWORD="$password"
+          docker run -d --name identity-test-sql -p 127.0.0.1:1433:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD mcr.microsoft.com/mssql/server:2022-latest
+          echo "IDENTITY_TEST_SQLSERVER=Server=127.0.0.1,1433;User Id=sa;Password=$password;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5" >> "$GITHUB_ENV"
+          ready=false
+          for attempt in $(seq 1 60); do
+            if docker exec -e SQLCMDPASSWORD="$password" identity-test-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q 'SELECT 1' >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Restore locked dependencies
+        run: dotnet restore RestaurantManagement.slnx --locked-mode
+      - name: Run SQL migration and bootstrap tests
+        run: dotnet test tests/Restaurant.IntegrationTests -c Release --no-restore --filter FullyQualifiedName~IdentitySqlServer --logger trx --results-directory TestResults
+      - name: Upload SQL test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: identity-sql-test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+      - name: Remove disposable SQL Server
+        if: always()
+        run: docker rm -f identity-test-sql || true

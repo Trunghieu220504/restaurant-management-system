@@ -2,6 +2,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Restaurant.Api.Configuration;
 using Restaurant.Api.Modules;
 
+if (args.Contains("--bootstrap-admin", StringComparer.Ordinal))
+{
+    Environment.ExitCode = await AdminBootstrapCommand.RunAsync(args);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
@@ -30,8 +36,29 @@ if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"
 }
 
 app.UseCors("Frontend");
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/identity"))
+    {
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            context.Response.Headers.Pragma = "no-cache";
+            return Task.CompletedTask;
+        });
+        var bodySize = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+        if (bodySize is { IsReadOnly: false }) bodySize.MaxRequestBodySize = 16384;
+        if (context.Request.ContentLength > 16384)
+        {
+            context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            return;
+        }
+    }
+    await next(context);
+});
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

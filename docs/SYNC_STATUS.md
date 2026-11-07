@@ -13,6 +13,9 @@ Backend is a foundation: ten modules, including SalesDay instead of Workforce.
 Passing scaffold tests does not validate order/payment/stock business workflows.
 Identity currently uses Guid keys. Business migrations must wait for approved
 contracts, explicit EF mappings and transactional integration tests.
+Identity now has an initial migration/admin bootstrap plus an additive session
+migration and login/me/logout/password-change APIs. See identity-authentication.md
+for revocation behavior, tests and limits; no production DB is auto-migrated.
 
 Do not regenerate this report from old report scripts or treat historical ERDs
 as migration-ready. Only selected current documents were imported; old SQL,

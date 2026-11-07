@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Modules.Identity.Application.Authentication;
+using Restaurant.Modules.Identity.Infrastructure.Authentication;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Restaurant.Modules.Identity.Infrastructure;
 
@@ -9,6 +12,8 @@ public static class IdentityModule
 {
     public static IServiceCollection AddIdentityModule(this IServiceCollection services)
     {
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IIdentityAuthentication, IdentityAuthentication>();
         services.AddDbContext<IdentityDbContext>((provider, options) =>
         {
             var connectionString = provider.GetRequiredService<IConfiguration>()
