@@ -16,6 +16,7 @@ public static class SalesDayModule
             SalesDayPersistence.Configure(options, connectionString);
         });
 
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IBusinessDays, BusinessDays>();
         return services;
     }
 }
