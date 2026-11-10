@@ -3,35 +3,46 @@ namespace Restaurant.Modules.Catalog.Domain;
 public sealed class NhomMon
 {
     public Guid Id { get; set; }
-    public string Ten { get; set; } = ""; public int ThuTu { get; set; }
+    public string Ten { get; set; } = "";
+    public int ThuTu { get; set; }
     public bool HoatDong { get; set; } = true;
     public byte[] Version { get; set; } = [];
 }
 public sealed class Mon
 {
     public Guid Id { get; set; }
-    public Guid NhomMonId { get; set; } public string Ma { get; set; } = ""; public string Ten { get; set; } = ""; public string Tram { get; set; } = "BEP"; public string? AnhObjectKey { get; set; }
+    public Guid NhomMonId { get; set; }
+    public string Ma { get; set; } = "";
+    public string Ten { get; set; } = "";
+    public string Tram { get; set; } = "BEP";
+    public string? AnhObjectKey { get; set; }
     public bool HoatDong { get; set; } = true;
     public byte[] Version { get; set; } = [];
 }
 public sealed class BienThe
 {
     public Guid Id { get; set; }
-    public Guid MonId { get; set; } public string Ma { get; set; } = ""; public string Ten { get; set; } = ""; public long Gia { get; set; }
+    public Guid MonId { get; set; }
+    public string Ma { get; set; } = "";
+    public string Ten { get; set; } = "";
+    public long Gia { get; set; }
     public bool HoatDong { get; set; } = true;
     public byte[] Version { get; set; } = [];
 }
 public sealed class NhomTuyChon
 {
     public Guid Id { get; set; }
-    public string Ten { get; set; } = ""; public string Loai { get; set; } = "TUY_CHON";
+    public string Ten { get; set; } = "";
+    public string Loai { get; set; } = "TUY_CHON";
     public bool HoatDong { get; set; } = true;
     public byte[] Version { get; set; } = [];
 }
 public sealed class TuyChon
 {
     public Guid Id { get; set; }
-    public Guid NhomTuyChonId { get; set; } public string Ten { get; set; } = ""; public long GiaCong { get; set; }
+    public Guid NhomTuyChonId { get; set; }
+    public string Ten { get; set; } = "";
+    public long GiaCong { get; set; }
     public bool HoatDong { get; set; } = true;
     public byte[] Version { get; set; } = [];
 }
