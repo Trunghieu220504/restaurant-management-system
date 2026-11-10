@@ -1,0 +1,112 @@
+.page {
+    max-width: 960px;
+    margin: auto;
+}
+.heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.heading h1 {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+.eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+.banner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 22px 0;
+    border-block: 1px solid #dce1e5;
+}
+.label {
+    display: block;
+    font-size: 12px;
+    color: #626972;
+    margin-bottom: 7px;
+}
+.date {
+    margin-left: auto;
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+}
+.form {
+    display: grid;
+    gap: 12px;
+    padding: 28px 0;
+    max-width: 360px;
+}
+.form h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.form label {
+    font-size: 13px;
+    font-weight: 550;
+}
+.form > input {
+    padding: 10px 12px;
+    min-width: 0;
+    border: 1px solid #cbd0d5;
+    border-radius: 5px;
+    background: white;
+}
+.form > button {
+    margin-top: 12px;
+    width: 100%;
+}
+.summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    padding: 30px 0;
+}
+.summary dt {
+    font-size: 13px;
+    color: #626972;
+    margin-bottom: 12px;
+}
+.summary dd {
+    font-size: 24px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.summary small {
+    font-size: 12px;
+    color: #626972;
+}
+.summary .timestamp {
+    font-size: 17px;
+}
+.error {
+    margin: 18px 0;
+    padding: 12px;
+    border-left: 3px solid #be3030;
+    background: #fff0f0;
+    color: #9d2525;
+    font-size: 14px;
+}
+.notice {
+    margin-top: 24px;
+    font-size: 14px;
+    color: #626972;
+}
+@media (max-width: 480px) {
+    .summary {
+        grid-template-columns: 1fr;
+    }
+    .date {
+        width: 100%;
+        margin: 0 0 0 38px;
+    }
+}
