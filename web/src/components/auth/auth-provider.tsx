@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+    changePassword as clientChangePassword,
     getMe,
     login as clientLogin,
     logout as clientLogout,
@@ -29,6 +30,10 @@ interface AuthContextValue {
     isAuthenticated: boolean;
     login: (u: string, p: string) => Promise<void>;
     logout: () => Promise<void>;
+    changePassword: (
+        currentPassword: string,
+        newPassword: string,
+    ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -115,6 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push("/login");
     }, [router]);
 
+    // Backend thu hồi mọi phiên (kể cả phiên hiện tại) sau khi đổi mật khẩu,
+    // nên người dùng phải đăng nhập lại.
+    const changePassword = useCallback(
+        async (currentPassword: string, newPassword: string) => {
+            await clientChangePassword(currentPassword, newPassword);
+            setUser(null);
+            router.replace("/login");
+        },
+        [router],
+    );
+
     const permissions = user?.permissions || [];
     const salesSession = useMemo(
         () =>
@@ -136,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isAuthenticated: !!user && !!getAccessToken(),
                 login,
                 logout,
+                changePassword,
             }}
         >
             <PermissionProvider permissions={permissions}>
