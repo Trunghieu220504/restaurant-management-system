@@ -141,9 +141,21 @@ mục 7 để chủ module duyệt. File chung (`Program.cs`, `ModuleRegistratio
 | (nền)           | Viết kế hoạch 7 tuần                                    | Người duyệt | Claude | In Review   | chưa commit                                                                                                   | `docs/phan-cong-chi-tiet-7-tuan.md`; chờ người duyệt xác nhận mục 11 của file đó                                             |
 | HAI-1.2b        | Sửa thứ tự khởi động Nginx HTTPS                        | Hải         | Hải    | In Progress | fix/hai-staging-startup                                                                                       | Đã thêm depends_on cho api/web; Compose config --quiet đạt; chưa thử khởi động lại stack trên VPS                            |
 
+| DUY-1.3-CI | Resolve PR conflicts and repair web CI | Duy | Codex | In Review | feature/duy-baoanh-integration / PR #24 | Local checks passed; waiting for remote CI and reviewer |
+
+DUY-1.3 integration: In Review - Duy, feature/duy-baoanh-integration.
+Base: Bao Anh inspect_web_branch 0b1c99b, with Duy components from develop.
+Verification before PR #24: 25 unit and 6 browser tests passed; production build
+passed. Full lint then had 6 prototype/mock errors and 55 warnings. No SQL/staging
+acceptance. Refresh defaults OFF pending backend implementation.
+The prior note saying no commit/push is superseded by PR #24 (f9a905b).
+
 ---
 
 ## 6. Việc tiếp theo (hàng đợi)
+
+PR #24: local conflict/CI repair verified; push updates and request Bao Anh review.
+Do not push directly to develop. Real SalesDay staging acceptance remains open.
 
 Thứ tự gợi ý cho **tuần 1**; chỉ bắt đầu khi không bị chặn bởi mục 7. Xem tiêu chí chi tiết theo mã việc trong kế hoạch.
 
@@ -284,6 +296,25 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - Kiểm tra: Compose nhận đủ sqlserver, api, web, nginx.
 - Chưa kiểm chứng: Docker build, khởi động lại stack và smoke test HTTPS trên VPS.
 - Tiếp theo: Commit, push, tạo Pull Request và review.
+
+### 2026-11-11 - Duy - PR 24 conflict and CI repair
+
+- Branch: feature/duy-baoanh-integration; PR #24 targets develop.
+- Merged develop 258d90a into the PR branch, retaining shared auth, safe SalesDay
+  parsing/tests and all incoming backend/infrastructure changes. Kept the backend
+  Identity contract from develop and preserved both branches' progress records.
+- Replaced invalid setup-node SHA with verified v4.4.0 SHA, using Node 22 like
+  the Dockerfile and npm ci with a reconciled lockfile (SignalR 10.0.11).
+- Fixed six lint errors, formatted source for existing CI, excluded generated
+  artifacts from Prettier, and updated obsolete scaffold home test to auth guard.
+- Verification: npm ci; npm run lint (0 errors, 55 warnings); npm run format:check;
+  npm run gen:api:check; npm test (25 passed); npm run build (passed);
+  PLAYWRIGHT_BASE_URL=http://127.0.0.1:3002 npm run test:e2e (7 passed);
+  git diff --check (passed). Initial build mock typing and obsolete home test
+  failed, then were corrected and rerun successfully.
+- Not verified: real SQL/staging login, deployment, and remote CI on final commit.
+- Next: push PR branch, wait for CI and at least one reviewer before squash merge
+  into develop. No direct develop push and no force push.
 
 ### 2026-11-07 — Claude — (nền) cập nhật hạ tầng tạm và giao việc chi tiết tuần 1 — thay mặt người duyệt
 

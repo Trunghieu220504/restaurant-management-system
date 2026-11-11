@@ -1,13 +1,32 @@
 // @vitest-environment node
 import { beforeEach, expect, it } from "vitest";
 import { server } from "@/test/msw/server";
-import { createSalesDayApi, localBusinessDate, SalesDayError } from "./api";
+import {
+    createSalesDayApi,
+    localBusinessDate,
+    SalesDayError,
+    parseDay,
+} from "./api";
 import { salesDayHandlers } from "./mock";
 const request: typeof fetch = (url, init) =>
     fetch(new URL(String(url), "http://localhost:5080"), init);
 const api = createSalesDayApi(() => "test-token", request);
 const input = { businessDate: "2026-11-10", openingCash: 1000000 };
 beforeEach(() => server.use(...salesDayHandlers()));
+it("normalizes safe int64 strings, rejecting unsafe amounts and unknown statuses", () => {
+    const day = {
+        id: "day",
+        businessDate: "2026-11-11",
+        openingCash: "1000000",
+        status: "DANG_BAN",
+        openedAt: "2026-11-11T00:00:00Z",
+    };
+    expect(parseDay(day)?.openingCash).toBe(1000000);
+    expect(() =>
+        parseDay({ ...day, openingCash: "9007199254740993" }),
+    ).toThrow();
+    expect(() => parseDay({ ...day, status: "UNKNOWN" })).toThrow();
+});
 it("opens a day and replays the same key without creating another", async () => {
     expect(await api.current()).toBeNull();
     const key = crypto.randomUUID();
