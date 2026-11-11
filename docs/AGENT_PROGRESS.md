@@ -123,6 +123,11 @@ mục 7 để chủ module duyệt. File chung (`Program.cs`, `ModuleRegistratio
 
 ## 5. Bảng trạng thái công việc
 
+HIE-1.3: In Review (cục bộ, chờ người dùng push/PR) — Codex thay mặt Hiếu trên `feature/identity-refresh-token`.
+Đã fetch và fast-forward tới `origin/develop` 258d90a; giữ nguyên thay đổi refresh dở dang và bản sao trong stash. Người dùng tự push sau kiểm chứng.
+Kiểm chứng: 83/83 test đạt trên SQL Server thật (81 Integration + 2 Architecture), không skip.
+Việc tiếp theo: người dùng push nhánh, mở PR vào develop, Phương review; Hải apply migration rồi Bảo Anh/Duy bật refresh và nghiệm thu staging.
+
 **Quy ước:** mã việc lấy từ [phan-cong-chi-tiet-7-tuan.md](phan-cong-chi-tiet-7-tuan.md) (`HIE-`, `PHU-`, `BAO-`, `DUY-`, `HAI-`, `ALL-`).
 **Việc không có dòng trong bảng này = `Todo`.** Chỉ thêm dòng khi bắt đầu. Trạng thái: `In Progress`, `In Review`
 (đã có PR, chờ review/CI), `Blocked`, `Done`, `Dropped`.
@@ -284,6 +289,18 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - Kiểm tra: Compose nhận đủ sqlserver, api, web, nginx.
 - Chưa kiểm chứng: Docker build, khởi động lại stack và smoke test HTTPS trên VPS.
 - Tiếp theo: Commit, push, tạo Pull Request và review.
+
+### 2026-11-11 — Codex — HIE-1.3 — thay mặt Hiếu
+
+- Nhánh: feature/identity-refresh-token; cập nhật từ origin/develop 258d90a, không push.
+- Hoàn thiện refresh cookie, hash SQL, rotation, thu hồi chuỗi khi dùng lại, rollback khi issuer lỗi và logout bằng cookie khi access token hết hạn.
+- Đối chiếu auth client PR #24; không đưa frontend chưa merge vào nhánh này.
+- Cập nhật OpenAPI, hợp đồng API, hướng dẫn migration/rollback, nội dung PR; CI chọn mọi lớp SqlServer, giữ tên job bắt buộc.
+- Test lỗi trước sửa: reuse tức thời và logout khi access session hết hạn đều thất bại đúng hành vi; sau sửa toàn bộ 81 Integration + 2 Architecture đạt, 0 lỗi, 0 skip trên SQL Server localhost với database thử nghiệm riêng. 14 test refresh đạt.
+- Lệnh: dotnet test RestaurantManagement.slnx -c Release --no-restore --verbosity quiet (có IDENTITY_TEST_SQLSERVER); dotnet restore --locked-mode; dotnet format whitespace --verify-no-changes --no-restore; git diff --check đều đạt.
+- EF has-pending-model-changes báo không lệch; sinh script idempotent tại TestResults/Refresh/identity-idempotent.sql; xuất OpenAPI từ host Development tạm và đã dừng host.
+- Chưa nghiệm thu: GitHub CI sau push, HTTPS/browser staging, phối hợp refresh giữa nhiều tab. Test SQL không chứng minh các phần này.
+- Tiếp theo: người dùng push, mở PR vào develop và nhờ Phương review; apply migration trước deploy API, frontend build với NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED=true khi endpoint sẵn sàng. Bản stash trước đồng bộ vẫn giữ để dự phòng.
 
 ### 2026-11-07 — Claude — (nền) cập nhật hạ tầng tạm và giao việc chi tiết tuần 1 — thay mặt người duyệt
 

@@ -1,17 +1,21 @@
 # Identity authentication APIs
 
-Four routes under /api/identity:
+Five routes under /api/identity:
 
 | Method | Route | Input | Result |
 |---|---|---|---|
 | POST | /login | userName, password | accessToken, expiresAt, account |
+| POST | /refresh | HttpOnly rt cookie, no body | accessToken, expiresAt, account; rotated cookie |
 | GET | /me | Bearer token | current id, userName, email, roles, permissions |
-| POST | /logout | Bearer token, no body | 204; current session revoked |
+| POST | /logout | Bearer token or rt cookie, no body | 204; current session revoked and cookie cleared |
 | POST | /change-password | currentPassword, newPassword | 204; all sessions revoked |
 
 Send Authorization: Bearer <accessToken> on protected requests. JWT is valid for
-15 minutes only. There is NO refresh endpoint in this increment: sign in again
-after expiry or password change. No public registration or cookie authentication.
+15 minutes. Refresh cookies expire seven days after login and rotate on every use.
+Reusing a consumed cookie immediately revokes its session. Password changes revoke
+all sessions. See [refresh handoff](identity-refresh-handoff.md) for migration,
+frontend integration and concurrent-tab limitations. No public registration;
+business endpoints continue to use Bearer authentication.
 Credentials/token DTOs redact ToString; never enable request-body logging for
 these routes. All Identity responses set Cache-Control: no-store.
 
