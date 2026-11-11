@@ -152,6 +152,7 @@ Việc tiếp theo: người dùng push nhánh, mở PR vào develop, Phương r
 | DUY-1.1/1.2/1.3 | Realtime/âm thanh, thành phần vận hành, màn mở ngày     | Duy         | —      | In Review   | PR #17 `feature/duy-week-one`                                                                                 | Đang mở; sửa file cấu hình của Bảo Anh nên cần Bảo Anh duyệt; màn mở ngày làm trên mock                                      |
 | (nền)           | Viết kế hoạch 7 tuần                                    | Người duyệt | Claude | In Review   | chưa commit                                                                                                   | `docs/phan-cong-chi-tiet-7-tuan.md`; chờ người duyệt xác nhận mục 11 của file đó                                             |
 | HAI-1.2b        | Sửa thứ tự khởi động Nginx HTTPS                        | Hải         | Hải    | In Progress | fix/hai-staging-startup                                                                                       | Đã thêm depends_on cho api/web; Compose config --quiet đạt; chưa thử khởi động lại stack trên VPS                            |
+| HIE-1.2 (Phương) | Review ADR-01 P1–P4: bản đồ idempotency/mã lỗi/khóa, bằng chứng C03 | Phương | Claude | In Progress | `docs/phuong-adr01-review` (từ `develop` 17244f5, chưa push) | `docs/reviews/adr01-phuong.md` + 4 test SQL mới; 9/9 đạt 1 + 20 lượt trên SQL Server thật máy Phương; chờ CI (Hải) và PR ADR-01 (Hiếu) |
 
 | DUY-1.3-CI | Resolve PR conflicts and repair web CI | Duy | Codex | In Review | feature/duy-baoanh-integration / PR #24 | Local checks passed; waiting for remote CI and reviewer |
 
@@ -405,3 +406,14 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - Kiểm tra: Compose nhận đủ sqlserver, api, web, nginx.
 - Chưa kiểm chứng: Docker build, khởi động lại stack và smoke test HTTPS trên VPS.
 - Tiếp theo: Commit, push, tạo Pull Request và review.
+
+### 2026-11-12 01:35 — Claude — HIE-1.2 (phần Phương: P1–P4) — thay mặt Phương
+
+- Nhánh / PR: `docs/phuong-adr01-review` từ `origin/develop` `17244f5` trên máy Phương; chưa commit, chưa push, chưa có PR.
+- Đã làm: theo hướng dẫn "Phương và Hải phối hợp hoàn thành HIE-1.2 / ADR-01", viết `docs/reviews/adr01-phuong.md` (bản đồ idempotency, mã lỗi, khóa ngày, transaction hai DbContext có tham chiếu file/dòng; đề xuất Giữ nguyên / Có thể dùng chung / Chưa đủ bằng chứng; review Outbox ở mức nguyên tử; checklist P4).
+- Thêm 4 test vào `PhuongWeekOneSqlServerTests`: replay/conflict tất định (kể cả khác người mở), 5 retry đồng thời cùng khóa, Exclusive thật sự chờ rồi được cấp (mã 1), lỗi ở module thứ hai làm rollback cả hai. Tổng kỳ vọng: 9 test.
+- File chính đã sửa: `docs/reviews/adr01-phuong.md` (mới), `tests/Restaurant.IntegrationTests/PhuongWeekOneSqlServerTests.cs`, file này.
+- Lệnh đã chạy trên máy Phương (Windows, SDK 10.0.302, Docker 29.7.2, `mssql/server:2022-latest`): `scripts/Test-PhuongWeek1.ps1` 1 lượt rồi 20 lượt tuần tự qua `TestResults/PhuongAdr01/run-adr01-p2.ps1` (gitignore). Lượt đơn: build Release 0 warning/0 error, 9 passed, 0 failed, 0 notExecuted. 20/20 lượt exit 0, mỗi TRX 9/9. `git diff --check` đạt; `dotnet format whitespace --folder --verify-no-changes` cho file test đạt.
+- Chưa kiểm chứng: CI chưa chạy 4 test mới (chưa push); chưa đọc TRX SQL của CI run 43064234818 (job SQL success, artifact `identity-sql-test-results`); `dotnet format whitespace` chế độ solution chưa chạy trên máy Phương.
+- Việc tiếp theo: Phương commit đúng 3 file, push và mở draft PR vào `develop`. Hải xác nhận TRX CI có đủ 9 test, không skip (H2). Hiếu gửi PR ADR-01 để Phương review (P4).
+- Quyết định mới: không. Các chữ ký helper trong báo cáo chỉ là đề xuất cho ADR-01.
