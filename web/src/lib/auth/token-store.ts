@@ -6,13 +6,13 @@
 let inMemoryAccessToken: string | null = null;
 
 export function getAccessToken(): string | null {
-  return inMemoryAccessToken;
+    return inMemoryAccessToken;
 }
 
 export function setAccessToken(token: string | null): void {
-  inMemoryAccessToken = token;
+    inMemoryAccessToken = token;
 }
 
 export function clearAccessToken(): void {
-  inMemoryAccessToken = null;
+    inMemoryAccessToken = null;
 }

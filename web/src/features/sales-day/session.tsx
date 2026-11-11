@@ -20,7 +20,10 @@ export function SalesDaySessionProvider({
 export function ConnectedSalesDay() {
     const session = useContext(Context);
     const api = useMemo(
-        () => (session ? createSalesDayApi(session.getAccessToken, session.request) : null),
+        () =>
+            session
+                ? createSalesDayApi(session.getAccessToken, session.request)
+                : null,
         [session],
     );
     if (!session || !api)

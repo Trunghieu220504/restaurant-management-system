@@ -1,0 +1,7 @@
+services:
+  web:
+    image: restaurant-web:staging
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks: [internal]

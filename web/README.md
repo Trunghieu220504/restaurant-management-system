@@ -37,6 +37,7 @@ a usability feature: the backend must authorize every protected API request inde
 ## Identity Authentication & Client-side Route Guard
 
 Follows the specification in `docs/api/identity-contract.md`:
+
 - **In-Memory Access Token**: Token is held strictly in RAM (`token-store.ts`) to prevent XSS.
 - **Refresh Cookie**: Scoped to `Path=/api/identity; HttpOnly; SameSite=Strict`.
 - **Client-side Route Guard**: Because the refresh cookie path is limited to `/api/identity`,

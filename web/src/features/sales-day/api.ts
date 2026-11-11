@@ -1,15 +1,42 @@
 import type { components } from "@/lib/api/generated";
 type DayContract = components["schemas"]["BusinessDayResponse"];
-export type BusinessDay = Omit<DayContract, "openingCash" | "status"> & { openingCash: number; status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT" };
-export type OpenDayInput = Omit<components["schemas"]["OpenDayRequest"], "openingCash"> & { openingCash: number };
+export type BusinessDay = Omit<DayContract, "openingCash" | "status"> & {
+    openingCash: number;
+    status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT";
+};
+export type OpenDayInput = Omit<
+    components["schemas"]["OpenDayRequest"],
+    "openingCash"
+> & { openingCash: number };
 export function parseDay(raw: unknown): BusinessDay | null {
     if (raw === null) return null;
-    if (!raw || typeof raw !== "object") throw new Error("Invalid day response");
+    if (!raw || typeof raw !== "object")
+        throw new Error("Invalid day response");
     const day = raw as Record<string, unknown>;
-    if (typeof day.openingCash !== "number" && (typeof day.openingCash !== "string" || !/^\d+$/.test(day.openingCash))) throw new Error("Invalid money");
+    if (
+        typeof day.openingCash !== "number" &&
+        (typeof day.openingCash !== "string" || !/^\d+$/.test(day.openingCash))
+    )
+        throw new Error("Invalid money");
     const openingCash = Number(day.openingCash);
-    if (!Number.isSafeInteger(openingCash) || openingCash < 0 || typeof day.id !== "string" || typeof day.businessDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day.businessDate) || typeof day.openedAt !== "string" || !Number.isFinite(Date.parse(day.openedAt)) || !["DANG_BAN", "CHO_CHOT", "DA_CHOT"].includes(String(day.status))) throw new Error("Invalid day response");
-    return { id: day.id, businessDate: day.businessDate, openingCash, openedAt: day.openedAt, status: day.status as BusinessDay["status"] };
+    if (
+        !Number.isSafeInteger(openingCash) ||
+        openingCash < 0 ||
+        typeof day.id !== "string" ||
+        typeof day.businessDate !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(day.businessDate) ||
+        typeof day.openedAt !== "string" ||
+        !Number.isFinite(Date.parse(day.openedAt)) ||
+        !["DANG_BAN", "CHO_CHOT", "DA_CHOT"].includes(String(day.status))
+    )
+        throw new Error("Invalid day response");
+    return {
+        id: day.id,
+        businessDate: day.businessDate,
+        openingCash,
+        openedAt: day.openedAt,
+        status: day.status as BusinessDay["status"],
+    };
 }
 export interface SalesDayApi {
     current(signal?: AbortSignal): Promise<BusinessDay | null>;
