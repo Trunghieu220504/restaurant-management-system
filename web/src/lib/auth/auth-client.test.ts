@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   authFetch,
   changePassword,
@@ -20,8 +20,20 @@ import {
 
 describe("Identity Authentication Client & Concurrency", () => {
   beforeEach(() => {
+    document.cookie = "refreshToken=; Path=/api/identity; Max-Age=0";
+    document.cookie = "refreshToken=; Path=/; Max-Age=0";
+    vi.stubEnv("NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED", "true");
     clearAccessToken();
     resetMockIdentityState();
+  });
+  afterEach(() => vi.unstubAllEnvs());
+  it("does not call an unimplemented refresh endpoint by default", async () => {
+    vi.stubEnv("NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED", "false");
+    setAccessToken("stale");
+    expect(await refreshAccessTokenSingleFlight()).toBeNull();
+    expect((await authFetch("/api/identity/me")).status).toBe(401);
+    expect(getRefreshCallCount()).toBe(0);
+    expect(getAccessToken()).toBeNull();
   });
 
   it("1. login stores access token in memory and getMe retrieves account", async () => {
@@ -99,7 +111,7 @@ describe("Identity Authentication Client & Concurrency", () => {
   });
 
   it("6. concurrent calls directly to refreshAccessTokenSingleFlight share the same in-flight promise", async () => {
-    seedMockSession();
+    await login("nguyen the vinh", "Password123!");
     expect(getRefreshCallCount()).toBe(0);
 
     // Call single-flight refresh 4 times simultaneously

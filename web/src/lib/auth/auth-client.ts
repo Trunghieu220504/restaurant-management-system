@@ -1,18 +1,9 @@
 import { clearAccessToken, getAccessToken, setAccessToken } from "./token-store";
+import type { components } from "@/lib/api/generated";
 
-export interface Account {
-  id: string;
-  userName: string;
-  email: string | null;
-  roles: string[];
-  permissions: string[];
-}
-
-export interface LoginResult {
-  accessToken: string;
-  expiresAt: string;
-  account: Account;
-}
+export type Account = components["schemas"]["CurrentAccount"];
+export type LoginResult = components["schemas"]["LoginResult"];
+export const isRefreshEnabled = () => process.env.NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED === "true";
 
 // Single-flight refresh lock: ensures multiple concurrent 401 requests trigger only ONE refresh call
 let refreshPromise: Promise<string | null> | null = null;
@@ -20,6 +11,7 @@ let unauthorizedListener: (() => void) | null = null;
 
 export function onUnauthorized(callback: () => void) {
   unauthorizedListener = callback;
+  return () => { if (unauthorizedListener === callback) unauthorizedListener = null; };
 }
 
 /**
@@ -27,6 +19,7 @@ export function onUnauthorized(callback: () => void) {
  * If multiple callers invoke this concurrently, they all await the exact same in-flight request.
  */
 export async function refreshAccessTokenSingleFlight(): Promise<string | null> {
+  if (!isRefreshEnabled()) return null;
   if (refreshPromise) {
     return refreshPromise;
   }
@@ -90,17 +83,15 @@ export async function getMe(): Promise<Account> {
 
 export async function logout(): Promise<void> {
   const token = getAccessToken();
-  try {
-    await fetch("/api/identity/logout", {
+    const response = await fetch("/api/identity/logout", {
       method: "POST",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "same-origin",
     });
-  } finally {
+    if (!response.ok && response.status !== 401) throw new Error("Chưa đăng xuất được. Vui lòng thử lại.");
     clearAccessToken();
-  }
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
@@ -127,9 +118,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
  */
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const token = getAccessToken();
-  const headers = new Headers(init.headers || {});
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init.headers).forEach((value, key) => headers.set(key, value));
 
-  if (token && !headers.has("Authorization")) {
+  if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -141,17 +133,20 @@ export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}
 
   // If 401 Unauthorized, attempt single-flight refresh and retry once
   if (response.status === 401) {
+    if (getAccessToken() !== token) return response;
     const newToken = await refreshAccessTokenSingleFlight();
 
     if (newToken) {
-      const retryHeaders = new Headers(init.headers || {});
+      const retryHeaders = new Headers(headers);
       retryHeaders.set("Authorization", `Bearer ${newToken}`);
       response = await fetch(input, {
         ...init,
         headers: retryHeaders,
         credentials: "same-origin",
       });
+      if (response.status === 401 && getAccessToken() === newToken) { clearAccessToken(); unauthorizedListener?.(); }
     } else {
+      clearAccessToken();
       if (unauthorizedListener) {
         unauthorizedListener();
       }

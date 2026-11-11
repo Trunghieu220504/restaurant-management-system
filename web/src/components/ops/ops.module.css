@@ -1,0 +1,131 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.neutral {
+    background: #eceff1;
+    color: #374151;
+}
+.success {
+    background: #def5e8;
+    color: #14633c;
+}
+.warning {
+    background: #fff0c2;
+    color: #785500;
+}
+.danger {
+    background: #ffe5e5;
+    color: #a52424;
+}
+.timer {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.moneyInput {
+    display: flex;
+    width: 100%;
+    max-width: 360px;
+    border: 1px solid #cbd0d5;
+    border-radius: 5px;
+    align-items: center;
+    background: white;
+}
+.moneyInput:focus-within {
+    outline: 2px solid #25805a;
+    outline-offset: 2px;
+}
+.moneyInput input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    outline: none;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.moneyInput span {
+    padding: 0 12px;
+    font-size: 12px;
+    color: #626972;
+}
+.error {
+    color: #b42323;
+    font-size: 13px;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+}
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.stepper input {
+    width: 64px;
+    height: 36px;
+    text-align: center;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+.receiptSection {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+}
+.receipt {
+    width: 80mm;
+    max-width: 100%;
+    padding: 14px;
+    border: 1px dashed #9ca3af;
+    font-size: 13px;
+    background: white;
+}
+.receipt h3,
+.receipt > p {
+    text-align: center;
+    margin: 8px 0;
+}
+.receipt hr {
+    margin: 12px 0;
+}
+.receiptLine {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 0;
+    overflow-wrap: anywhere;
+}
+.receiptLine span:first-child {
+    min-width: 0;
+}
+.receiptLine span:last-child {
+    flex-shrink: 0;
+}
+@media print {
+    :global(body *) {
+        visibility: hidden;
+    }
+    .receipt,
+    .receipt * {
+        visibility: visible;
+    }
+    .receipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        border: 0;
+        width: 72mm;
+        max-width: 72mm;
+        padding: 0;
+        color: black;
+    }
+    @page {
+        size: 80mm auto;
+        margin: 4mm;
+    }
+}

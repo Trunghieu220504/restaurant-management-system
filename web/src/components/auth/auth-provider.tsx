@@ -15,10 +15,13 @@ import {
   logout as clientLogout,
   onUnauthorized,
   refreshAccessTokenSingleFlight,
+  authFetch,
   type Account,
 } from "@/lib/auth/auth-client";
 import { clearAccessToken, getAccessToken } from "@/lib/auth/token-store";
 import { PermissionProvider } from "@/components/permission-provider";
+import { SalesDaySessionProvider } from "@/features/sales-day/session";
+import { useMemo } from "react";
 
 interface AuthContextValue {
   user: Account | null;
@@ -64,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
 
     // Listen for global 401 unrecoverable event
-    onUnauthorized(() => {
+    const unsubscribe = onUnauthorized(() => {
       setUser(null);
       clearAccessToken();
       router.push("/login");
@@ -72,8 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      unsubscribe();
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const check = () => {
+      if (document.visibilityState !== "visible") return;
+      void getMe().then((account) => { if (active) setUser((old) => JSON.stringify(old) === JSON.stringify(account) ? old : account); }).catch(() => {});
+    };
+    const timer = setInterval(check, 30000);
+    window.addEventListener("focus", check);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("focus", check); };
+  }, [user]);
 
   const login = useCallback(
     async (u: string, p: string) => {
@@ -90,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const permissions = user?.permissions || [];
+  const salesSession = useMemo(() => user ? { getAccessToken, permissions: user.permissions, request: authFetch } : null, [user]);
 
   return (
     <AuthContext.Provider
@@ -102,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       <PermissionProvider permissions={permissions}>
-        {children}
+        <SalesDaySessionProvider session={salesSession}>{children}</SalesDaySessionProvider>
       </PermissionProvider>
     </AuthContext.Provider>
   );

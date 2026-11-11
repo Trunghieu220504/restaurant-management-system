@@ -7,40 +7,6 @@
  */
 
 export interface paths {
-    "/health/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Liveness probe */
-        get: operations["HealthLive"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health/ready": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Readiness probe */
-        get: operations["HealthReady"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/system/modules": {
         parameters: {
             query?: never;
@@ -48,7 +14,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get registered module names */
         get: operations["GetRegisteredModules"];
         put?: never;
         post?: never;
@@ -67,7 +32,6 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sign in with username and password */
         post: operations["IdentityLogin"];
         delete?: never;
         options?: never;
@@ -82,7 +46,6 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get current authenticated account */
         get: operations["IdentityCurrentAccount"];
         put?: never;
         post?: never;
@@ -101,7 +64,6 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Revoke current session */
         post: operations["IdentityLogout"];
         delete?: never;
         options?: never;
@@ -118,7 +80,6 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Change password for the current account */
         post: operations["IdentityChangePassword"];
         delete?: never;
         options?: never;
@@ -133,7 +94,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get current active business day */
+        /** @description Returns the active business day or null. Requires authentication. */
         get: operations["SalesDayCurrent"];
         put?: never;
         post?: never;
@@ -152,7 +113,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Open a new business day */
+        /** @description Requires permission salesday.manage and an Idempotency-Key UUID header. Same key and payload replays the response; conflicting payload returns 409. */
         post: operations["SalesDayOpen"];
         delete?: never;
         options?: never;
@@ -164,17 +125,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        LoginRequest: {
-            userName: string;
-            password: string;
+        BusinessDayResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            businessDate: string;
+            /** Format: int64 */
+            openingCash: number | string;
+            status: string;
+            /** Format: date-time */
+            openedAt: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword: null | string;
+            newPassword: null | string;
         };
         CurrentAccount: {
             /** Format: uuid */
             id: string;
             userName: string;
-            email?: string | null;
+            email: null | string;
             roles: string[];
             permissions: string[];
+        };
+        LoginRequest: {
+            userName: null | string;
+            password: null | string;
         };
         LoginResult: {
             accessToken: string;
@@ -182,44 +158,19 @@ export interface components {
             expiresAt: string;
             account: components["schemas"]["CurrentAccount"];
         };
-        ChangePasswordRequest: {
-            currentPassword: string;
-            newPassword: string;
-        };
-        OpenSalesDayRequest: {
-            /**
-             * Format: date
-             * @example 2026-11-10
-             */
-            businessDate: string;
-            /**
-             * Format: int64
-             * @example 1000000
-             */
-            openingCash: number;
-        };
-        SalesDayDto: {
-            /** Format: uuid */
-            id: string;
+        OpenDayRequest: {
             /** Format: date */
             businessDate: string;
             /** Format: int64 */
-            openingCash: number;
-            /** @enum {string} */
-            status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT";
-            /** Format: date-time */
-            openedAt: string;
-            /** Format: date-time */
-            closedAt?: string | null;
+            openingCash: number | string;
         };
         ProblemDetails: {
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            instance?: string;
-            code?: string;
-            [key: string]: unknown;
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
         };
     };
     responses: never;
@@ -228,50 +179,8 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type $defs = Record<string, never>;
 export interface operations {
-    HealthLive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Healthy */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    HealthReady: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Ready */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     GetRegisteredModules: {
         parameters: {
             query?: never;
@@ -281,24 +190,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of module names */
+            /** @description OK */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -319,7 +212,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Signed in successfully */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -328,7 +221,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResult"];
                 };
             };
-            /** @description Invalid input */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -337,7 +230,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Invalid credentials */
+            /** @description Unauthorized */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -345,6 +238,13 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -357,7 +257,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current account details */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -384,7 +284,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logged out successfully */
+            /** @description No Content */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -413,14 +313,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Password changed successfully */
+            /** @description No Content */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Invalid input or policy violation */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -431,6 +331,13 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -447,58 +354,49 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current business day or null */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesDayDto"];
+                    "application/json": components["schemas"]["BusinessDayResponse"];
                 };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
     SalesDayOpen: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OpenSalesDayRequest"];
+                "application/json": components["schemas"]["OpenDayRequest"];
             };
         };
         responses: {
-            /** @description Business day opened */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SalesDayDto"];
-                };
-            };
-            /** @description Idempotent replay of previously opened day */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SalesDayDto"];
+                    "application/json": components["schemas"]["BusinessDayResponse"];
                 };
             };
-            /** @description Invalid request */
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessDayResponse"];
+                };
+            };
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -521,7 +419,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Conflict (already open or previous day not closed) */
+            /** @description Conflict */
             409: {
                 headers: {
                     [name: string]: unknown;

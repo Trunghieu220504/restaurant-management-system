@@ -9,35 +9,31 @@ import { User, Lock, Eye, EyeOff, AlertCircle, QrCode } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [phone, setPhone] = useState("0985623569");
-  const [password, setPassword] = useState("Password123!");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setLoading(true);
 
     try {
       // Map phone to backend user or use standard username
-      const username = phone === "0985623569" ? "nguyen the vinh" : phone;
+      const username = phone;
       await login(username, password);
       // Chuyển sang màn hình Chọn / Quản lý Cửa hàng theo đúng sơ đồ luồng
-      router.push("/stores");
-    } catch (err: any) {
-      setError(err?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại số điện thoại hoặc mật khẩu.");
+      router.push("/sales-day");
+    } catch {
+      setError("Đăng nhập thất bại. Kiểm tra tài khoản, mật khẩu hoặc thử lại sau.");
     } finally {
       setLoading(false);
     }
   };
 
-  const setRoleDemo = (rolePhone: string, rolePass: string) => {
-    setPhone(rolePhone);
-    setPassword(rolePass);
-    setError(null);
-  };
 
   return (
     <div className="relative min-h-screen bg-white flex flex-col items-center justify-center p-4 overflow-hidden">
@@ -58,7 +54,7 @@ export default function LoginPage() {
 
         {/* Error notification */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-2xl flex items-center gap-2">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-2xl flex items-center gap-2">
             <AlertCircle size={16} className="shrink-0 text-red-500" />
             <span>{error}</span>
           </div>
@@ -75,8 +71,12 @@ export default function LoginPage() {
               type="text"
               required
               value={phone}
+              aria-label="Tài khoản"
+              autoComplete="username"
+              maxLength={256}
+              disabled={loading}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="Số điện thoại"
+              placeholder="Tài khoản"
               className="w-full pl-12 pr-4 py-3.5 bg-gray-100/90 text-gray-800 placeholder-gray-400 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition-all shadow-inner/10"
             />
           </div>
@@ -90,6 +90,10 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               required
               value={password}
+              aria-label="Mật khẩu"
+              autoComplete="current-password"
+              maxLength={1024}
+              disabled={loading}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mật khẩu"
               className="w-full pl-12 pr-12 py-3.5 bg-gray-100/90 text-gray-800 placeholder-gray-400 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition-all shadow-inner/10"
@@ -126,28 +130,6 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Demo Fast Account Selection Pills */}
-        <div className="pt-4 border-t border-gray-100 space-y-2 text-center">
-          <p className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
-            Tài khoản mẫu thử nghiệm
-          </p>
-          <div className="flex flex-wrap justify-center gap-1.5 text-xs">
-            <button
-              type="button"
-              onClick={() => setRoleDemo("0985623569", "Password123!")}
-              className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 hover:bg-rose-100 font-medium transition-colors"
-            >
-              Quản lý: 0985623569
-            </button>
-            <button
-              type="button"
-              onClick={() => setRoleDemo("0902646558", "Password123!")}
-              className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors"
-            >
-              Thu ngân: 0902646558
-            </button>
-          </div>
-        </div>
 
         {/* QR Customer Direct Access banner */}
         <div className="pt-2">

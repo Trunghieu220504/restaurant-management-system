@@ -2,10 +2,10 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import { astToString, default as openapiTS } from "openapi-typescript";
 
-loadEnvConfig(process.cwd());
+nextEnv.loadEnvConfig(process.cwd());
 
 function resolveSpecSource() {
   if (process.argv[2]) {
@@ -24,6 +24,7 @@ function resolveSpecSource() {
   }
 
   const candidateLocalFiles = [
+    resolve(process.cwd(), "../docs/api/openapi.json"),
     resolve(process.cwd(), "../docs/openapi.json"),
     resolve(process.cwd(), "docs/openapi.json"),
     resolve(process.cwd(), "../docs/openapi/v1.json"),
@@ -111,18 +112,18 @@ const readmeContent = [
   "> **DO NOT EDIT ANY FILES IN THIS DIRECTORY MANUALLY.**",
   ">",
   "> All files in `src/lib/api/generated/` are automatically produced by `openapi-typescript`",
-  "> from the committed OpenAPI specification (`docs/openapi.json`).",
+  "> from the committed OpenAPI specification (`docs/api/openapi.json`).",
   "> Any manual modifications will be overwritten and will cause CI verification to fail.",
   "",
   "## How to Regenerate",
   "",
-  "Whenever the OpenAPI specification (`docs/openapi.json`) changes, update the types with:",
+  "Whenever the OpenAPI specification (`docs/api/openapi.json`) changes, update the types with:",
   "",
   "```bash",
   "npm run gen:api",
   "```",
   "",
-  "Commit both `docs/openapi.json` and the updated `src/lib/api/generated/` together.",
+  "Commit both `docs/api/openapi.json` and the updated `src/lib/api/generated/` together.",
   "",
 ].join("\n");
 await writeFile(readmePath, readmeContent, "utf8");

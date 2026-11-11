@@ -16,6 +16,7 @@
     "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code src/lib/api/generated"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.3",
