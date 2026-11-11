@@ -1,11 +1,43 @@
-export type BusinessDay = {
-    id: string;
-    businessDate: string;
+import type { components } from "@/lib/api/generated";
+type DayContract = components["schemas"]["BusinessDayResponse"];
+export type BusinessDay = Omit<DayContract, "openingCash" | "status"> & {
     openingCash: number;
     status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT";
-    openedAt: string;
 };
-export type OpenDayInput = { businessDate: string; openingCash: number };
+export type OpenDayInput = Omit<
+    components["schemas"]["OpenDayRequest"],
+    "openingCash"
+> & { openingCash: number };
+export function parseDay(raw: unknown): BusinessDay | null {
+    if (raw === null) return null;
+    if (!raw || typeof raw !== "object")
+        throw new Error("Invalid day response");
+    const day = raw as Record<string, unknown>;
+    if (
+        typeof day.openingCash !== "number" &&
+        (typeof day.openingCash !== "string" || !/^\d+$/.test(day.openingCash))
+    )
+        throw new Error("Invalid money");
+    const openingCash = Number(day.openingCash);
+    if (
+        !Number.isSafeInteger(openingCash) ||
+        openingCash < 0 ||
+        typeof day.id !== "string" ||
+        typeof day.businessDate !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(day.businessDate) ||
+        typeof day.openedAt !== "string" ||
+        !Number.isFinite(Date.parse(day.openedAt)) ||
+        !["DANG_BAN", "CHO_CHOT", "DA_CHOT"].includes(String(day.status))
+    )
+        throw new Error("Invalid day response");
+    return {
+        id: day.id,
+        businessDate: day.businessDate,
+        openingCash,
+        openedAt: day.openedAt,
+        status: day.status as BusinessDay["status"],
+    };
+}
 export interface SalesDayApi {
     current(signal?: AbortSignal): Promise<BusinessDay | null>;
     open(input: OpenDayInput, key: string): Promise<BusinessDay>;
@@ -59,19 +91,22 @@ export function createSalesDayApi(
             throw new SalesDayError(response.status, body.code ?? "unknown");
         }
         const body = await response.text();
-        return body ? JSON.parse(body) : null;
+        return parseDay(body ? JSON.parse(body) : null);
     }
     return {
         current: (signal) => send("current", { signal }),
-        open: (input, key) =>
-            send("open", {
+        open: async (input, key) => {
+            const day = await send("open", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Idempotency-Key": key,
                 },
                 body: JSON.stringify(input),
-            }),
+            });
+            if (!day) throw new Error("Missing opened day");
+            return day;
+        },
     };
 }
 export function localBusinessDate(now = new Date()) {

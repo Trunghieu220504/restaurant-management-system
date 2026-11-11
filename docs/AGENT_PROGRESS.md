@@ -124,6 +124,13 @@ mục 7 để chủ module duyệt. File chung (`Program.cs`, `ModuleRegistratio
 ## 5. Bảng trạng thái công việc
 
 HIE-1.3: In Review (cục bộ, chờ người dùng push/PR) — Codex thay mặt Hiếu trên `feature/identity-refresh-token`.
+
+### HIE-1.3 PR conflict resolution
+
+- Merged origin/develop 169c089 into feature/identity-refresh-token; preserved both Hieu and Duy journal entries.
+- Regenerated frontend API types for refresh and logout 429 to satisfy the incoming Web CI contract check.
+- npm ci completed; frontend tests: 25/25 passed. No backend source changes in this merge; backend tests were not rerun.
+- Next: user pushes this branch to update the existing PR, waits for CI and obtains a new approval. No agent push.
 Đã fetch và fast-forward tới `origin/develop` 258d90a; giữ nguyên thay đổi refresh dở dang và bản sao trong stash. Người dùng tự push sau kiểm chứng.
 Kiểm chứng: 83/83 test đạt trên SQL Server thật (81 Integration + 2 Architecture), không skip.
 Việc tiếp theo: người dùng push nhánh, mở PR vào develop, Phương review; Hải apply migration rồi Bảo Anh/Duy bật refresh và nghiệm thu staging.
@@ -146,9 +153,21 @@ Việc tiếp theo: người dùng push nhánh, mở PR vào develop, Phương r
 | (nền)           | Viết kế hoạch 7 tuần                                    | Người duyệt | Claude | In Review   | chưa commit                                                                                                   | `docs/phan-cong-chi-tiet-7-tuan.md`; chờ người duyệt xác nhận mục 11 của file đó                                             |
 | HAI-1.2b        | Sửa thứ tự khởi động Nginx HTTPS                        | Hải         | Hải    | In Progress | fix/hai-staging-startup                                                                                       | Đã thêm depends_on cho api/web; Compose config --quiet đạt; chưa thử khởi động lại stack trên VPS                            |
 
+| DUY-1.3-CI | Resolve PR conflicts and repair web CI | Duy | Codex | In Review | feature/duy-baoanh-integration / PR #24 | Local checks passed; waiting for remote CI and reviewer |
+
+DUY-1.3 integration: In Review - Duy, feature/duy-baoanh-integration.
+Base: Bao Anh inspect_web_branch 0b1c99b, with Duy components from develop.
+Verification before PR #24: 25 unit and 6 browser tests passed; production build
+passed. Full lint then had 6 prototype/mock errors and 55 warnings. No SQL/staging
+acceptance. Refresh defaults OFF pending backend implementation.
+The prior note saying no commit/push is superseded by PR #24 (f9a905b).
+
 ---
 
 ## 6. Việc tiếp theo (hàng đợi)
+
+PR #24: local conflict/CI repair verified; push updates and request Bao Anh review.
+Do not push directly to develop. Real SalesDay staging acceptance remains open.
 
 Thứ tự gợi ý cho **tuần 1**; chỉ bắt đầu khi không bị chặn bởi mục 7. Xem tiêu chí chi tiết theo mã việc trong kế hoạch.
 
@@ -301,6 +320,25 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - EF has-pending-model-changes báo không lệch; sinh script idempotent tại TestResults/Refresh/identity-idempotent.sql; xuất OpenAPI từ host Development tạm và đã dừng host.
 - Chưa nghiệm thu: GitHub CI sau push, HTTPS/browser staging, phối hợp refresh giữa nhiều tab. Test SQL không chứng minh các phần này.
 - Tiếp theo: người dùng push, mở PR vào develop và nhờ Phương review; apply migration trước deploy API, frontend build với NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED=true khi endpoint sẵn sàng. Bản stash trước đồng bộ vẫn giữ để dự phòng.
+
+### 2026-11-11 - Duy - PR 24 conflict and CI repair
+
+- Branch: feature/duy-baoanh-integration; PR #24 targets develop.
+- Merged develop 258d90a into the PR branch, retaining shared auth, safe SalesDay
+  parsing/tests and all incoming backend/infrastructure changes. Kept the backend
+  Identity contract from develop and preserved both branches' progress records.
+- Replaced invalid setup-node SHA with verified v4.4.0 SHA, using Node 22 like
+  the Dockerfile and npm ci with a reconciled lockfile (SignalR 10.0.11).
+- Fixed six lint errors, formatted source for existing CI, excluded generated
+  artifacts from Prettier, and updated obsolete scaffold home test to auth guard.
+- Verification: npm ci; npm run lint (0 errors, 55 warnings); npm run format:check;
+  npm run gen:api:check; npm test (25 passed); npm run build (passed);
+  PLAYWRIGHT_BASE_URL=http://127.0.0.1:3002 npm run test:e2e (7 passed);
+  git diff --check (passed). Initial build mock typing and obsolete home test
+  failed, then were corrected and rerun successfully.
+- Not verified: real SQL/staging login, deployment, and remote CI on final commit.
+- Next: push PR branch, wait for CI and at least one reviewer before squash merge
+  into develop. No direct develop push and no force push.
 
 ### 2026-11-07 — Claude — (nền) cập nhật hạ tầng tạm và giao việc chi tiết tuần 1 — thay mặt người duyệt
 

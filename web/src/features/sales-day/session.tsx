@@ -5,13 +5,14 @@ import { SalesDayScreen } from "./sales-day-screen";
 type Session = {
     getAccessToken: () => string | null;
     permissions: readonly string[];
+    request?: typeof fetch;
 };
 const Context = createContext<Session | null>(null);
 export function SalesDaySessionProvider({
     session,
     children,
 }: {
-    session: Session;
+    session: Session | null;
     children: ReactNode;
 }) {
     return <Context.Provider value={session}>{children}</Context.Provider>;
@@ -19,7 +20,10 @@ export function SalesDaySessionProvider({
 export function ConnectedSalesDay() {
     const session = useContext(Context);
     const api = useMemo(
-        () => (session ? createSalesDayApi(session.getAccessToken) : null),
+        () =>
+            session
+                ? createSalesDayApi(session.getAccessToken, session.request)
+                : null,
         [session],
     );
     if (!session || !api)
