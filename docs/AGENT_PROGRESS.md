@@ -140,6 +140,7 @@ mục 7 để chủ module duyệt. File chung (`Program.cs`, `ModuleRegistratio
 | DUY-1.1/1.2/1.3 | Realtime/âm thanh, thành phần vận hành, màn mở ngày     | Duy         | —      | In Review   | PR #17 `feature/duy-week-one`                                                                                 | Đang mở; sửa file cấu hình của Bảo Anh nên cần Bảo Anh duyệt; màn mở ngày làm trên mock                                      |
 | (nền)           | Viết kế hoạch 7 tuần                                    | Người duyệt | Claude | In Review   | chưa commit                                                                                                   | `docs/phan-cong-chi-tiet-7-tuan.md`; chờ người duyệt xác nhận mục 11 của file đó                                             |
 | HAI-1.2b        | Sửa thứ tự khởi động Nginx HTTPS                        | Hải         | Hải    | In Progress | fix/hai-staging-startup                                                                                       | Đã thêm depends_on cho api/web; Compose config --quiet đạt; chưa thử khởi động lại stack trên VPS                            |
+| HAI-1.3 | CI backend, SQL Server và frontend | Hải | Hải | In Progress | ci/hai-week1 | SQL tests của Phương đã thêm vào CI; frontend 16/16 test PASS, build PASS, lint FAIL; GitHub Actions chưa kiểm chứng |
 
 ---
 
@@ -350,3 +351,15 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - Kiểm tra: Compose nhận đủ sqlserver, api, web, nginx.
 - Chưa kiểm chứng: Docker build, khởi động lại stack và smoke test HTTPS trên VPS.
 - Tiếp theo: Commit, push, tạo Pull Request và review.
+
+### 2026-11-11 — Hải — HAI-1.3
+
+- Nhánh: `ci/hai-week1`.
+- Đã làm: Cập nhật Backend CI để chạy thêm `PhuongWeekOneSqlServerTests`.
+- Đã làm: Tạo `.github/workflows/frontend-ci.yml` cho Next.js.
+- Kiểm tra frontend: `npm run test` PASS, 16/16 tests.
+- Kiểm tra frontend: `npm run build` PASS, Next.js 16.4.6.
+- Kiểm tra frontend: `npm run lint` FAIL, 1 error tại `src/app/dev/components/page.tsx` và 1 warning tại `src/components/ui/data-table.tsx`.
+- Kiểm tra Git: `git diff --cached --check` không báo lỗi.
+- Chưa kiểm chứng: GitHub Actions, SQL integration tests trên CI, branch protection.
+- Việc tiếp theo: Mở PR vào develop, phối hợp Bảo Anh/Duy sửa lint và kiểm tra GitHub Actions.

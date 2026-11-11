@@ -92,8 +92,8 @@ jobs:
           test "$ready" = true
       - name: Restore locked dependencies
         run: dotnet restore RestaurantManagement.slnx --locked-mode
-      - name: Run SQL migration and bootstrap tests
-        run: dotnet test tests/Restaurant.IntegrationTests -c Release --no-restore --filter FullyQualifiedName~IdentitySqlServer --logger trx --results-directory TestResults
+      - name: Run Identity and Phuong SQL integration tests
+        run: dotnet test tests/Restaurant.IntegrationTests -c Release --no-restore --filter "FullyQualifiedName~IdentitySqlServer|FullyQualifiedName~PhuongWeekOneSqlServerTests" --logger trx --results-directory TestResults
       - name: Upload SQL test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
