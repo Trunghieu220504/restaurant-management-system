@@ -12,18 +12,23 @@ import {
     Store,
     LogOut,
     ChevronRight,
-    ShieldCheck,
-    HelpCircle,
-    ArrowRight,
     ChefHat,
     QrCode,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { usePermissions } from "@/components/permission-provider";
+import {
+    canAccess,
+    guestQrPreviewPermissions,
+    hasAnyPermission,
+} from "@/lib/auth/route-permissions";
 import { useRestaurant } from "@/lib/store/restaurant-context";
 
 export default function MorePage() {
     const { user, logout } = useAuth();
+    const { can } = usePermissions();
     const { salesDay } = useRestaurant();
+    const displayName = user?.userName || "Tài khoản";
 
     const menuSections = [
         {
@@ -114,7 +119,12 @@ export default function MorePage() {
                 },
             ],
         },
-    ];
+    ]
+        .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => canAccess(item.href, can)),
+        }))
+        .filter((section) => section.items.length > 0);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col space-y-4 pb-24">
@@ -122,25 +132,27 @@ export default function MorePage() {
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="size-11 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center text-sm shadow-sm">
-                        N
+                        {displayName.charAt(0).toUpperCase()}
                     </div>
                     <div>
                         <h1 className="text-base font-bold text-gray-900">
-                            {user?.userName || "nguyen the vinh"}
+                            {displayName}
                         </h1>
                         <p className="text-xs text-gray-500">
-                            Chủ quán / Quản trị viên hệ thống
+                            {user?.roles.join(", ") || "Chưa có vai trò"}
                         </p>
                     </div>
                 </div>
 
-                <Link
-                    href="/guest?table=T04"
-                    className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-1.5"
-                >
-                    <QrCode size={14} />
-                    <span>Thử QR Khách</span>
-                </Link>
+                {hasAnyPermission(guestQrPreviewPermissions, can) && (
+                    <Link
+                        href="/guest?table=T04"
+                        className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                    >
+                        <QrCode size={14} />
+                        <span>Thử QR Khách</span>
+                    </Link>
+                )}
             </div>
 
             {/* Navigation Sections */}

@@ -26,23 +26,14 @@ function resolveSpecSource() {
         };
     }
 
-    const candidateLocalFiles = [
-        resolve(process.cwd(), "../docs/api/openapi.json"),
-        resolve(process.cwd(), "../docs/openapi.json"),
-        resolve(process.cwd(), "docs/openapi.json"),
-        resolve(process.cwd(), "../docs/openapi/v1.json"),
-        resolve(process.cwd(), "docs/openapi/v1.json"),
-        resolve(process.cwd(), "../openapi.json"),
-        resolve(process.cwd(), "openapi.json"),
-    ];
-
-    for (const candidate of candidateLocalFiles) {
-        if (existsSync(candidate)) {
-            return {
-                type: "local-file",
-                source: candidate,
-            };
-        }
+    // Single canonical spec committed by the backend (HIE contract). Do not add
+    // fallbacks: a stale copy elsewhere would silently generate the wrong types.
+    const committedSpec = resolve(process.cwd(), "../docs/api/openapi.json");
+    if (existsSync(committedSpec)) {
+        return {
+            type: "local-file",
+            source: committedSpec,
+        };
     }
 
     const apiUrl = (process.env.API_URL || "http://localhost:5080").replace(

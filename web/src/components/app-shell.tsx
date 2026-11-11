@@ -4,20 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     Boxes,
-    LayoutDashboard,
     Menu,
     ReceiptText,
-    Settings,
-    Users,
     Store,
-    BarChart2,
-    Tag,
-    UserCheck,
-    UserCircle,
     LogOut,
     LayoutGrid,
     ChefHat,
-    CalendarDays,
     Package,
     MoreHorizontal,
     QrCode,
@@ -26,12 +18,26 @@ import {
 import { useState, type ReactNode } from "react";
 import { usePermissions } from "@/components/permission-provider";
 import { useAuth } from "@/components/auth/auth-provider";
+import { Forbidden } from "@/components/forbidden";
+import {
+    canAccess,
+    guestQrPreviewPermissions,
+    hasAnyPermission,
+} from "@/lib/auth/route-permissions";
 import { useRestaurant } from "@/lib/store/restaurant-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type NavTab = {
+    label: string;
+    href: string;
+    icon: LucideIcon;
+    badge?: string;
+};
+
 // 5 TABS CHÍNH THEO ĐẶC TẢ SƠ ĐỒ ĐIỀU HƯỚNG
-export const primaryTabs = [
+// Tab nào hiện là do quyền của đường dẫn trong lib/auth/route-permissions.ts.
+export const primaryTabs: readonly NavTab[] = [
     { label: "Bàn", href: "/tables", icon: LayoutGrid, badge: "UC03" },
     { label: "Đơn hàng", href: "/orders", icon: ReceiptText, badge: "UC07" },
     { label: "Thực đơn", href: "/menu", icon: Boxes, badge: "UC05" },
@@ -46,7 +52,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     const { salesDay } = useRestaurant();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const displayName = user?.userName || "nguyen the vinh";
+    const visibleTabs = primaryTabs.filter((tab) => canAccess(tab.href, can));
+    const showKitchen = canAccess("/kitchen", can);
+    const showGuestQr = hasAnyPermission(guestQrPreviewPermissions, can);
+
+    const displayName = user?.userName || "Tài khoản";
     const userInitial = displayName.charAt(0).toUpperCase();
 
     return (
@@ -96,7 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <p className="px-3 text-[10px] font-bold text-gray-400 tracking-wider">
                             5 TAB VẬN HÀNH CHÍNH
                         </p>
-                        {primaryTabs.map(
+                        {visibleTabs.map(
                             ({ label, href, icon: Icon, badge }) => {
                                 const active =
                                     pathname === href ||
@@ -142,42 +152,48 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </div>
 
                     {/* Section 2: Mở rộng / Chức năng thêm */}
-                    <div className="space-y-1 pt-2 border-t border-gray-100">
-                        <p className="px-3 text-[10px] font-bold text-gray-400 tracking-wider">
-                            BẾP & ĐIỀU PHỐI (KDS)
-                        </p>
-                        <Link
-                            href="/kitchen"
-                            onClick={() => setSidebarOpen(false)}
-                            className={cn(
-                                "flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                                pathname === "/kitchen"
-                                    ? "bg-orange-50 text-orange-600 font-semibold"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    {(showKitchen || showGuestQr) && (
+                        <div className="space-y-1 pt-2 border-t border-gray-100">
+                            <p className="px-3 text-[10px] font-bold text-gray-400 tracking-wider">
+                                BẾP & ĐIỀU PHỐI (KDS)
+                            </p>
+                            {showKitchen && (
+                                <Link
+                                    href="/kitchen"
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={cn(
+                                        "flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                                        pathname === "/kitchen"
+                                            ? "bg-orange-50 text-orange-600 font-semibold"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    )}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <ChefHat className="size-4 text-orange-500" />
+                                        <span>Bếp & Bar (KDS)</span>
+                                    </div>
+                                    <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">
+                                        Chuông
+                                    </span>
+                                </Link>
                             )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <ChefHat className="size-4 text-orange-500" />
-                                <span>Bếp & Bar (KDS)</span>
-                            </div>
-                            <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">
-                                Chuông
-                            </span>
-                        </Link>
-                        <Link
-                            href="/guest?table=T04"
-                            onClick={() => setSidebarOpen(false)}
-                            className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <QrCode className="size-4 text-rose-500" />
-                                <span>Menu QR Khách (T04)</span>
-                            </div>
-                            <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
-                                Khách
-                            </span>
-                        </Link>
-                    </div>
+                            {showGuestQr && (
+                                <Link
+                                    href="/guest?table=T04"
+                                    onClick={() => setSidebarOpen(false)}
+                                    className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <QrCode className="size-4 text-rose-500" />
+                                        <span>Menu QR Khách (T04)</span>
+                                    </div>
+                                    <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
+                                        Khách
+                                    </span>
+                                </Link>
+                            )}
+                        </div>
+                    )}
                 </nav>
 
                 <div className="border-t p-3 space-y-2">
@@ -247,13 +263,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                     <div className="flex items-center gap-3">
                         {/* Quick Guest QR link */}
-                        <Link
-                            href="/guest?table=T04"
-                            className="hidden md:flex items-center gap-1.5 text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 px-2.5 py-1.5 rounded-lg font-bold border border-rose-200 transition-colors"
-                        >
-                            <QrCode size={14} />
-                            <span>Giao diện Khách QR</span>
-                        </Link>
+                        {showGuestQr && (
+                            <Link
+                                href="/guest?table=T04"
+                                className="hidden md:flex items-center gap-1.5 text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 px-2.5 py-1.5 rounded-lg font-bold border border-rose-200 transition-colors"
+                            >
+                                <QrCode size={14} />
+                                <span>Giao diện Khách QR</span>
+                            </Link>
+                        )}
 
                         <Link
                             href="/profile"
@@ -273,7 +291,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </header>
 
                 <main className="mx-auto w-full max-w-7xl p-3 sm:p-5 lg:p-6">
-                    {children}
+                    {canAccess(pathname, can) ? children : <Forbidden />}
                 </main>
             </div>
 
@@ -282,7 +300,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-label="Thanh điều hướng đáy màn hình di động"
                 className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 flex items-center justify-around py-1.5 px-1 lg:hidden shadow-lg"
             >
-                {primaryTabs.map(({ label, href, icon: Icon }) => {
+                {visibleTabs.map(({ label, href, icon: Icon }) => {
                     const active =
                         pathname === href ||
                         (href !== "/tables" && pathname.startsWith(href));

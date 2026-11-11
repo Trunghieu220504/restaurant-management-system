@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, Pencil, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -15,15 +16,30 @@ export default function ProfilePage() {
 
     const languages = ["Tiếng Việt", "English"];
 
-    const profileFields = [
-        { label: "Số điện thoại", value: "+84902646559" },
-        { label: "Họ tên", value: user?.userName || "nguyen the vinh" },
+    // API tài khoản (/me) chưa có số điện thoại nên chỉ hiện chỗ trống.
+    const profileFields: {
+        label: string;
+        value: string;
+        placeholder?: boolean;
+        href?: string;
+    }[] = [
+        {
+            label: "Số điện thoại",
+            value: "Chưa có số điện thoại",
+            placeholder: true,
+        },
+        { label: "Tài khoản", value: user?.userName || "" },
         {
             label: "Email",
             value: user?.email || "Nhập Email",
             placeholder: !user?.email,
         },
-        { label: "Mật khẩu", value: "Thay đổi mật khẩu", placeholder: true },
+        {
+            label: "Mật khẩu",
+            value: "Thay đổi mật khẩu",
+            placeholder: true,
+            href: "/profile/password",
+        },
     ];
 
     return (
@@ -43,28 +59,43 @@ export default function ProfilePage() {
             <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
                 {/* Profile rows */}
                 <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
-                    {profileFields.map((field) => (
-                        <div
-                            key={field.label}
-                            className="flex items-center justify-between px-4 py-4"
-                        >
-                            <span className="text-sm text-gray-500 w-32 shrink-0">
-                                {field.label}
-                            </span>
-                            <div className="flex items-center gap-2 flex-1 justify-end">
-                                <span
-                                    className={`text-sm font-medium ${
-                                        field.placeholder
-                                            ? "text-gray-400"
-                                            : "text-gray-800"
-                                    }`}
-                                >
-                                    {field.value}
+                    {profileFields.map((field) => {
+                        const content = (
+                            <>
+                                <span className="text-sm text-gray-500 w-32 shrink-0">
+                                    {field.label}
                                 </span>
-                                <Pencil className="w-4 h-4 text-red-500 shrink-0 cursor-pointer" />
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                    <span
+                                        className={`text-sm font-medium ${
+                                            field.placeholder
+                                                ? "text-gray-400"
+                                                : "text-gray-800"
+                                        }`}
+                                    >
+                                        {field.value}
+                                    </span>
+                                    <Pencil className="w-4 h-4 text-red-500 shrink-0" />
+                                </div>
+                            </>
+                        );
+                        return field.href ? (
+                            <Link
+                                key={field.label}
+                                href={field.href}
+                                className="flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors"
+                            >
+                                {content}
+                            </Link>
+                        ) : (
+                            <div
+                                key={field.label}
+                                className="flex items-center justify-between px-4 py-4"
+                            >
+                                {content}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Setting toggles */}

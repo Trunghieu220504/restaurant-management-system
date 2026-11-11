@@ -10,9 +10,24 @@ export type LoginResult = components["schemas"]["LoginResult"];
 export const isRefreshEnabled = () =>
     process.env.NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED === "true";
 
+/** Lỗi HTTP từ API Identity; giao diện chọn thông báo theo `status`. */
+export class AuthRequestError extends Error {
+    readonly status: number;
+
+    constructor(status: number, message: string) {
+        super(message);
+        this.name = "AuthRequestError";
+        this.status = status;
+    }
+}
+
 // Single-flight refresh lock: ensures multiple concurrent 401 requests trigger only ONE refresh call
 let refreshPromise: Promise<string | null> | null = null;
 let unauthorizedListener: (() => void) | null = null;
+
+// Backend thu hồi cả phiên khi một refresh token đã xoay vòng bị dùng lại, nên
+// các tab của cùng trình duyệt phải làm mới lần lượt (identity-refresh-handoff.md).
+const REFRESH_LOCK_NAME = "restaurant-identity-refresh";
 
 export function onUnauthorized(callback: () => void) {
     unauthorizedListener = callback;
@@ -21,9 +36,44 @@ export function onUnauthorized(callback: () => void) {
     };
 }
 
+async function requestNewAccessToken(): Promise<string | null> {
+    try {
+        const response = await fetch("/api/identity/refresh", {
+            method: "POST",
+            credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+            clearAccessToken();
+            return null;
+        }
+
+        const data: LoginResult = await response.json();
+        setAccessToken(data.accessToken);
+        return data.accessToken;
+    } catch {
+        clearAccessToken();
+        return null;
+    }
+}
+
+async function refreshWithCrossTabLock(): Promise<string | null> {
+    const locks =
+        typeof navigator === "undefined" ? undefined : navigator.locks;
+    if (!locks) return requestNewAccessToken();
+
+    try {
+        return await locks.request(REFRESH_LOCK_NAME, requestNewAccessToken);
+    } catch {
+        // requestNewAccessToken không bao giờ reject, nên đây chỉ là lỗi xin khóa.
+        return requestNewAccessToken();
+    }
+}
+
 /**
  * Performs a single-flight token refresh.
  * If multiple callers invoke this concurrently, they all await the exact same in-flight request.
+ * Across tabs, refreshes run one at a time through the Web Locks API when the browser supports it.
  */
 export async function refreshAccessTokenSingleFlight(): Promise<string | null> {
     if (!isRefreshEnabled()) return null;
@@ -31,31 +81,9 @@ export async function refreshAccessTokenSingleFlight(): Promise<string | null> {
         return refreshPromise;
     }
 
-    refreshPromise = (async () => {
-        try {
-            const response = await fetch("/api/identity/refresh", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "same-origin",
-            });
-
-            if (!response.ok) {
-                clearAccessToken();
-                return null;
-            }
-
-            const data: LoginResult = await response.json();
-            setAccessToken(data.accessToken);
-            return data.accessToken;
-        } catch {
-            clearAccessToken();
-            return null;
-        } finally {
-            refreshPromise = null;
-        }
-    })();
+    refreshPromise = refreshWithCrossTabLock().finally(() => {
+        refreshPromise = null;
+    });
 
     return refreshPromise;
 }
@@ -121,7 +149,10 @@ export async function changePassword(
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.title || "Password change failed");
+        throw new AuthRequestError(
+            response.status,
+            err.title || "Password change failed",
+        );
     }
 
     clearAccessToken();
@@ -154,8 +185,14 @@ export async function authFetch(
 
     // If 401 Unauthorized, attempt single-flight refresh and retry once
     if (response.status === 401) {
-        if (getAccessToken() !== token) return response;
-        const newToken = await refreshAccessTokenSingleFlight();
+        const current = getAccessToken();
+        // Đã đăng xuất trong lúc request đang chạy: không khôi phục phiên.
+        if (token && !current) return response;
+        // Request khác đã làm mới token trong lúc chờ: dùng luôn token đó.
+        const newToken =
+            current && current !== token
+                ? current
+                : await refreshAccessTokenSingleFlight();
 
         if (newToken) {
             const retryHeaders = new Headers(headers);

@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { delay, http, HttpResponse } from "msw";
 import {
+    AuthRequestError,
     authFetch,
     changePassword,
     getMe,
@@ -21,6 +23,7 @@ import {
     resetMockIdentityState,
     seedMockSession,
 } from "@/test/msw/handlers/identity";
+import { server } from "@/test/msw/server";
 
 describe("Identity Authentication Client & Concurrency", () => {
     beforeEach(() => {
@@ -43,25 +46,27 @@ describe("Identity Authentication Client & Concurrency", () => {
     it("1. login stores access token in memory and getMe retrieves account", async () => {
         expect(getAccessToken()).toBeNull();
 
-        const result = await login("nguyen the vinh", "Password123!");
+        const result = await login(defaultMockAccount.userName, "Password123!");
 
         expect(result.accessToken).toBeTruthy();
         expect(getAccessToken()).toBe(result.accessToken);
-        expect(result.account.userName).toBe("nguyen the vinh");
+        expect(result.account.userName).toBe(defaultMockAccount.userName);
 
         // Can fetch current user
         const account = await getMe();
-        expect(account.userName).toBe("nguyen the vinh");
+        expect(account.userName).toBe(defaultMockAccount.userName);
         expect(account.roles).toContain("Manager");
     });
 
     it("2. login rejects invalid password with 401 error", async () => {
-        await expect(login("nguyen the vinh", "WrongPass")).rejects.toThrow();
+        await expect(
+            login(defaultMockAccount.userName, "WrongPass"),
+        ).rejects.toThrow();
         expect(getAccessToken()).toBeNull();
     });
 
     it("3. logout revokes session and clears in-memory access token", async () => {
-        await login("nguyen the vinh", "Password123!");
+        await login(defaultMockAccount.userName, "Password123!");
         expect(getAccessToken()).not.toBeNull();
 
         await logout();
@@ -72,7 +77,7 @@ describe("Identity Authentication Client & Concurrency", () => {
     });
 
     it("4. changePassword verifies current password, updates, and revokes sessions", async () => {
-        await login("nguyen the vinh", "Password123!");
+        await login(defaultMockAccount.userName, "Password123!");
         expect(getAccessToken()).not.toBeNull();
 
         await changePassword("Password123!", "NewStrongPass456!");
@@ -115,7 +120,7 @@ describe("Identity Authentication Client & Concurrency", () => {
     });
 
     it("6. concurrent calls directly to refreshAccessTokenSingleFlight share the same in-flight promise", async () => {
-        await login("nguyen the vinh", "Password123!");
+        await login(defaultMockAccount.userName, "Password123!");
         expect(getRefreshCallCount()).toBe(0);
 
         // Call single-flight refresh 4 times simultaneously
@@ -131,6 +136,93 @@ describe("Identity Authentication Client & Concurrency", () => {
         expect(token1).toBe(token2);
         expect(token2).toBe(token3);
         expect(token3).toBe(token4);
+    });
+
+    it("8. a 401 that arrives after another request already refreshed retries with the new token", async () => {
+        // login (not seedMockSession) so MSW's cookie store holds a valid refresh cookie
+        await login(defaultMockAccount.userName, "Password123!");
+        setAccessToken("stale_token");
+        server.use(
+            http.get("*/api/identity/me", async ({ request }) => {
+                if (
+                    request.headers.get("x-test-slow") === "1" &&
+                    request.headers.get("authorization") ===
+                        "Bearer stale_token"
+                ) {
+                    await delay(50);
+                    return HttpResponse.json(
+                        { status: 401, title: "Expired." },
+                        { status: 401 },
+                    );
+                }
+            }),
+        );
+
+        const slow = authFetch("/api/identity/me", {
+            headers: { "x-test-slow": "1" },
+        });
+        const fast = await authFetch("/api/identity/me");
+        expect(fast.status).toBe(200);
+
+        expect((await slow).status).toBe(200);
+        expect(getRefreshCallCount()).toBe(1);
+    });
+
+    it("9. a 401 that arrives after logout does not restore the session", async () => {
+        seedMockSession();
+        setAccessToken("stale_token");
+        server.use(
+            http.get("*/api/identity/me", async () => {
+                await delay(20);
+                return HttpResponse.json(
+                    { status: 401, title: "Expired." },
+                    { status: 401 },
+                );
+            }),
+        );
+
+        const pending = authFetch("/api/identity/me");
+        clearAccessToken();
+
+        expect((await pending).status).toBe(401);
+        expect(getRefreshCallCount()).toBe(0);
+        expect(getAccessToken()).toBeNull();
+    });
+
+    it("10. refresh is serialized across tabs with the Web Locks API when available", async () => {
+        const request = vi.fn(
+            (_name: string, callback: () => Promise<unknown>) => callback(),
+        );
+        Object.defineProperty(navigator, "locks", {
+            configurable: true,
+            value: { request },
+        });
+
+        try {
+            await login(defaultMockAccount.userName, "Password123!");
+            const token = await refreshAccessTokenSingleFlight();
+
+            expect(token).toBeTruthy();
+            expect(request).toHaveBeenCalledTimes(1);
+            expect(request.mock.calls[0][0]).toBe(
+                "restaurant-identity-refresh",
+            );
+        } finally {
+            Reflect.deleteProperty(navigator, "locks");
+        }
+    });
+
+    it("11. changePassword exposes the HTTP status so the form can show a generic error", async () => {
+        await login(defaultMockAccount.userName, "Password123!");
+
+        const error = await changePassword(
+            "WrongPassword1!",
+            "NewStrongPass456!",
+        ).catch((reason: unknown) => reason);
+
+        expect(error).toBeInstanceOf(AuthRequestError);
+        expect((error as AuthRequestError).status).toBe(400);
+        expect(getAccessToken()).not.toBeNull();
     });
 
     it("7. when refresh fails, all concurrent requests fail and onUnauthorized listener is triggered", async () => {

@@ -7,9 +7,9 @@ import {
     Plus,
     TrendingUp,
     TrendingDown,
-    Store,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface RestaurantStore {
     id: number;
@@ -19,6 +19,7 @@ interface RestaurantStore {
 }
 
 export default function StoresPage() {
+    const { user } = useAuth();
     const [stores, setStores] = useState<RestaurantStore[]>([
         {
             id: 1,
@@ -67,10 +68,10 @@ export default function StoresPage() {
                 >
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 text-sm">
-                            nguyen the vinh
+                            {user?.userName || "Tài khoản"}
                         </span>
                         <span className="text-xs text-gray-500">
-                            +84902646559
+                            {user?.email || "Chưa có email"}
                         </span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-gray-400">

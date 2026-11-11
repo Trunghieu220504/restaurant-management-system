@@ -316,7 +316,7 @@ export default function InventoryPage() {
                             1.200.000đ)
                         </p>
                         <span className="text-[10px] text-gray-400 block pt-1">
-                            Người lập: nguyen the vinh • Ngày: 11/11/2026
+                            Người lập: Quản lý ca (mẫu) • Ngày: 11/11/2026
                         </span>
                     </div>
                 </div>

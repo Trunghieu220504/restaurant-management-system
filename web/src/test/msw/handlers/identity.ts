@@ -10,8 +10,8 @@ export interface MockAccount {
 
 export const defaultMockAccount: MockAccount = {
     id: "e4293f01-6b45-4299-8f0a-7098e9c8f001",
-    userName: "nguyen the vinh",
-    email: "vinh@restaurant.local",
+    userName: "quanly01",
+    email: "quanly01@restaurant.local",
     roles: ["Manager"],
     permissions: [
         "sales.orders.manage",
