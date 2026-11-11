@@ -129,6 +129,7 @@ verify real API/database. No commit/push. Refresh defaults OFF pending backend.
 
 | Mã | Việc | Người giao | Agent | Trạng thái | Nhánh / PR | Ghi chú |
 |---|---|---|---|---|---|---|
+| DUY-1.3-CI | Resolve PR conflicts and repair web CI | Duy | Codex | In Progress | feature/duy-baoanh-integration / PR #24 | Preserve shared auth and SalesDay; no direct push to develop |
 | (nền) | Identity: migration, danh mục quyền, bootstrap admin | Hiếu | — | Done | PR #7 (đã merge) | Theo `git log`; chưa chạy lại |
 | HIE-1.1 | Đưa nhánh xác thực Identity vào `develop` | Hiếu | — | Done | PR #7, #8 (đã merge 05/11) | Có trên `develop`. Lệnh kiểm chứng: xem `git log origin/develop` |
 | (nền) | Hợp đồng API Identity: OpenAPI + `identity-contract.md` | Hiếu | Claude | In Progress | `docs/identity-api-contract` (commit `e5cdc04`, đã push bản cũ; cần `--force-with-lease` sau khi sửa message) | Quá hạn 10/11 17:00; frontend đang chờ. Hiếu push và mở PR vào `develop` |
