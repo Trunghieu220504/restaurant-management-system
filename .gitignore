@@ -23,3 +23,8 @@ node_modules/
 coverage/
 .DS_Store
 Thumbs.db
+
+# Staging runtime data - never commit
+infra/certbot/
+infra/.env
+infra/nginx/*.bak

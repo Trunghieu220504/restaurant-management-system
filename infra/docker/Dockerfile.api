@@ -1,0 +1,13 @@
+# Run from actual repository root (contains RestaurantManagement.slnx and global.json)
+FROM mcr.microsoft.com/dotnet/sdk:10.0.300 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore RestaurantManagement.slnx --locked-mode
+RUN dotnet publish src/Host/Restaurant.Api/Restaurant.Api.csproj -c Release --no-restore -o /out /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=build /out/ .
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Restaurant.Api.dll"]
