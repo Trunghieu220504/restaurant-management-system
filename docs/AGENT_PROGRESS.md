@@ -140,7 +140,7 @@ mục 7 để chủ module duyệt. File chung (`Program.cs`, `ModuleRegistratio
 | DUY-1.1/1.2/1.3 | Realtime/âm thanh, thành phần vận hành, màn mở ngày     | Duy         | —      | In Review   | PR #17 `feature/duy-week-one`                                                                                 | Đang mở; sửa file cấu hình của Bảo Anh nên cần Bảo Anh duyệt; màn mở ngày làm trên mock                                      |
 | (nền)           | Viết kế hoạch 7 tuần                                    | Người duyệt | Claude | In Review   | chưa commit                                                                                                   | `docs/phan-cong-chi-tiet-7-tuan.md`; chờ người duyệt xác nhận mục 11 của file đó                                             |
 | HAI-1.2b        | Sửa thứ tự khởi động Nginx HTTPS                        | Hải         | Hải    | In Progress | fix/hai-staging-startup                                                                                       | Đã thêm depends_on cho api/web; Compose config --quiet đạt; chưa thử khởi động lại stack trên VPS                            |
-| HAI-1.3 | CI backend, SQL Server và frontend | Hải | Hải | In Progress | ci/hai-week1 | SQL tests của Phương đã thêm vào CI; frontend 16/16 test PASS, build PASS, lint FAIL; GitHub Actions chưa kiểm chứng |
+| HAI-1.3 | CI backend, SQL Server và frontend | Hải | Hải | In Review | PR #25 `ci/hai-week1` | SQL integration tests 22/22 PASS trên GitHub; Web CI chung trên develop PASS; bỏ frontend-ci.yml trùng lặp; branch protection chưa kiểm chứng |
 
 ---
 
@@ -363,3 +363,14 @@ dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore
 - Kiểm tra Git: `git diff --cached --check` không báo lỗi.
 - Chưa kiểm chứng: GitHub Actions, SQL integration tests trên CI, branch protection.
 - Việc tiếp theo: Mở PR vào develop, phối hợp Bảo Anh/Duy sửa lint và kiểm tra GitHub Actions.
+
+### 2026-11-11 — Hải — HAI-1.3 (cập nhật sau PR #24)
+
+- PR #24 của Bảo Anh/Duy đã merge vào develop.
+- Web CI chung đã chạy thành công trên develop.
+- PR #25 đã chạy Backend CI thành công, SQL integration tests 22/22 PASS.
+- Phát hiện frontend-ci.yml trùng với web-ci.yml hiện có của nhóm.
+- Quyết định: giữ web-ci.yml chung, loại bỏ frontend-ci.yml do Hải bổ sung.
+- Giữ phần mở rộng Backend CI để chạy thêm kiểm thử SQL của Phương.
+- Chưa kiểm chứng: GitHub Actions sau commit điều chỉnh, branch protection và tích hợp thực tế trên VPS.
+- Tiếp theo: Cập nhật PR #25, kiểm tra CI và phối hợp kiểm thử staging.
