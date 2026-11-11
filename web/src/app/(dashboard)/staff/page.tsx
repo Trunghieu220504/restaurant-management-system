@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 const staff = [
     {
         id: 1,
-        name: "nguyen the vinh",
-        phone: "+84902646559",
+        name: "Chủ nhà hàng (mẫu)",
+        phone: "0900 000 000",
         role: "Chủ nhà hàng",
         avatar: null,
     },

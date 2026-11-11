@@ -64,7 +64,7 @@ const moduleShortcuts = [
     {
         title: "3. Hồ sơ tài khoản",
         href: "/profile",
-        desc: "nguyen the vinh, số điện thoại, mật khẩu, đổi ngôn ngữ, đăng xuất",
+        desc: "Tài khoản, số điện thoại, mật khẩu, đổi ngôn ngữ, đăng xuất",
         icon: UserCircle,
         badge: "Ảnh 3",
         color: "bg-gray-50 text-gray-700 border-gray-200",
