@@ -3,8 +3,16 @@ name: Web CI
 on:
   push:
     branches: [main, develop, "feature/**", "fix/**", "chore/**", "docs/**", "hotfix/**"]
+    paths:
+      - "web/**"
+      - "docs/api/**"
+      - ".github/workflows/web-ci.yml"
   pull_request:
     branches: [main, develop]
+    paths:
+      - "web/**"
+      - "docs/api/**"
+      - ".github/workflows/web-ci.yml"
   workflow_dispatch:
 
 permissions:
