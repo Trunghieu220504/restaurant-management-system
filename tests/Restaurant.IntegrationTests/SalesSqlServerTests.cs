@@ -45,7 +45,7 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
         using var db = new SalesDbContext(new DbContextOptionsBuilder<SalesDbContext>()
             .UseSqlServer(ApiFactory.ConnectionString).Options);
         Assert.Equal(4, db.Model.GetEntityTypes().Count());
-        Assert.Single(db.Database.GetMigrations());
+        Assert.Equal(["20261118103333_InitialSales", "20261119035517_SalesCatalogGuidIds"], db.Database.GetMigrations());
         Assert.All(db.Model.GetEntityTypes().SelectMany(entity => entity.GetForeignKeys()), fk =>
         {
             Assert.Equal("sales", fk.PrincipalEntityType.GetSchema());
@@ -197,10 +197,10 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
         {
             var order = DonHang.Create("DH-1", OrderTypes.DineIn, Day, 7, "Table 7", null, Staff, Now).Value!;
             order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [
-                new NewPortion(11, 22, "Milk tea", "Large", 45000, Stations.Bar, "less ice", [
-                    new NewOption(3, 30, "Toppings", OptionGroupKinds.Topping, "Pearl", 5000),
-                    new NewOption(4, 31, "Sugar", OptionGroupKinds.Option, "50%", 0)]),
-                new NewPortion(12, 23, "Pho", "Regular", 60000, Stations.Kitchen, null)], Now);
+                new NewPortion(CatalogId.Of(11), CatalogId.Of(22), "Milk tea", "Large", 45000, Stations.Bar, "less ice", [
+                    new NewOption(CatalogId.Of(3), CatalogId.Of(30), "Toppings", OptionGroupKinds.Topping, "Pearl", 5000),
+                    new NewOption(CatalogId.Of(4), CatalogId.Of(31), "Sugar", OptionGroupKinds.Option, "50%", 0)]),
+                new NewPortion(CatalogId.Of(12), CatalogId.Of(23), "Pho", "Regular", 60000, Stations.Kitchen, null)], Now);
             db.Orders.Add(order);
             await db.SaveChangesAsync();
             orderId = order.Id;
@@ -213,9 +213,9 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
         var batch = Assert.Single(loaded.Dots);
         Assert.Equal((1, BatchStatus.Pending, BatchSource.Staff), (batch.SoDot, batch.TrangThai, batch.Nguon));
         var tea = batch.Portions.Single(x => x.TenMonChot == "Milk tea");
-        Assert.Equal((22L, 45000L, Stations.Bar, "less ice"), (tea.BienTheId, tea.GiaMonChot, tea.TramChot, tea.GhiChu));
+        Assert.Equal((CatalogId.Of(22), 45000L, Stations.Bar, "less ice"), (tea.BienTheId, tea.GiaMonChot, tea.TramChot, tea.GhiChu));
         Assert.Equal(2, tea.Options.Count);
-        Assert.Contains(tea.Options, o => o.TuyChonId == 3 && o.TenNhomChot == "Toppings" && o.GiaCongChot == 5000 &&
+        Assert.Contains(tea.Options, o => o.TuyChonId == CatalogId.Of(3) && o.TenNhomChot == "Toppings" && o.GiaCongChot == 5000 &&
                                           o.LoaiNhomChot == OptionGroupKinds.Topping);
         Assert.Equal(2, batch.Portions.Count);
         Assert.NotEmpty(loaded.Version);
@@ -351,7 +351,7 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
 
     // ---- helpers ----
 
-    private static NewPortion Burger() => new(1, 2, "Burger", "Single", 80000, Stations.Kitchen, null);
+    private static NewPortion Burger() => new(CatalogId.Of(1), CatalogId.Of(2), "Burger", "Single", 80000, Stations.Kitchen, null);
 
     private static Task<DonHang> Load(SalesDbContext db, long id) =>
         db.Orders.Include(x => x.Dots.OrderBy(d => d.SoDot)).ThenInclude(x => x.Portions.OrderBy(p => p.Id))
@@ -373,14 +373,14 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
 
     private static string PortionSql(long batchId, string station, long price, string status = "'CHO_XAC_NHAN'") => $"""
         INSERT INTO sales.ChiTietDon (DotGoiMonId, MonId, BienTheId, TenMonChot, TenBienTheChot, GiaMonChot, TramChot, TrangThai)
-        VALUES ({batchId}, 1, 2, N'Dish', N'Variant', {price}, {station}, {status});
+        VALUES ({batchId}, '{CatalogId.Of(1)}', '{CatalogId.Of(2)}', N'Dish', N'Variant', {price}, {station}, {status});
         """;
 
     private const string LastPortion = "(SELECT MAX(Id) FROM sales.ChiTietDon)";
 
-    private static string OptionSql(string portionId, long optionId, string kind, long surcharge) => $"""
+    private static string OptionSql(string portionId, int optionId, string kind, long surcharge) => $"""
         INSERT INTO sales.TuyChonDaDat (ChiTietDonId, TuyChonId, NhomTuyChonId, TenNhomChot, LoaiNhomChot, TenTuyChonChot, GiaCongChot)
-        VALUES ({portionId}, {optionId}, 9, N'Group', {kind}, N'Option', {surcharge});
+        VALUES ({portionId}, '{CatalogId.Of(optionId)}', '{CatalogId.Of(9)}', N'Group', {kind}, N'Option', {surcharge});
         """;
 
     private async Task ExecAsync(string sql)
