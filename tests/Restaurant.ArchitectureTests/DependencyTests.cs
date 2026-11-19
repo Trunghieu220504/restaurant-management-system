@@ -19,7 +19,7 @@ public sealed class DependencyTests
         ["Billing"] = ["Sales"]
     };
 
-    private static readonly string[] ModulesWithContracts = ["Catalog", "Seating", "SalesDay", "Billing", "Sales"];
+    private static readonly string[] ModulesWithContracts = ["Catalog", "Seating", "SalesDay", "Billing", "Sales", "Audit"];
 
     [Fact]
     public void Cross_module_pairs_only_target_modules_that_publish_contracts()
@@ -104,6 +104,12 @@ public sealed class DependencyTests
                 {
                     optional.Add($"Restaurant.Modules.{module}.Contracts");
                 }
+                // HIE-3.0: Infrastructure implements the shared Outbox writer, so it may reference the
+                // framework-free Shared contracts (never Shared.SqlServer, which only the Host and tests use).
+                if (layer == "Infrastructure")
+                {
+                    optional.Add("Restaurant.Shared.Contracts");
+                }
                 if (layer == "Application" && CrossModuleContracts.TryGetValue(module, out var providers))
                 {
                     optional.AddRange(providers.Select(p => $"Restaurant.Modules.{p}.Contracts"));
@@ -117,10 +123,13 @@ public sealed class DependencyTests
                     var actual = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!,
                         reference.Attribute("Include")!.Value.Replace('\\', Path.DirectorySeparatorChar)));
                     var name = Path.GetFileNameWithoutExtension(actual);
-                    var owner = name.EndsWith(".Contracts", StringComparison.Ordinal)
-                        ? name["Restaurant.Modules.".Length..^".Contracts".Length]
-                        : module;
-                    var expected = Path.Combine(root, "src", "Modules", owner, name, Path.GetFileName(actual));
+                    var expected = name == "Restaurant.Shared.Contracts"
+                        ? Path.Combine(root, "src", "Shared", name, Path.GetFileName(actual))
+                        : Path.Combine(root, "src", "Modules",
+                            name.EndsWith(".Contracts", StringComparison.Ordinal)
+                                ? name["Restaurant.Modules.".Length..^".Contracts".Length]
+                                : module,
+                            name, Path.GetFileName(actual));
                     Assert.Equal(Path.GetFullPath(expected), actual);
                 }
                 if (layer is "Domain" or "Application")

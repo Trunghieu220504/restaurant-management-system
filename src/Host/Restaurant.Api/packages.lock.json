@@ -381,7 +381,8 @@
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Sales.Application": "[1.0.0, )",
           "Restaurant.Modules.Sales.Contracts": "[1.0.0, )",
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.presentation": {
@@ -439,6 +440,12 @@
         "dependencies": {
           "Restaurant.Modules.Seating.Application": "[1.0.0, )"
         }
+      },
+      "restaurant.shared.contracts": {
+        "type": "Project"
+      },
+      "restaurant.shared.sqlserver": {
+        "type": "Project"
       },
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
         "type": "CentralTransitive",

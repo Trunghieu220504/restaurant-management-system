@@ -214,9 +214,13 @@ Tạo thư mục `artifacts` trước lệnh xuất script nếu chưa có. Đ�
 áp dụng vào database. Tạo migration/SQL riêng cho từng context; không sao chép script
 báo cáo làm migration. Thay đổi database thật không được thực hiện bởi CI hiện tại.
 
-Transaction liên module và Outbox mới ở mức thiết kế. Không mặc định rằng hai
+Transaction liên module vẫn ở mức thiết kế. Không mặc định rằng hai
 SaveChanges ở hai context là nguyên tử; khi làm chốt ngày bán (đếm tồn cuối, tổng hợp doanh thu/giá vốn) cần điều phối
 chung DbConnection/DbTransaction và kiểm thử rollback.
+
+Outbox/Inbox (HIE-3.0, xem `docs/outbox-inbox.md`): Infrastructure của module sinh sự kiện được tham chiếu
+`Restaurant.Shared.Contracts` để cài `IOutboxWriter` (Sales có bảng `sales.Outbox`); không tham chiếu
+`Shared.SqlServer`, chỉ Host dùng. Dispatcher trong Host tắt mặc định và chưa có consumer.
 
 ## Kiểm thử
 ```bash

@@ -143,7 +143,7 @@ export function KitchenDemo() {
                 <select
                     id="station"
                     value={station}
-                    className="rounded border p-2"
+                    className="min-h-11 max-w-full rounded border p-2"
                     onChange={(e) => setStation(e.target.value)}
                 >
                     <option value="all">Tất cả</option>

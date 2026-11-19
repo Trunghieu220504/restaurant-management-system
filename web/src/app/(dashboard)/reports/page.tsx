@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu, TrendingUp } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRestaurant } from "@/lib/store/restaurant-context";
 
@@ -45,24 +45,22 @@ export default function ReportsPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="space-y-4">
             {/* Header */}
-            <div className="bg-white flex items-center justify-between px-4 py-3 shadow-sm sticky top-0 z-10">
+            <div className="flex items-center gap-3 rounded-xl border bg-white px-4 py-3 md:[&>h1]:text-2xl">
                 <button
                     onClick={() => router.back()}
+                    aria-label="Quay lại"
                     className="p-1 text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
                     <ArrowLeft size={22} />
                 </button>
                 <h1 className="text-lg font-semibold text-gray-800">
-                    Báo cáo KD (UC28)
+                    Báo cáo KD
                 </h1>
-                <button className="p-1 text-gray-600 hover:bg-gray-100 rounded-lg">
-                    <Menu size={22} />
-                </button>
             </div>
 
-            <div className="flex-1 p-4 space-y-4 max-w-4xl mx-auto w-full">
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(15rem,2fr)]">
                 {/* Bar Chart */}
                 <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
                     <div className="flex">
@@ -165,7 +163,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Detailed Table */}
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                <div className="min-w-0 rounded-lg border bg-card lg:col-span-2">
                     <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">
                             Bảng kê doanh thu theo ngày
@@ -174,63 +172,63 @@ export default function ReportsPage() {
                             Đồng bộ dữ liệu thời gian thực
                         </span>
                     </div>
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="text-left px-4 py-3 text-gray-500 font-medium">
-                                    STT
-                                </th>
-                                <th className="text-left px-4 py-3 text-gray-500 font-medium">
-                                    Ngày bán
-                                </th>
-                                <th className="text-left px-4 py-3 text-gray-500 font-medium">
-                                    Số đơn
-                                </th>
-                                <th className="text-right px-4 py-3 text-gray-500 font-medium">
-                                    Doanh thu
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {todayRevenue > 0 && (
-                                <tr className="border-b border-gray-50 bg-emerald-50/30">
-                                    <td className="px-4 py-3 text-gray-700 font-bold">
-                                        1
+                    <div
+                        className="table-scroll"
+                        role="region"
+                        aria-label="Doanh thu"
+                        tabIndex={0}
+                    >
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-gray-50/50 border-b border-gray-100">
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium">
+                                        STT
+                                    </th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium">
+                                        Ngày bán
+                                    </th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium">
+                                        Số đơn
+                                    </th>
+                                    <th className="text-right px-4 py-3 text-gray-500 font-medium">
+                                        Doanh thu
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {todayRevenue > 0 && (
+                                    <tr className="border-b border-gray-50 bg-emerald-50/30">
+                                        <td className="px-4 py-3 text-gray-700 font-bold">
+                                            1
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-900 font-bold">
+                                            {salesDay.businessDate} (Hôm nay)
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                            {closedOrders.length} đơn
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-emerald-700 font-bold">
+                                            {formatNumber(todayRevenue)} đ
+                                        </td>
+                                    </tr>
+                                )}
+                                <tr className="border-b border-gray-50">
+                                    <td className="px-4 py-3 text-gray-700">
+                                        {todayRevenue > 0 ? "2" : "1"}
                                     </td>
-                                    <td className="px-4 py-3 text-gray-900 font-bold">
-                                        {salesDay.businessDate} (Hôm nay)
+                                    <td className="px-4 py-3 text-gray-700">
+                                        19-2-2023
                                     </td>
-                                    <td className="px-4 py-3 text-gray-600">
-                                        {closedOrders.length} đơn
+                                    <td className="px-4 py-3 text-gray-500">
+                                        2 đơn
                                     </td>
-                                    <td className="px-4 py-3 text-right text-emerald-700 font-bold">
-                                        {formatNumber(todayRevenue)} đ
+                                    <td className="px-4 py-3 text-right text-gray-800 font-medium">
+                                        188.320đ
                                     </td>
                                 </tr>
-                            )}
-                            <tr className="border-b border-gray-50">
-                                <td className="px-4 py-3 text-gray-700">
-                                    {todayRevenue > 0 ? "2" : "1"}
-                                </td>
-                                <td className="px-4 py-3 text-gray-700">
-                                    19-2-2023
-                                </td>
-                                <td className="px-4 py-3 text-gray-500">
-                                    2 đơn
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-800 font-medium">
-                                    188.320đ
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination dots */}
-                <div className="flex justify-center space-x-2 py-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block" />
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
