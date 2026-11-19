@@ -135,8 +135,7 @@ export default function InventoryPage() {
                         Tab 4: Quản lý Kho nguyên liệu (Inventory)
                     </h1>
                     <p className="text-xs text-gray-500 mt-0.5">
-                        Phiếu nhập kho • Số đếm tồn cuối ngày •
-                        Điều chỉnh tồn
+                        Phiếu nhập kho • Số đếm tồn cuối ngày • Điều chỉnh tồn
                     </p>
                 </div>
 
