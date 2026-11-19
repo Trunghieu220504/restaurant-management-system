@@ -38,7 +38,7 @@ nếu đã có dòng dữ liệu (hiện chưa thể có vì chưa có endpoint 
 
 - **Lớp lưu trữ thật** (`IOrderStore` bằng `SalesDbContext`: `UPDLOCK` khi khóa đơn, sinh mã `MaDon`, bắt lỗi 2601 và lỗi `rowversion`
   để ném `StoreConflictException`) và đăng ký DI. Chưa đăng ký `OrderService` vì chưa có cài đặt cổng.
-- **Endpoint** và phân quyền (cần quyết định quyền cho nhân viên và khách).
+- **Endpoint** và phân quyền (cần quyết định quyền cho nhân viên và khách). Dự thảo hợp đồng: [sales-contract.md](api/sales-contract.md); chưa vào `openapi.json` vì chưa có endpoint.
 - **Xác nhận, từ chối đợt, hủy phần món, kiểm tra giá đổi khi xác nhận**: `FakeInvoiceCharging` đã có sẵn cho bước xác nhận (test 5).
 - **Đơn mang về theo kế hoạch có tên, điện thoại, giờ lấy**: `DonHang` hiện chỉ có `TenKhach`. Số điện thoại và giờ lấy cần thêm cột; chưa làm.
 - **Ngày bán của đơn mang về**: chưa có contract "ngày đang mở hiện tại" từ SalesDay, nên client phải gửi `BusinessDayId`.
