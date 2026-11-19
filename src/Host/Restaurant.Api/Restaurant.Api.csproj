@@ -7,6 +7,8 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
+    <ProjectReference Include="../../Shared/Restaurant.Shared.SqlServer/Restaurant.Shared.SqlServer.csproj" />
     <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Restaurant.Modules.Identity.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Presentation/Restaurant.Modules.Identity.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Seating/Restaurant.Modules.Seating.Infrastructure/Restaurant.Modules.Seating.Infrastructure.csproj" />

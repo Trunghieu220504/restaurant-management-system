@@ -26,10 +26,15 @@ public sealed record IntegrationEvent<TPayload> where TPayload : notnull
 
 /// <summary>
 /// Stages an event in the caller's unit of work. Implementations must persist it atomically
-/// with business changes. This does not publish or commit; no runtime adapter is provided here.
+/// with business changes: the event exists if and only if the surrounding transaction commits.
+/// This does not publish; a dispatcher delivers it after commit (at-least-once).
 /// </summary>
 public interface IOutboxWriter
 {
-    Task EnqueueAsync<TPayload>(IntegrationEvent<TPayload> message, CancellationToken cancellationToken)
+    /// <param name="aggregateId">Stable id of the aggregate that produced the event (for example the batch id).</param>
+    /// <param name="aggregateVersion">Version of that aggregate when the event was produced. With the event type and
+    /// aggregate id it is unique, so staging the same fact twice is rejected instead of duplicated.</param>
+    Task EnqueueAsync<TPayload>(IntegrationEvent<TPayload> message, string aggregateId, int aggregateVersion,
+        CancellationToken cancellationToken)
         where TPayload : notnull;
 }

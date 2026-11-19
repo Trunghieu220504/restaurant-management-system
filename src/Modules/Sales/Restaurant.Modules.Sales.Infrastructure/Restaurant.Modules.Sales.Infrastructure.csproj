@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../Restaurant.Modules.Sales.Domain/Restaurant.Modules.Sales.Domain.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Sales.Application/Restaurant.Modules.Sales.Application.csproj" />
+    <ProjectReference Include="../../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
   </ItemGroup>
 </Project>
