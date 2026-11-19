@@ -201,6 +201,9 @@ public sealed class IdentitySqlServerAuthenticationTests : IAsyncLifetime
 
         await ChangeRolesAsync(async (users, user) => Assert.True((await users.AddToRoleAsync(user, "Admin")).Succeeded));
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/system/modules")).StatusCode);
+        var restored = (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!;
+        Assert.Contains("Admin", restored.Roles);
+        Assert.Contains("identity.roles.manage", restored.Permissions);
     }
 
     /// <summary>T17: withdrawing a permission from a role takes effect on the next request of a token already issued.</summary>
