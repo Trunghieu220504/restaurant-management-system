@@ -60,6 +60,7 @@ public static class IdentityEndpoints
             };
         }).RequireRateLimiting("identity-password").WithName("IdentityChangePassword")
             .Produces(204).ProducesProblem(400).Produces(401).Produces(429);
+        group.MapAccountEndpoints();
         return group;
     }
 

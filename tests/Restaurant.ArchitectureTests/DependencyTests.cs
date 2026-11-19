@@ -19,7 +19,7 @@ public sealed class DependencyTests
         ["Billing"] = ["Sales"]
     };
 
-    private static readonly string[] ModulesWithContracts = ["Catalog", "Seating", "SalesDay", "Billing", "Sales"];
+    private static readonly string[] ModulesWithContracts = ["Catalog", "Seating", "SalesDay", "Billing", "Sales", "Audit"];
 
     [Fact]
     public void Cross_module_pairs_only_target_modules_that_publish_contracts()

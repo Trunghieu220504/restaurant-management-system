@@ -1,0 +1,83 @@
+name: Security CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main, 'ci/**']
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: High and critical dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Test the audit gate
+        run: node --test scripts/check-dependency-audit.test.mjs
+      - name: Restore locked .NET packages
+        run: dotnet restore RestaurantManagement.slnx --locked-mode -p:NuGetAuditLevel=high
+      - name: Audit direct and transitive NuGet packages
+        run: |
+          mkdir -p artifacts/security
+          dotnet package list --project RestaurantManagement.slnx --vulnerable --include-transitive --format json --output-version 1 --no-restore > artifacts/security/nuget.json
+          node scripts/check-dependency-audit.mjs nuget artifacts/security/nuget.json
+      - name: Install locked npm packages without lifecycle scripts
+        working-directory: web
+        run: npm ci --ignore-scripts
+      - name: Audit npm packages including dev dependencies
+        if: success() || failure()
+        working-directory: web
+        shell: bash
+        run: |
+          mkdir -p ../artifacts/security
+          set +e
+          npm audit --json --audit-level=high > ../artifacts/security/npm.json
+          audit_status=$?
+          set -e
+          node ../scripts/check-dependency-audit.mjs npm ../artifacts/security/npm.json
+          test "$audit_status" -eq 0
+      - name: Upload dependency reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: dependency-audit
+          path: artifacts/security/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+  secrets:
+    name: Secret scan of Git history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned Gitleaks
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location --retry 3 https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan all available refs without printing secrets
+        run: '"$RUNNER_TEMP/gitleaks" git . --log-opts="--all" --redact=100 --no-banner --exit-code=1'

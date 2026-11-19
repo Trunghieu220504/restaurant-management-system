@@ -58,6 +58,7 @@
   </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Audit/">
+    <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Contracts/Restaurant.Modules.Audit.Contracts.csproj" />
     <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Domain/Restaurant.Modules.Audit.Domain.csproj" />
     <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Application/Restaurant.Modules.Audit.Application.csproj" />
     <Project Path="src/Modules/Audit/Restaurant.Modules.Audit.Infrastructure/Restaurant.Modules.Audit.Infrastructure.csproj" />

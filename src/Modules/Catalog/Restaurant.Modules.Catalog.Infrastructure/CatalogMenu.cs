@@ -276,5 +276,12 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
             db.ChangeTracker.Clear();
             return Fail<T>(CatalogErrors.ConcurrencyConflict);
         }
+        catch (InvalidOperationException ex) when (ex.InnerException is
+            SqlException { Number: 1205 } or DbUpdateException { InnerException: SqlException { Number: 1205 } })
+        {
+            // EF's non-retrying SQL strategy wraps transient errors, including deadlock victims.
+            db.ChangeTracker.Clear();
+            return Fail<T>(CatalogErrors.ConcurrencyConflict);
+        }
     }
 }
