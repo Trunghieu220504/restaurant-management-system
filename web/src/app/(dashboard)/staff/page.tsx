@@ -112,7 +112,8 @@ export default function StaffPage() {
                                 placeholder="Tìm kiếm"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                aria-label="Tìm nhân viên"
+                                className="min-h-11 w-full rounded-lg border bg-card py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground"
                             />
                         </div>
 

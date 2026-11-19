@@ -38,7 +38,12 @@ function DataTable<TData, TValue>({
                 placeholder={searchPlaceholder}
                 value={globalFilter}
             />
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <div
+                aria-label={searchPlaceholder}
+                className="table-scroll rounded-lg border bg-card"
+                role="region"
+                tabIndex={0}
+            >
                 <table className="w-full text-left text-sm">
                     <thead className="bg-muted/70 text-muted-foreground">
                         {table.getHeaderGroups().map((group) => (

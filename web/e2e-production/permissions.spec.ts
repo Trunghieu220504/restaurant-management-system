@@ -43,7 +43,7 @@ test("granted menu/report permissions allow routes; revocation hides menu and bl
     await page.locator('a[href="/reports"]').last().click();
     await expect(page).toHaveURL(/\/reports$/);
     await expect(
-        page.getByRole("heading", { name: "Báo cáo KD (UC28)" }),
+        page.getByRole("heading", { name: "Báo cáo KD", exact: true }),
     ).toBeVisible();
     await expect(
         page.getByRole("heading", { name: "Bạn không có quyền truy cập" }),

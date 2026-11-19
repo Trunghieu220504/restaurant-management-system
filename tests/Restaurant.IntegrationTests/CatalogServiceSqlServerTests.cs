@@ -1,5 +1,7 @@
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Restaurant.Modules.Catalog.Application;
 using Restaurant.Modules.Catalog.Domain;
 using Restaurant.Modules.Catalog.Infrastructure;
@@ -34,8 +36,13 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         await db.Database.EnsureDeletedAsync();
     }
 
-    private CatalogDbContext NewContext() => new(new DbContextOptionsBuilder<CatalogDbContext>()
-        .UseSqlServer(connectionString, sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "catalog")).Options);
+    private CatalogDbContext NewContext(DbCommandInterceptor? interceptor = null)
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlServer(connectionString, sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "catalog"));
+        if (interceptor is not null) options.AddInterceptors(interceptor);
+        return new CatalogDbContext(options.Options);
+    }
 
     private async Task<(MenuGroupDto Group, MenuItemDto Item, VariantDto Variant, OptionGroupDto Options, OptionDto Option)> SeedAsync()
     {
@@ -156,6 +163,79 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
             Assert.Contains(x.Error, new[] { CatalogErrors.ItemCodeConflict, CatalogErrors.ConcurrencyConflict }));
         await using var verify = NewContext();
         Assert.Single(await verify.Set<Mon>().ToArrayAsync());
+    }
+
+    [SqlServerFact]
+    public async Task Wrapped_deadlock_returns_conflict_and_does_not_replay_failed_changes()
+    {
+        Guid groupId;
+        await using (var seed = NewContext())
+        {
+            groupId = Ok(await new CatalogMenu(seed).CreateGroupAsync(new("Nhóm", 0), default)).Id;
+            await seed.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE dbo.CatalogDeadlockProbe (Id int PRIMARY KEY, Value int NOT NULL);
+                INSERT dbo.CatalogDeadlockProbe VALUES (1, 0), (2, 0);
+                """);
+        }
+
+        var fault = new DeadlockOnFirstItemInsert();
+        await using var blocker = new SqlConnection(connectionString);
+        await blocker.OpenAsync();
+        await using var blockerTransaction = (SqlTransaction)await blocker.BeginTransactionAsync();
+        await using var holdFirst = new SqlCommand("""
+            SET DEADLOCK_PRIORITY HIGH;
+            UPDATE dbo.CatalogDeadlockProbe WITH (ROWLOCK) SET Value = 1 WHERE Id = 1;
+            """, blocker, blockerTransaction);
+        await holdFirst.ExecuteNonQueryAsync();
+        var completeBlocker = Task.Run(async () =>
+        {
+            await fault.SecondRowLocked.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            await using var waitSecond = new SqlCommand(
+                "UPDATE dbo.CatalogDeadlockProbe WITH (ROWLOCK) SET Value = 1 WHERE Id = 2;", blocker, blockerTransaction);
+            await waitSecond.ExecuteNonQueryAsync();
+            await blockerTransaction.CommitAsync();
+        });
+        await using var db = NewContext(fault);
+        var service = new CatalogMenu(db);
+        var failed = await service.CreateItemAsync(new(groupId, "FAILED", "Món lỗi", "BEP"), default);
+        await completeBlocker.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True(fault.Injected);
+        Assert.Equal(CatalogErrors.ConcurrencyConflict, failed.Error);
+        Assert.Empty(db.ChangeTracker.Entries());
+
+        await db.Database.ExecuteSqlRawAsync("SET DEADLOCK_PRIORITY NORMAL;");
+        var created = Ok(await service.CreateItemAsync(new(groupId, "AFTER", "Món sau", "BEP"), default));
+        await using var verify = NewContext();
+        var saved = Assert.Single(await verify.Set<Mon>().ToArrayAsync());
+        Assert.Equal(created.Id, saved.Id);
+        Assert.Equal("AFTER", saved.Ma);
+    }
+
+    private sealed class DeadlockOnFirstItemInsert : DbCommandInterceptor
+    {
+        public bool Injected { get; private set; }
+        public TaskCompletionSource SecondRowLocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (!Injected && command.CommandText.Contains("INSERT INTO [catalog].[Mon]", StringComparison.Ordinal))
+            {
+                Injected = true;
+                // The blocker holds row 1; this transaction holds row 2. Both then request the other's row.
+                // A lower priority makes this EF transaction the real SQL Server deadlock victim.
+                await using var holdSecond = command.Connection!.CreateCommand();
+                holdSecond.Transaction = command.Transaction;
+                holdSecond.CommandText = """
+                    SET DEADLOCK_PRIORITY LOW;
+                    UPDATE dbo.CatalogDeadlockProbe WITH (ROWLOCK) SET Value = 2 WHERE Id = 2;
+                    """;
+                await holdSecond.ExecuteNonQueryAsync(cancellationToken);
+                SecondRowLocked.TrySetResult();
+                command.CommandText = "UPDATE dbo.CatalogDeadlockProbe WITH (ROWLOCK) SET Value = 2 WHERE Id = 1;";
+            }
+            return await base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
     }
 
     private static T Ok<T>(CatalogResult<T> result)
