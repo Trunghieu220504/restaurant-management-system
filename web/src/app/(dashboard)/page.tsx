@@ -137,10 +137,6 @@ export default function DashboardPage() {
                     <h1 className="text-2xl font-bold tracking-tight">
                         Hệ thống Quản lý Nhà hàng
                     </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Báo cáo đề tài: Clean Architecture kết hợp Modular
-                        Monolith & Giao diện di động đồng bộ.
-                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" asChild>
@@ -149,7 +145,7 @@ export default function DashboardPage() {
                                 aria-hidden="true"
                                 className="size-4"
                             />
-                            Chốt ca / Ngày bán (UC26)
+                            Chốt ca / Ngày bán
                         </Link>
                     </Button>
                     <Button
@@ -164,23 +160,9 @@ export default function DashboardPage() {
                 </div>
             </section>
 
-            {/* Primary Operational Flow Quick Action Banner */}
+            {/* Operational shortcuts */}
             <section className="bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 rounded-2xl p-5 text-white shadow-lg">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full">
-                            Quy trình nghiệp vụ cốt lõi (Core Workflow)
-                        </span>
-                        <h2 className="text-lg font-bold">
-                            Luồng khép kín theo tài liệu đề tài
-                        </h2>
-                        <p className="text-xs text-white/90 max-w-2xl">
-                            1. Mở ngày bán (UC25) → 2. Mở phiên bàn (UC03) → 3.
-                            Gọi món (UC06) → 4. Bếp/Bar KDS chế biến (UC11,
-                            UC12) → 5. Bưng bàn (UC15) → 6. Thu tiền & Đóng đơn
-                            (UC17, UC20) → 7. Báo cáo & Chốt ngày (UC26, UC28)
-                        </p>
-                    </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Link
                             href="/tables"

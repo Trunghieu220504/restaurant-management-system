@@ -55,7 +55,7 @@ export default function ReportsPage() {
                     <ArrowLeft size={22} />
                 </button>
                 <h1 className="text-lg font-semibold text-gray-800">
-                    Báo cáo KD (UC28)
+                    Báo cáo KD
                 </h1>
                 <button className="p-1 text-gray-600 hover:bg-gray-100 rounded-lg">
                     <Menu size={22} />

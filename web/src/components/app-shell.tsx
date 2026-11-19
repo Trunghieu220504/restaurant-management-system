@@ -37,10 +37,10 @@ type NavTab = {
 // 5 TABS CHÍNH THEO ĐẶC TẢ SƠ ĐỒ ĐIỀU HƯỚNG
 // Tab nào hiện là do quyền của đường dẫn trong lib/auth/route-permissions.ts.
 export const primaryTabs: readonly NavTab[] = [
-    { label: "Bàn", href: "/tables", icon: LayoutGrid, badge: "UC03" },
-    { label: "Đơn hàng", href: "/orders", icon: ReceiptText, badge: "UC07" },
-    { label: "Thực đơn", href: "/menu", icon: Boxes, badge: "UC05" },
-    { label: "Kho", href: "/inventory", icon: Package, badge: "UC22" },
+    { label: "Bàn", href: "/tables", icon: LayoutGrid },
+    { label: "Đơn hàng", href: "/orders", icon: ReceiptText },
+    { label: "Thực đơn", href: "/menu", icon: Boxes },
+    { label: "Kho", href: "/inventory", icon: Package },
     { label: "Thêm", href: "/more", icon: MoreHorizontal, badge: "Quản trị" },
 ];
 
@@ -189,9 +189,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <LogOut size={16} />
                         <span>Đăng xuất phiên làm việc</span>
                     </button>
-                    <div className="text-[11px] text-muted-foreground px-3">
-                        Restaurant OS • Clean Modular Monolith
-                    </div>
                 </div>
             </aside>
 

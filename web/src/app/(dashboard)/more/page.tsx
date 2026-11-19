@@ -37,14 +37,14 @@ export default function MorePage() {
                 },
                 {
                     label: "Ngày bán & Chốt ca",
-                    desc: "Tiền két đầu ngày (UC25), đối soát doanh thu & chốt ca (UC26)",
+                    desc: "Tiền két đầu ngày, đối soát doanh thu & chốt ca",
                     href: "/sales-day",
                     icon: CalendarDays,
                     color: "bg-emerald-50 text-emerald-600",
                 },
                 {
                     label: "Màn hình Bếp & Bar KDS",
-                    desc: "Màn hình chế biến món theo trạm (UC11, UC12) & chuông báo",
+                    desc: "Màn hình chế biến món theo trạm & chuông báo",
                     href: "/kitchen",
                     icon: ChefHat,
                     color: "bg-orange-50 text-orange-600",

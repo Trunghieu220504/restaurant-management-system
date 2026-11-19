@@ -151,7 +151,7 @@ function GuestMenuContent() {
                             </span>
                         </div>
                         <p className="text-[11px] text-slate-400">
-                            Khách tự gọi món qua mã QR (UC06)
+                            Khách tự gọi món qua mã QR
                         </p>
                     </div>
                 </div>
