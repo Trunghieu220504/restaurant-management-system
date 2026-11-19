@@ -47,7 +47,7 @@ public sealed class IdentityInitializationTests(ApiFactory factory) : IClassFixt
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        Assert.Equal(2, db.Database.GetMigrations().Count());
+        Assert.Equal(3, db.Database.GetMigrations().Count());
         var script = db.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
         Assert.Contains("IF NOT EXISTS", script);
         Assert.Contains("[identity].[Permission]", script);

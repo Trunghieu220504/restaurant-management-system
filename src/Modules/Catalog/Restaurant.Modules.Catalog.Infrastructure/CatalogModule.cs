@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Restaurant.Modules.Catalog.Application;
 using Restaurant.Modules.Catalog.Infrastructure.Persistence;
 
 namespace Restaurant.Modules.Catalog.Infrastructure;
@@ -16,6 +17,7 @@ public static class CatalogModule
             CatalogPersistence.Configure(options, connectionString);
         });
 
+        services.AddScoped<ICatalogMenu, CatalogMenu>();
         return services;
     }
 }

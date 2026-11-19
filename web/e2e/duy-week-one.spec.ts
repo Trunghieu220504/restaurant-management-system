@@ -70,6 +70,44 @@ test("mock covers states, permission and failure", async ({ page }) => {
     ).toBeVisible();
 });
 
+test("failed current-day lookup retries the lookup before allowing open", async ({
+    page,
+}) => {
+    let healthy = false;
+    let reads = 0;
+    let opens = 0;
+    await page.route("**/api/salesday/current", async (route) => {
+        reads++;
+        if (!healthy) return route.fulfill({ status: 503, json: {} });
+        return route.fulfill({ json: null });
+    });
+    await page.route("**/api/salesday/open", async (route) => {
+        opens++;
+        await route.fulfill({ status: 500 });
+    });
+    await page.goto("/dev/components");
+    await expect(page.getByText("Đã kết nối", { exact: true })).toBeVisible();
+    await page.getByText("Kết nối API thật", { exact: true }).click();
+    await page.getByLabel("Access token tạm thời").fill("browser-test-token");
+    await page.getByRole("button", { name: "Kết nối", exact: true }).click();
+    const panel = page
+        .getByRole("heading", { name: "Ngày bán", exact: true })
+        .last()
+        .locator("xpath=ancestor::section[1]");
+    await expect(panel.getByRole("alert")).toBeVisible();
+    await expect(
+        panel.getByRole("button", { name: "Mở ngày bán", exact: true }),
+    ).toHaveCount(0);
+    const previousReads = reads;
+    healthy = true;
+    await panel.getByRole("button", { name: "Thử lại yêu cầu" }).click();
+    await expect.poll(() => reads).toBeGreaterThan(previousReads);
+    await expect(
+        panel.getByRole("button", { name: "Mở ngày bán", exact: true }),
+    ).toBeVisible();
+    expect(opens).toBe(0);
+});
+
 test("live adapter retains the idempotency key after a network failure", async ({
     page,
 }) => {

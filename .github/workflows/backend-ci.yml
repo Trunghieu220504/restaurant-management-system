@@ -93,7 +93,7 @@ jobs:
       - name: Restore locked dependencies
         run: dotnet restore RestaurantManagement.slnx --locked-mode
       - name: Run SQL migration and bootstrap tests
-        run: dotnet test tests/Restaurant.IntegrationTests -c Release --no-restore --filter FullyQualifiedName~IdentitySqlServer --logger trx --results-directory TestResults
+        run: dotnet test tests/Restaurant.IntegrationTests -c Release --no-restore --filter FullyQualifiedName~SqlServer --logger trx --results-directory TestResults
       - name: Upload SQL test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -104,3 +104,59 @@ jobs:
       - name: Remove disposable SQL Server
         if: always()
         run: docker rm -f identity-test-sql || true
+
+  publish-images:
+    name: Publish images to GHCR
+    needs: [build-and-test, identity-sql-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Prepare image names
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "API_IMAGE=ghcr.io/${owner}/restaurant-api" >> "$GITHUB_ENV"
+          echo "WEB_IMAGE=ghcr.io/${owner}/restaurant-web" >> "$GITHUB_ENV"
+      - name: Log in to GHCR
+        shell: bash
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Build and push API image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f infra/docker/Dockerfile.api \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            -t "${API_IMAGE}:${GITHUB_SHA}" -t "${API_IMAGE}:develop" .
+          docker push "${API_IMAGE}:${GITHUB_SHA}"
+          docker push "${API_IMAGE}:develop"
+      - name: Build and push web image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f web/Dockerfile \
+            --build-arg API_URL=http://api:8080 \
+            --build-arg NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED=true \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            -t "${WEB_IMAGE}:${GITHUB_SHA}" -t "${WEB_IMAGE}:develop" web
+          docker push "${WEB_IMAGE}:${GITHUB_SHA}"
+          docker push "${WEB_IMAGE}:develop"
+      - name: Print published tags
+        shell: bash
+        run: |
+          echo "GHCR_API_IMAGE=${API_IMAGE}:${GITHUB_SHA}"
+          echo "GHCR_WEB_IMAGE=${WEB_IMAGE}:${GITHUB_SHA}"

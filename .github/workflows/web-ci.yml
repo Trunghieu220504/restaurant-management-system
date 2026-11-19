@@ -1,0 +1,129 @@
+name: Web CI
+
+on:
+  push:
+    branches:
+      [
+        main,
+        develop,
+        "feature/**",
+        "fix/**",
+        "chore/**",
+        "docs/**",
+        "hotfix/**",
+      ]
+    paths:
+      - "web/**"
+      - "infra/compose.frontend.yml"
+      - "docs/api/**"
+      - ".github/workflows/web-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "web/**"
+      - "infra/compose.frontend.yml"
+      - "docs/api/**"
+      - ".github/workflows/web-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-api-client-sync:
+    name: Verify API Client Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Regenerate API types from committed OpenAPI specification
+        working-directory: web
+        run: npm run gen:api
+
+      - name: Verify generated API client has no unstaged changes
+        run: |
+          if ! git diff --exit-code web/src/lib/api/generated/; then
+            echo "::error file=web/src/lib/api/generated/schema.d.ts::OpenAPI specification changed but generated API client types were not updated! Run 'npm run gen:api' in web/ and commit the changes."
+            exit 1
+          fi
+
+  build-and-test:
+    name: Web Build and Test
+    needs: verify-api-client-sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Format check
+        working-directory: web
+        run: npm run format:check
+
+      - name: Unit and Integration Tests
+        working-directory: web
+        run: npm test
+
+      - name: Build Next.js application
+        working-directory: web
+        env:
+          NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED: "true"
+        run: npm run build
+
+      - name: Build frontend image with refresh enabled
+        run: docker build --build-arg NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED=true --tag restaurant-web:ci web
+
+      - name: Install smoke test browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Start frontend image
+        run: docker run --detach --name web-refresh-smoke --publish 127.0.0.1:3100:3000 restaurant-web:ci
+
+      - name: Verify refresh in compiled image browser bundle
+        working-directory: web
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$PLAYWRIGHT_BASE_URL/login" >/dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent "$PLAYWRIGHT_BASE_URL/login" >/dev/null
+          npm run test:e2e:production
+
+      - name: Remove frontend smoke container
+        if: always()
+        run: docker rm --force web-refresh-smoke || true

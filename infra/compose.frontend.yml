@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED: "true"
+    image: restaurant-web:staging
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks: [internal]

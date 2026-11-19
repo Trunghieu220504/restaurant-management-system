@@ -107,6 +107,17 @@
     flex-shrink: 0;
 }
 @media print {
+    :global(body) *:not(:has(.receipt)):not(.receipt):not(.receipt *) {
+        display: none !important;
+    }
+    :global(body) *:has(.receipt) {
+        display: block !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+    }
     :global(body *) {
         visibility: hidden;
     }
@@ -115,7 +126,7 @@
         visibility: visible;
     }
     .receipt {
-        position: absolute;
+        position: static;
         left: 0;
         top: 0;
         border: 0;
@@ -125,7 +136,7 @@
         color: black;
     }
     @page {
-        size: 80mm auto;
+        size: 80mm 200mm;
         margin: 4mm;
     }
 }

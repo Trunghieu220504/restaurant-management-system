@@ -1,0 +1,19 @@
+# Keep the API build context small and keep secrets out of images.
+# tests/ must stay: RestaurantManagement.slnx references the test projects during restore.
+**/bin
+**/obj
+**/node_modules
+.git
+.github
+.vs
+.vscode
+.idea
+artifacts
+TestResults
+web
+docs
+infra/certbot
+infra/.env
+**/.env
+**/.env.*
+!**/.env.example

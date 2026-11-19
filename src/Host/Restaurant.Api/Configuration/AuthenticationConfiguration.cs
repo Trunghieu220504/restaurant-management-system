@@ -20,6 +20,9 @@ public static class AuthenticationConfiguration
             options.AddPolicy("identity-login", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            options.AddPolicy("identity-refresh", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("identity-password", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.User.FindFirst("sub")?.Value ?? "anonymous",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -85,7 +88,8 @@ public static class AuthenticationConfiguration
             .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .Build())
-            .AddPolicy("SystemAdministration", policy => policy.RequireRole("Admin"));
+            .AddPolicy("SystemAdministration", policy => policy.RequireRole("Admin"))
+            .AddPermissionPolicies();
 
         return services;
     }

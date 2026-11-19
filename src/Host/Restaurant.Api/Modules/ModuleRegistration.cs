@@ -1,6 +1,7 @@
 using Restaurant.Api.Configuration;
 using Restaurant.Modules.Identity.Infrastructure;
 using Restaurant.Modules.Identity.Presentation;
+using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Infrastructure;
 using Restaurant.Modules.Seating.Presentation;
 using Restaurant.Modules.Catalog.Infrastructure;
@@ -41,8 +42,10 @@ public static class ModuleRegistration
         services.AddBillingModule();
         services.AddInventoryModule();
         services.AddSalesDayModule();
+        services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
+        services.AddHostedService<OutboxDispatcherService>();
         services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver", tags: ["ready"]);
         return services;
     }

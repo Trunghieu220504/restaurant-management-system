@@ -13,3 +13,33 @@ dotnet test tests/Restaurant.IntegrationTests -c Release --filter FullyQualified
 ```
 
 Cần IDENTITY_TEST_SQLSERVER trỏ đến SQL Server thử nghiệm. Đã chạy thành công qua scripts/Test-PhuongWeek1.ps1 từ terminal của người dùng. Nhóm cần chạy lại trên CI và review trước khi áp dụng khóa Shared/Exclusive vào các module tuần sau. Nếu các kịch bản bổ sung thất bại, xem phương án trạng thái chờ bền vững trong thiết kế dữ liệu.
+
+## Chạy lặp 20 lần (18/11/2026)
+
+Mục này bổ sung cho yêu cầu "lặp mỗi kịch bản ≥ 20 lần" của nghiệm thu tuần 1 (`docs/reviews/week1-acceptance.md`, mục 8.1 việc 5). Nội dung phía trên không đổi.
+
+| Mục | Giá trị |
+|---|---|
+| Mã nguồn | `develop` tại `3b80703` |
+| Máy / công cụ | Windows 11, .NET SDK 10.0.300, Docker 29.7.2 |
+| SQL Server | `mcr.microsoft.com/mssql/server:2022-latest`, một container mới, mật khẩu `sa` sinh ngẫu nhiên, xóa sau khi chạy |
+| Build | `dotnet restore --locked-mode`, `dotnet build -c Release`: 0 cảnh báo, 0 lỗi |
+| Lệnh | 20 lần liên tiếp: `dotnet test tests/Restaurant.IntegrationTests -c Release --no-build --no-restore --filter FullyQualifiedName~PhuongWeekOneSqlServerTests` |
+| Kết quả | **20/20 lượt đạt; mỗi lượt 9/9 test đạt, 0 lỗi, 0 bỏ qua** (tổng 180 lần chạy test). Mỗi lượt 23–41 giây. |
+
+Chín test trong mỗi lượt: ràng buộc Catalog; hai khóa Shared cùng tồn tại và Exclusive bị từ chối khi còn Shared; Exclusive chờ đủ thời gian chờ rồi được cấp sau khi Shared giải phóng; hai DbContext dùng chung một giao dịch và rollback cả hai module; lỗi ở module thứ hai làm rollback ghi của module thứ nhất; mở ngày được tuần tự hóa; phát lại cùng khóa idempotency trả đúng ngày cũ và payload khác bị từ chối; nhiều lần thử đồng thời cùng khóa chỉ tạo một ngày; CSDL từ chối ngày hoạt động thứ hai ngay cả khi bỏ qua service.
+
+### Điều đã và chưa chứng minh
+
+- **Đã chứng minh (trên SQL Server 2022 thật, nhiều lần lặp):** `sp_getapplock` với `LockOwner=Transaction` cho phép Shared cùng tồn tại, Exclusive phải chờ Shared, và rollback giải phóng khóa; hai DbContext của hai module dùng chung được một giao dịch và rollback cùng nhau; mở ngày an toàn khi chạy đồng thời.
+- **Chưa chứng minh:** luồng chốt ngày thật (PHU-5.2) và các ca "hai người chốt chỉ ra một snapshot", "ghi muộn chờ rồi bị từ chối" ở mức nghiệp vụ, vì chốt ngày chưa được triển khai (tuần 5). Spike mới kiểm tra cơ chế khóa và giao dịch, không phải kiểm thử tải.
+- **Chưa đọc được:** kết quả trên runner CI. Lần chạy này ở máy cục bộ; bộ lọc `FullyQualifiedName~SqlServer` trong `backend-ci.yml` bao gồm các test này, nhưng số test trong TRX của CI chưa được xác nhận.
+
+### Kết luận đề xuất
+
+**ĐẠT** cho phạm vi spike: cơ chế khóa ứng dụng Shared/Exclusive theo giao dịch kết hợp hai DbContext dùng chung giao dịch là khả thi trên SQL Server 2022, không phát hiện lỗi qua 20 lượt lặp. Chưa cần chuyển sang phương án trạng thái chờ bền vững. Các ca chốt ngày hoàn chỉnh vẫn phải được kiểm thử ở PHU-5.2.
+
+Đây là **đề xuất**, chưa có hiệu lực cho đến khi người chịu trách nhiệm ký:
+
+- Người ký (PHU-1.1): ______________________ Ngày: ____ / ____ / 2026
+- Người review (Hiếu hoặc Hải): ______________________ Ngày: ____ / ____ / 2026

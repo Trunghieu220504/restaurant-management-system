@@ -1,0 +1,83 @@
+name: Week one automation checks
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - scripts/*WeekOne*
+      - scripts/week-one-local.runsettings
+      - scripts/restaurant-week1-prepare-e2e.sh
+      - web/scripts/verify-week-one.mjs
+      - web/scripts/verify-staging-public.mjs
+      - .github/workflows/week-one-qa.yml
+permissions:
+  contents: read
+jobs:
+  repeated-sql-spike:
+    name: Week one script and repeated SQL checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73
+        with:
+          global-json-file: global.json
+      - name: Validate scripts without touching staging
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($path in Get-ChildItem scripts/*WeekOne*.ps1) {
+            $tokens = $null; $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile($path.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { throw "PowerShell parse failure: $($path.Name)" }
+          }
+          & scripts/Test-WeekOneSqlGuard.ps1
+          bash -n scripts/restaurant-week1-prepare-e2e.sh
+          if ($LASTEXITCODE) { throw 'Bash syntax failure' }
+          node --check web/scripts/verify-week-one.mjs
+          if ($LASTEXITCODE) { throw 'Browser runner syntax failure' }
+          node --check web/scripts/verify-staging-public.mjs
+          if ($LASTEXITCODE) { throw 'Public browser runner syntax failure' }
+      - name: Restore and compile helpers
+        run: |
+          dotnet restore RestaurantManagement.slnx --locked-mode
+          dotnet build tests/Restaurant.IntegrationTests -c Release --no-restore
+          dotnet build scripts/WeekOneBrowserHost.cs -c Release
+          dotnet build scripts/PrepareWeekOneCredentials.cs -c Release
+          dotnet build scripts/ScanWeekOnePorts.cs -c Release
+      - name: Start disposable SQL Server 2022
+        shell: bash
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 24)Aa1!"
+          echo "::add-mask::$password"
+          export MSSQL_SA_PASSWORD="$password"
+          docker run -d --name week-one-qa-sql -p 127.0.0.1:1433:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD mcr.microsoft.com/mssql/server:2022-latest
+          echo "IDENTITY_TEST_SQLSERVER=Server=127.0.0.1,1433;User Id=sa;Password=$password;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5;Command Timeout=120" >> "$GITHUB_ENV"
+          ready=false
+          for attempt in $(seq 1 90); do
+            if docker exec week-one-qa-sql bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q "SELECT 1"' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Run the delivered twenty-repetition script
+        shell: pwsh
+        run: ./scripts/Test-WeekOneSpike.ps1
+      - name: Verify actual reports
+        shell: pwsh
+        run: |
+          $summary = Get-ChildItem artifacts/hai-week1/spike-*/summary.json | Select-Object -First 1 | Get-Content -Raw | ConvertFrom-Json
+          if ($summary.completed -ne 20 -or $summary.requested -ne 20 -or $summary.passedTests -ne 180) { throw 'Incomplete spike run' }
+          $reports = @(Get-ChildItem artifacts/hai-week1/spike-*/*/spike.trx)
+          if ($reports.Count -ne 20) { throw 'Expected twenty TRX files' }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: week-one-qa-evidence
+          path: artifacts/hai-week1/spike-*/
+          retention-days: 7
+      - name: Remove own SQL container
+        if: always()
+        run: docker rm -f -v week-one-qa-sql || true

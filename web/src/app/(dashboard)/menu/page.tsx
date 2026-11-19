@@ -1,5 +1,4 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-
+import { CatalogScreen } from "@/features/catalog/catalog-screen";
 export default function MenuPage() {
-  return <ModulePlaceholder permissions={["catalog.menu.manage"]} title="Thực đơn" />;
+    return <CatalogScreen />;
 }

@@ -11,5 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Host/Restaurant.Api/Restaurant.Api.csproj" />
+    <ProjectReference Include="../../src/Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
+    <ProjectReference Include="../../src/Shared/Restaurant.Shared.SqlServer/Restaurant.Shared.SqlServer.csproj" />
   </ItemGroup>
 </Project>

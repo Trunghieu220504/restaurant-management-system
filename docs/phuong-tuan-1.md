@@ -34,6 +34,8 @@ Test SQL sử dụng IDENTITY_TEST_SQLSERVER giống hạ tầng test hiện t�
 
 Chưa triển khai staging, commit hoặc push. Chủ module cần review và nhóm thực hiện nghiệm thu staging theo kế hoạch.
 
+Bộ script SQL và trình tự nghiệm thu mở ngày trên staging: [nghiem-thu-salesday-staging.md](nghiem-thu-salesday-staging.md).
+
 ## Migration
 
 Đặt ConnectionStrings__Restaurant vào môi trường của terminal (không ghi mật khẩu vào Git), rồi sinh script để người triển khai xem và áp dụng:

@@ -69,12 +69,50 @@ flowchart LR
 Mũi tên là project reference, không phải luồng request. Host lắp ghép module.
 Presentation không gọi DbContext trực tiếp. Infrastructure thực hiện hợp đồng
 Application. Domain không dùng EF/ASP.NET Core. DependencyTests kiểm tra các project
-reference khai báo. CI build kiểm tra code biên dịch được.
+reference khai báo (kể cả danh sách cặp liên module được phép). CI build kiểm tra code biên dịch được.
 
-Hiện chưa có giao tiếp liên module; khi cần, tạo project Contracts nhỏ do module
-cung cấp sở hữu, chứa DTO/interface/sự kiện thuần và cập nhật architecture tests.
-Không tham chiếu Infrastructure/Domain của module khác và không chia sẻ EF entity.
-Shared Kernel chỉ bổ sung khi có khái niệm thật sự chung; không tạo Common chứa mọi thứ.
+## Giao tiếp liên module (HIE-2.3)
+Module chỉ gọi module khác qua project `Restaurant.Modules.<X>.Contracts` do module `X`
+sở hữu. Contracts chỉ chứa interface, DTO (record bất biến), hằng mã lỗi và hằng trạng thái;
+không có `ProjectReference`, `PackageReference`, `FrameworkReference`, không lộ EF entity,
+`IQueryable`, `DbConnection`/`DbTransaction` hay `HttpContext` (ADR-01). Số tiền là VND
+nguyên (`long`), id người dùng là `Guid`, mã lỗi theo `<module>.<chủ đề>.<lý do>`.
+
+```mermaid
+flowchart LR
+    SA[Sales.Application] -->|IMenuPricing| CC[Catalog.Contracts]
+    SA -->|ISessionLookup| SeC[Seating.Contracts]
+    SA -->|ISalesDayGate| SDC[SalesDay.Contracts]
+    SA -->|IInvoiceCharging| BC[Billing.Contracts]
+    BA[Billing.Application] -->|IOrderSettlement| SC[Sales.Contracts]
+```
+
+Mũi tên là project reference. Application của module sở hữu (hoặc Infrastructure của
+nó) thực hiện interface; Host đăng ký DI. Năm cặp đã chốt:
+
+| Bên gọi | Bên cung cấp | Interface | Mục đích | Loại |
+| --- | --- | --- | --- | --- |
+| Sales | Catalog | `IMenuPricing` | Kiểm tra món/biến thể/tùy chọn, hết món, min/max và tính giá chốt khi xác nhận đợt | Đọc |
+| Sales | Seating | `ISessionLookup` | Phiên bàn còn mở không; lấy nhãn bàn để snapshot | Đọc |
+| Sales | SalesDay | `ISalesDayGate` | Cổng ngày: khóa Shared, đọc lại trạng thái, chỉ `DANG_BAN` mới ghi | Khóa + đọc |
+| Sales | Billing | `IInvoiceCharging` | Ghi nghĩa vụ (một dòng hóa đơn cho mỗi phần) khi xác nhận đợt | Ghi |
+| Billing | Sales | `IOrderSettlement` | Đơn đã xử lý xong chưa; phần có thuộc đơn không | Đọc |
+
+Giao dịch: "xác nhận đợt + ghi nghĩa vụ hóa đơn" là một ghi quan trọng đồng bộ, phải
+commit hoặc rollback cùng nhau trong một SQL transaction. Contracts không có tham số
+transaction và các lời gọi không tự commit. Một bộ điều phối ở hạ tầng dùng chung mở một
+connection/transaction cho mỗi request để các DbContext cùng tham gia; bộ điều phối này
+chưa được xây (việc sau HIE-2.3) và khi xây phải thêm use case để Sales gọi, không để
+Contracts lộ transaction. Nếu `IInvoiceCharging` trả lỗi, Sales rollback việc xác nhận.
+Thứ tự khóa theo ADR-01: ngày, đơn/phiên, hóa đơn, thanh toán, kho.
+
+Chưa nằm trong năm cặp này: kiểm tra quyền truy cập khách QR (làm cùng task QR), Seating
+hỏi Sales khi đóng phiên, sự kiện outbox giữa module.
+
+Thêm cặp mới cần: Contracts của bên cung cấp, cập nhật `CrossModuleContracts` trong
+`DependencyTests` và bảng/sơ đồ trên trong cùng PR. Không tham chiếu Infrastructure/Domain
+của module khác và không chia sẻ EF entity. Shared Kernel chỉ bổ sung khi có khái niệm thật
+sự chung; không tạo Common chứa mọi thứ.
 
 ## Tham khảo từ bài mẫu
 Đã đọc trực tiếp các project, AppDbContext, ProductService, repository interface và
@@ -176,9 +214,13 @@ Tạo thư mục `artifacts` trước lệnh xuất script nếu chưa có. Đ�
 áp dụng vào database. Tạo migration/SQL riêng cho từng context; không sao chép script
 báo cáo làm migration. Thay đổi database thật không được thực hiện bởi CI hiện tại.
 
-Transaction liên module và Outbox mới ở mức thiết kế. Không mặc định rằng hai
+Transaction liên module vẫn ở mức thiết kế. Không mặc định rằng hai
 SaveChanges ở hai context là nguyên tử; khi làm chốt ngày bán (đếm tồn cuối, tổng hợp doanh thu/giá vốn) cần điều phối
 chung DbConnection/DbTransaction và kiểm thử rollback.
+
+Outbox/Inbox (HIE-3.0, xem `docs/outbox-inbox.md`): Infrastructure của module sinh sự kiện được tham chiếu
+`Restaurant.Shared.Contracts` để cài `IOutboxWriter` (Sales có bảng `sales.Outbox`); không tham chiếu
+`Shared.SqlServer`, chỉ Host dùng. Dispatcher trong Host tắt mặc định và chưa có consumer.
 
 ## Kiểm thử
 ```bash

@@ -1,0 +1,4 @@
+# Use after the web image has been published and GHCR_WEB_IMAGE set to the real commit SHA.
+services:
+  web:
+    image: ${GHCR_WEB_IMAGE:?Set GHCR_WEB_IMAGE to actual tag}

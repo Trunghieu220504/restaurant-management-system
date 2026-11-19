@@ -27,6 +27,17 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.HasIndex(s => s.ExpiresAt);
             entity.HasOne<IdentityUser<Guid>>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshToken", t => t.HasCheckConstraint("CK_RefreshToken_Expiry", "[ExpiresAt] > [CreatedAt]"));
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.TokenHash).HasMaxLength(32).IsFixedLength().IsRequired();
+            entity.HasIndex(t => t.TokenHash).IsUnique();
+            entity.HasIndex(t => t.SessionId);
+            entity.HasIndex(t => t.ExpiresAt);
+            entity.HasOne<LoginSession>().WithMany().HasForeignKey(t => t.SessionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<IdentityUser<Guid>>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Permission>(entity =>
         {
             entity.ToTable("Permission");

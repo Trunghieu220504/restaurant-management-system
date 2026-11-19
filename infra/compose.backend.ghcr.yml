@@ -1,0 +1,4 @@
+# Use after image has been published and GHCR_API_IMAGE set to the real commit SHA.
+services:
+  api:
+    image: ${GHCR_API_IMAGE:?Set GHCR_API_IMAGE to actual tag}

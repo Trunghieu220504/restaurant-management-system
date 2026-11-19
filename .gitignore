@@ -23,3 +23,13 @@ node_modules/
 coverage/
 .DS_Store
 Thumbs.db
+
+# Staging runtime data - never commit
+infra/certbot/
+infra/.env
+infra/nginx/*.bak
+
+# Local AI-agent files - kept on disk, never commit (avoids PR conflicts)
+AGENTS.md
+CLAUDE.md
+docs/AGENT_PROGRESS.md

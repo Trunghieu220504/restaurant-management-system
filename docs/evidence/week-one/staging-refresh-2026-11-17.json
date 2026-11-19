@@ -1,0 +1,18 @@
+{
+  "observedAt": "2026-11-17T06:34:45.023Z",
+  "url": "https://staging.quanlynh.id.vn/login",
+  "httpStatus": 200,
+  "browser": "Playwright Chromium, fresh context, no credentials, no API mocks",
+  "observation": "Login page loaded; waited for network idle plus one second",
+  "scriptCount": 13,
+  "apiRequests": [],
+  "refreshRequestCount": 0,
+  "authBundles": [
+    {
+      "path": "/_next/static/chunks/3uy-pa_kfajm4.js",
+      "sha256": "975908a8209751cbc0c26a9d8aea4c704ead151ecca795e14a00aae5c9783599",
+      "snippet": ",f)}catch{return f()}}async function p(){return\"true\"!==a.default.env.NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED?null:u||(u=h().finally(()=>{u=null}))}async function y(e,t){let r=await fetch(\"/api/identity/login\""
+    }
+  ],
+  "conclusion": "Refresh flag remains a runtime env lookup in served JS; no automatic refresh request observed. Full authenticated E2E remains blocked pending rebuilt deployment and test account."
+}

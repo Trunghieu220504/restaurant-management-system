@@ -36,9 +36,10 @@ public sealed class IdentityAuthenticationTests(ApiFactory factory) : IClassFixt
         var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var sql = db.Database.GenerateCreateScript();
         Assert.Contains("[identity].[LoginSession]", sql);
+        Assert.Contains("[identity].[RefreshToken]", sql);
         Assert.Contains("[IsActive] bit NOT NULL", sql);
         Assert.Contains("[SecurityStamp]", sql);
-        Assert.Equal(2, db.Database.GetMigrations().Count());
+        Assert.Equal(3, db.Database.GetMigrations().Count());
     }
 
     [Fact]

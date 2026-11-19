@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Restaurant.Modules.Identity.Application.Authentication;
 
 public sealed record LoginRequest(string? UserName, string? Password)
@@ -11,6 +13,9 @@ public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewP
 public sealed record CurrentAccount(Guid Id, string UserName, string? Email, string[] Roles, string[] Permissions);
 public sealed record LoginResult(string AccessToken, DateTime ExpiresAt, CurrentAccount Account)
 {
+    /// <summary>Raw refresh secret. Never serialized: the endpoint puts it in an HttpOnly cookie.</summary>
+    [JsonIgnore] public string? RefreshToken { get; init; }
+    [JsonIgnore] public DateTime? RefreshTokenExpiresAt { get; init; }
     public override string ToString() => "LoginResult (redacted)";
 }
 public enum AccountMutationResult { Success, Unauthorized, InvalidPassword }
@@ -18,8 +23,11 @@ public enum AccountMutationResult { Success, Unauthorized, InvalidPassword }
 public interface IIdentityAuthentication
 {
     Task<LoginResult?> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+    /// <summary>Rotates the refresh token. Null means 401 (unknown, expired, revoked or reused token).</summary>
+    Task<LoginResult?> RefreshAsync(string? refreshToken, CancellationToken cancellationToken);
     Task<CurrentAccount?> ValidateSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken);
     Task<AccountMutationResult> LogoutAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken);
+    Task<AccountMutationResult> LogoutByRefreshTokenAsync(string? refreshToken, CancellationToken cancellationToken);
     Task<AccountMutationResult> ChangePasswordAsync(Guid userId, Guid sessionId, ChangePasswordRequest request, CancellationToken cancellationToken);
 }
 

@@ -1,36 +1,64 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-border: var(--border);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --font-sans: Arial, Helvetica, sans-serif;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --primary: #171717;
-  --primary-foreground: #fafafa;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --border: #e5e5e5;
-  --card: #ffffff;
-  --card-foreground: #171717;
+    --background: #f7f9f8;
+    --foreground: #192523;
+    --primary: #115e59;
+    --primary-foreground: #ffffff;
+    --muted: #edf2f1;
+    --muted-foreground: #555d69;
+    --border: #d8e1df;
+    --card: #ffffff;
+    --card-foreground: #171717;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+    :is(
+        a,
+        button,
+        input,
+        select,
+        textarea,
+        summary,
+        [tabindex="0"]
+    ):focus-visible {
+        outline: 2px solid #176a88;
+        outline-offset: 3px;
+    }
+
+    :is(input, select, textarea) {
+        scroll-margin-block: 5rem;
+    }
+}
+
+.table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.table-scroll > table {
+    min-width: 32rem;
 }

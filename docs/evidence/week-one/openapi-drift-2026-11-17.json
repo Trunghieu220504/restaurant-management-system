@@ -1,0 +1,10 @@
+{
+  "observedAt": "2026-11-17T06:59:35.453Z",
+  "baselineExitCode": 0,
+  "generatorWithChangedOpenAPIExitCode": 0,
+  "ciDiffWithDriftExitCode": 1,
+  "changedProperty": "LoginRequest.codexDriftProbe",
+  "note": "Temporary fixture passed to the same generator; CI git diff command detects the changed client. Canonical OpenAPI untouched. This is a local reproduction, not a remote Actions run.",
+  "canonicalGeneratorExitCode": 0,
+  "ciDiffAfterRestoreExitCode": 0
+}
