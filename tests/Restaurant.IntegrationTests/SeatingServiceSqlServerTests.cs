@@ -466,7 +466,12 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         public Guid Day { get; } = Guid.NewGuid();
         public volatile bool Open = true;
         public Task<Guid?> CurrentOpenDayAsync(CancellationToken ct) => Task.FromResult<Guid?>(Open ? Day : null);
-        public Task<bool> IsOpenAsync(Guid dayId, CancellationToken ct) => Task.FromResult(Open && dayId == Day);
+        public async Task<bool> RequireOpenAsync(System.Data.Common.DbTransaction transaction, Guid dayId, CancellationToken ct)
+        {
+            await Restaurant.Shared.SqlServer.BusinessDayLock.AcquireAsync(transaction.Connection!, transaction, dayId,
+                Restaurant.Shared.SqlServer.BusinessDayLockMode.Shared, cancellationToken: ct);
+            return Open && dayId == Day;
+        }
     }
 
     private sealed class FakeGuard : ISessionClosureGuard

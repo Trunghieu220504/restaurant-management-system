@@ -56,7 +56,8 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
     public Task<CatalogResult<MenuItemDto>> CreateItemAsync(CreateMenuItemRequest request, CancellationToken ct) =>
         WriteAsync<MenuItemDto>(async () =>
         {
-            if (request is null || !ValidItem(request.GroupId, request.Code, request.Name, request.Station))
+            if (request?.InitialVariant is not { } first || !ValidItem(request.GroupId, request.Code, request.Name, request.Station) ||
+                !ValidVariant(first.Code, first.Name, first.Price))
                 return Fail<MenuItemDto>(CatalogErrors.InputInvalid);
             var parent = await db.Set<NhomMon>().SingleOrDefaultAsync(x => x.Id == request.GroupId, ct);
             if (parent is null) return Fail<MenuItemDto>(CatalogErrors.GroupNotFound);
@@ -64,9 +65,10 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
             var code = request.Code.Trim();
             if (await db.Set<Mon>().AnyAsync(x => x.Ma == code, ct)) return Fail<MenuItemDto>(CatalogErrors.ItemCodeConflict);
             var row = new Mon { Id = Guid.NewGuid(), NhomMonId = parent.Id, Ma = code, Ten = request.Name.Trim(), Tram = request.Station };
-            db.Add(row);
+            var variant = new BienThe { Id = Guid.NewGuid(), MonId = row.Id, Ma = first.Code.Trim(), Ten = first.Name.Trim(), Gia = first.Price };
+            db.AddRange(row, variant);
             await db.SaveChangesAsync(ct);
-            return CatalogResult<MenuItemDto>.Ok(Map(row, [], []));
+            return CatalogResult<MenuItemDto>.Ok(Map(row, [variant], []));
         }, ct, CatalogErrors.ItemCodeConflict);
 
     public Task<CatalogResult<MenuItemDto>> UpdateItemAsync(Guid id, UpdateMenuItemRequest request, CancellationToken ct) =>
@@ -82,6 +84,8 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
             if (request.Active && !parent.HoatDong) return Fail<MenuItemDto>(CatalogErrors.GroupInactive);
             var code = request.Code.Trim();
             if (await db.Set<Mon>().AnyAsync(x => x.Id != id && x.Ma == code, ct)) return Fail<MenuItemDto>(CatalogErrors.ItemCodeConflict);
+            if (request.Active && !await db.Set<BienThe>().AnyAsync(x => x.MonId == id && x.HoatDong, ct))
+                return Fail<MenuItemDto>(CatalogErrors.VariantRequired);
             row.NhomMonId = parent.Id;
             row.Ma = code;
             row.Ten = request.Name.Trim();
@@ -98,7 +102,8 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
                 return Fail<VariantDto>(CatalogErrors.InputInvalid);
             var item = await db.Set<Mon>().SingleOrDefaultAsync(x => x.Id == itemId, ct);
             if (item is null) return Fail<VariantDto>(CatalogErrors.ItemNotFound);
-            if (!item.HoatDong) return Fail<VariantDto>(CatalogErrors.ItemInactive);
+            if (!item.HoatDong && await db.Set<BienThe>().AnyAsync(x => x.MonId == itemId && x.HoatDong, ct))
+                return Fail<VariantDto>(CatalogErrors.ItemInactive);
             var code = request.Code.Trim();
             if (await db.Set<BienThe>().AnyAsync(x => x.MonId == itemId && x.Ma == code, ct))
                 return Fail<VariantDto>(CatalogErrors.VariantCodeConflict);
@@ -120,6 +125,10 @@ public sealed class CatalogMenu(CatalogDbContext db) : ICatalogMenu
             var code = request.Code.Trim();
             if (await db.Set<BienThe>().AnyAsync(x => x.Id != id && x.MonId == itemId && x.Ma == code, ct))
                 return Fail<VariantDto>(CatalogErrors.VariantCodeConflict);
+            if (row.HoatDong && !request.Active &&
+                await db.Set<Mon>().AnyAsync(x => x.Id == itemId && x.HoatDong, ct) &&
+                !await db.Set<BienThe>().AnyAsync(x => x.MonId == itemId && x.Id != id && x.HoatDong, ct))
+                return Fail<VariantDto>(CatalogErrors.VariantRequired);
             row.Ma = code;
             row.Ten = request.Name.Trim();
             row.Gia = request.Price;
