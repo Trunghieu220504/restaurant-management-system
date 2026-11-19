@@ -31,7 +31,9 @@ public sealed class OutboxDispatcherService(
             var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(ct);
             return connection;
-        }, schema, DeliverAsync, options, clock)).ToArray();
+        }, schema, DeliverAsync, options, clock, message => logger.LogWarning(
+            "Outbox message {EventId} ({Type}) was completed by another dispatcher while this one was delivering it; " +
+            "delivery took longer than the {Lease} lease.", message.EventId, message.Type, options.LeaseDuration))).ToArray();
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(pollSeconds));
         do

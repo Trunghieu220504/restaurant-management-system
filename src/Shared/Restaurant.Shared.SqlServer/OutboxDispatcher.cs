@@ -26,7 +26,8 @@ public sealed class OutboxDispatcher(
     string schema,
     Func<OutboxMessage, CancellationToken, Task> deliver,
     OutboxDispatcherOptions options,
-    TimeProvider clock)
+    TimeProvider clock,
+    Action<OutboxMessage>? completedElsewhere = null)
 {
     /// <summary>Claims and delivers one batch. Returns how many messages were claimed.</summary>
     public async Task<int> RunOnceAsync(CancellationToken cancellationToken)
@@ -53,7 +54,10 @@ public sealed class OutboxDispatcher(
                     ex.GetType().Name + ": " + ex.Message, retryAt, cancellationToken);
                 continue;
             }
-            await OutboxStore.MarkProcessedAsync(connection, schema, message.EventId, clock.GetUtcNow(), cancellationToken);
+            // False means the lease expired during delivery and another dispatcher already completed the message: it was
+            // delivered twice. Harmless for an idempotent consumer, but the caller should know the lease is too short.
+            if (!await OutboxStore.MarkProcessedAsync(connection, schema, message.EventId, clock.GetUtcNow(), cancellationToken))
+                completedElsewhere?.Invoke(message);
         }
         return claimed.Count;
     }

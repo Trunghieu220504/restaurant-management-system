@@ -62,6 +62,11 @@ bằng migration của mình (Fulfillment: `InitialFulfillment`, HIE-3.4).
   bản ghi cùng lúc; bản ghi của transaction chưa commit bị bỏ qua. Thuê hết hạn thì bản ghi đến hạn lại, nên
   instance chết giữa chừng không làm mất sự kiện (nhưng có thể phát lại: vì vậy cần Inbox).
 - **Thành công:** `ProcessedAt` được đặt, hết thuê.
+  Nếu lúc đánh dấu mà bản ghi đã được instance khác hoàn tất (thuê hết hạn khi đang phát), dispatcher gọi
+  `completedElsewhere`; host ghi cảnh báo "hoàn tất bởi dispatcher khác". Thấy cảnh báo này nghĩa là `LeaseDuration`
+  (mặc định 2 phút) ngắn hơn thời gian phát chậm nhất.
+- **Nhiều handler cho một loại sự kiện:** chạy tuần tự; một handler lỗi thì cả bản ghi được thử lại và các handler
+  trước đó chạy lại. Mỗi handler phải idempotent (Inbox theo consumer/event).
 - **Lỗi:** thử lại với backoff nhân đôi (`BaseDelay` 5s, trần `MaxDelay` 15 phút). Đủ `MaxAttempts` (8) thì
   **park**: `NextAttemptAt = NULL`, giữ `LastError`, không tự phát lại. `RequeueParkedAsync` đưa chúng về hàng
   đợi sau khi người vận hành sửa nguyên nhân.

@@ -268,6 +268,28 @@ public sealed class OutboxInboxSqlServerTests : IAsyncLifetime
     }
 
     [SqlServerFact]
+    public async Task A_delivery_that_outlives_its_lease_is_reported_when_another_dispatcher_completed_the_message()
+    {
+        await StageAsync((NewEvent(), "batch-1", 1));
+        var clock = new FakeClock(T0);
+        var reported = new List<Guid>();
+        var dispatcher = new OutboxDispatcher(async _ => await OpenAsync(), Schema, async (message, ct) =>
+        {
+            // The lease runs out and a second dispatcher claims and completes the same message while this one is still busy.
+            clock.Now = T0.AddMinutes(3);
+            await using var other = await OpenAsync();
+            var again = Assert.Single(await OutboxStore.ClaimDueAsync(other, Schema, clock.Now, 10, TimeSpan.FromMinutes(1), ct));
+            Assert.Equal(message.EventId, again.EventId);
+            Assert.True(await OutboxStore.MarkProcessedAsync(other, Schema, again.EventId, clock.Now, ct));
+        }, new OutboxDispatcherOptions { LeaseDuration = TimeSpan.FromMinutes(2) }, clock, message => reported.Add(message.EventId));
+
+        Assert.Equal(1, await dispatcher.RunOnceAsync(CancellationToken.None));
+
+        Assert.Single(reported);
+        Assert.Equal(1, await ScalarAsync("SELECT COUNT(*) FROM [sales].[Outbox] WHERE [ProcessedAt] IS NOT NULL"));
+    }
+
+    [SqlServerFact]
     public async Task Complete_and_fail_ignore_messages_that_are_already_done()
     {
         await StageAsync((NewEvent(), "batch-1", 1));
