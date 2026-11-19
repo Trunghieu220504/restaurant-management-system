@@ -375,6 +375,41 @@ public sealed class SalesOrderServiceTests
         Assert.Empty(Assert.Single(store.Orders).Dots);
     }
 
+    [Fact]
+    public async Task A_menu_answer_for_another_dish_variant_or_option_is_not_trusted()
+    {
+        var order = await OpenOrderAsync();
+        var requests = new[]
+        {
+            Line(Pho, PhoRegular),
+            Line(Tea, TeaVariant, [Pearl])
+        };
+        // Each answer is well-formed (one line per request line) but describes something else.
+        var wrong = new (string Name, Func<PricedMenuLine, PricedMenuLine> Change, BatchLine Asked)[]
+        {
+            ("dish", p => p with { MenuItemId = Tea }, requests[0]),
+            ("variant", p => p with { VariantId = PhoLarge }, requests[0]),
+            ("option", p => p with { Options = [] }, requests[1]),
+            ("extra option", p => p with { Options = [.. p.Options, new PricedOption(Sugar, Guid.NewGuid(), "Sugar", OptionGroupKinds.Option, "50%", 0)] }, requests[1])
+        };
+
+        foreach (var (name, change, asked) in wrong)
+        {
+            var honest = (await new FakeMenuPricing().AddDish(Pho, "Pho", Stations.Kitchen).AddVariant(Pho, PhoRegular, "Regular", 60000)
+                .AddDish(Tea, "Milk tea", Stations.Bar).AddVariant(Tea, TeaVariant, "Large", 45000)
+                .AddOption(Tea, Pearl, CatalogId.Of(60), "Toppings", OptionGroupKinds.Topping, "Pearl", 5000)
+                .AddOption(Tea, Sugar, CatalogId.Of(61), "Sugar", OptionGroupKinds.Option, "50%", 0)
+                .PriceAsync(new MenuPricingRequest(Guid.NewGuid(), [new MenuLineSelection(1, asked.MenuItemId, asked.VariantId, asked.OptionIds ?? [])]), default))
+                .Lines.Single();
+            var service2 = new OrderService(store, sessions, gate, new FixedPricing(change(honest)), new FixedClock(Now));
+
+            var result = await service2.AddBatchAsync(Add(order, asked), default);
+
+            Assert.True(result.Error == SalesErrors.PricingInconsistent, $"{name}: {result.Error}");
+        }
+        Assert.Empty(Assert.Single(store.Orders).Dots);
+    }
+
     // ---- cancel batch ----
 
     [Fact]
@@ -510,6 +545,12 @@ public sealed class SalesOrderServiceTests
     }
 
     /// <summary>A menu that answers one line fewer than asked, which a correct Catalog never does.</summary>
+    private sealed class FixedPricing(PricedMenuLine line) : IMenuPricing
+    {
+        public Task<MenuPricingResult> PriceAsync(MenuPricingRequest request, CancellationToken ct) =>
+            Task.FromResult(new MenuPricingResult([line with { LineNo = 1 }], []));
+    }
+
     private sealed class ShortPricing : IMenuPricing
     {
         public Task<MenuPricingResult> PriceAsync(MenuPricingRequest request, CancellationToken ct) =>

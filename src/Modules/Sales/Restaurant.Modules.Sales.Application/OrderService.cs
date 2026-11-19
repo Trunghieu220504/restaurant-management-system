@@ -81,6 +81,9 @@ public sealed class OrderService(
         var byLine = priced.Lines.GroupBy(x => x.LineNo).ToDictionary(x => x.Key, x => x.First());
         if (priced.Lines.Count != command.Lines.Count || Enumerable.Range(1, command.Lines.Count).Any(n => !byLine.ContainsKey(n)))
             return Fail<BatchView>(SalesErrors.PricingInconsistent);
+        // The snapshot stored on the portion (and later charged) must be of what was asked for, line by line.
+        if (command.Lines.Select((line, index) => (line, priced: byLine[index + 1])).Any(x => !Answers(x.line, x.priced)))
+            return Fail<BatchView>(SalesErrors.PricingInconsistent);
 
         var portions = command.Lines.Select((line, index) =>
         {
@@ -96,6 +99,11 @@ public sealed class OrderService(
         var batch = added.Value!;
         return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
     }
+
+    /// <summary>True when the priced line is for the same dish, variant and options as the requested one.</summary>
+    private static bool Answers(BatchLine requested, PricedMenuLine priced) =>
+        priced.MenuItemId == requested.MenuItemId && priced.VariantId == requested.VariantId &&
+        priced.Options.Select(o => o.OptionId).Order().SequenceEqual((requested.OptionIds ?? []).Order());
 
     /// <summary>Withdraws a batch that has not been decided yet (confirmed batches are reduced portion by portion).</summary>
     public async Task<ServiceResult<BatchView>> CancelBatchAsync(CancelBatchCommand command, CancellationToken ct)
