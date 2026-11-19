@@ -1,0 +1,177 @@
+name: Staging release tooling
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'scripts/restaurant-deploy-95ab29b.sh'
+      - 'scripts/restaurant-staging-create-accounts.sh'
+      - 'scripts/install-approved-staging-release.sh'
+      - 'scripts/restaurant-release-diagnose-95ab29b.sh'
+      - 'scripts/install-approved-staging-sql-fix.sh'
+      - 'scripts/PrepareStagingCredentials.cs'
+      - 'scripts/Test-StagingAccounts.ps1'
+      - '.github/workflows/staging-release-tools.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify fixed release inputs and guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Trunghieu220504/restaurant-management-system
+          ref: 95ab29baa09949f88dd09d106de0834108e97670
+          path: artifacts/release-source
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          global-json-file: global.json
+      - name: Check Bash syntax and rejection of invalid commands
+        shell: bash
+        run: |
+          for file in scripts/restaurant-deploy-95ab29b.sh scripts/restaurant-staging-create-accounts.sh scripts/install-approved-staging-release.sh scripts/restaurant-release-diagnose-95ab29b.sh scripts/install-approved-staging-sql-fix.sh; do
+            bash -n "$file"
+            set +e
+            bash "$file" --unsupported
+            status=$?
+            set -e
+            test "$status" -eq 2
+          done
+      - name: ShellCheck operator helpers
+        run: |
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends shellcheck
+          fi
+          shellcheck scripts/restaurant-deploy-95ab29b.sh scripts/restaurant-staging-create-accounts.sh scripts/install-approved-staging-release.sh scripts/restaurant-release-diagnose-95ab29b.sh scripts/install-approved-staging-sql-fix.sh
+      - name: Check PowerShell verification syntax
+        shell: pwsh
+        run: |
+          $parseErrors = $null
+          $tokens = $null
+          [Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/Test-StagingAccounts.ps1'), [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors) { throw 'Account verification script has syntax errors.' }
+      - name: Restore and build exact merged release
+        working-directory: artifacts/release-source
+        run: |
+          dotnet restore RestaurantManagement.slnx --locked-mode
+          dotnet tool restore
+          dotnet build src/Host/Restaurant.Api/Restaurant.Api.csproj --configuration Release --no-restore
+      - name: Regenerate and verify immutable SQL
+        working-directory: artifacts/release-source
+        env:
+          ConnectionStrings__Restaurant: 'Server=127.0.0.1,1;Database=OfflineScriptOnly;Integrated Security=True;Encrypt=True;Connect Timeout=1'
+        run: |
+          mkdir -p artifacts/generated
+          for module in Seating Sales; do
+            project="src/Modules/$module/Restaurant.Modules.$module.Infrastructure"
+            dotnet ef migrations script --idempotent --context "${module}DbContext" --project "$project" --startup-project "$project" --configuration Release --no-build --output "artifacts/generated/$module.sql"
+          done
+          dotnet ef migrations script 0 20261114224201_InitialSeating --idempotent --context SeatingDbContext --project src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure --startup-project src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure --configuration Release --no-build --output artifacts/generated/InitialSeating.sql
+          python3 - <<'PY'
+          import hashlib, pathlib
+          expected = {
+              'Seating': '574e35a3dbbad08afff2e76d0ac9d8ee85a9ec2b8400df06f3350b27817c79a2',
+              'Sales': '458b581c151c6eafb96c92513b5b29b9d6b37f80281906b8ff1bfef2585068af',
+          }
+          for module, digest in expected.items():
+              path = pathlib.Path('artifacts/generated') / (module + '.sql')
+              text = path.read_text(encoding='utf-8-sig').replace('\r\n', '\n')
+              canonical = ('\ufeff' + text.replace('\n', '\r\n')).encode('utf-8')
+              assert hashlib.sha256(canonical).hexdigest() == digest, module + ' SQL checksum differs'
+              path.write_bytes(canonical)
+              print(module + ' canonical SQL checksum passed')
+          PY
+      - name: Reproduce BOM stdin failure and test the real SQL transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          export sql=restaurant-staging-sql-input-ci
+          trap 'docker rm -f -v "$sql" >/dev/null 2>&1 || true' EXIT
+          password="$(openssl rand -hex 24)Aa1!"
+          echo "::add-mask::$password"
+          export MSSQL_SA_PASSWORD="$password"
+          docker run -d --name "$sql" -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD mcr.microsoft.com/mssql/server:2022-latest
+          unset password MSSQL_SA_PASSWORD
+          ready=false
+          for attempt in $(seq 1 60); do
+            if docker exec "$sql" bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q "SELECT 1"' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+          # This is the former transport: BOM-prefixed standard input, not an -i file.
+          set +e
+          printf '\357\273\277SELECT 1;\r\nGO\r\n' | docker exec -i "$sql" bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; exec /opt/mssql-tools18/bin/sqlcmd -C -I -b -r 1 -h -1 -W -s "|" -S localhost -U sa -d master' > "$RUNNER_TEMP/staging-bom-before.log" 2>&1
+          old_status=$?
+          set -e
+          test "$old_status" -ne 0
+          grep -q 'Msg 102,' "$RUNNER_TEMP/staging-bom-before.log"
+          echo 'Original BOM-on-stdin failure reproduced: SQL Msg 102.'
+          # Load the actual function under test, without executing the root/VPS entry point.
+          transport=$(sed -n '/^sql_run() {$/,/^}$/p' scripts/restaurant-deploy-95ab29b.sh)
+          test -n "$transport"
+          eval "$transport"
+          sql_run master <<'SQL'
+          CREATE DATABASE [StagingSqlInputRegression];
+          CREATE DATABASE [StagingSqlInputUpgrade];
+          SQL
+          sql_run StagingSqlInputUpgrade < artifacts/release-source/artifacts/generated/InitialSeating.sql
+          sql_run StagingSqlInputUpgrade <<'SQL'
+          INSERT seating.KhuVuc (Ma,Ten,HoatDong) VALUES ('CI_PRESERVE',N'Khu thử nghiệm',1);
+          SQL
+          previous_version=$(printf "SET NOCOUNT ON; SELECT CONVERT(varchar(16),CONVERT(binary(8),Version),2) FROM seating.KhuVuc WHERE Ma='CI_PRESERVE';\nGO\n" | sql_run StagingSqlInputUpgrade | tr -d '[:space:]')
+          if ! [[ "$previous_version" =~ ^[0-9A-Fa-f]{16}$ ]]; then
+            echo 'Unexpected synthetic rowversion result bytes:'
+            printf '%s' "$previous_version" | od -An -tx1
+            echo 'Synthetic database/row/version via direct query (no secret or staging data):'
+            docker exec "$sql" bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; exec /opt/mssql-tools18/bin/sqlcmd -C -I -b -r 1 -h -1 -W -s "|" -S localhost -U sa -d StagingSqlInputUpgrade -Q "SET NOCOUNT ON; SELECT DB_NAME(),Ma,DATALENGTH(Version),CONVERT(varchar(16),CONVERT(binary(8),Version),2) FROM seating.KhuVuc;"'
+            echo 'Same query via the actual standard-input transport:'
+            sql_run StagingSqlInputUpgrade <<'SQL'
+          SET NOCOUNT ON;
+          SELECT DB_NAME(),Ma,DATALENGTH(Version),CONVERT(varchar(16),CONVERT(binary(8),Version),2) FROM seating.KhuVuc;
+          GO
+          SQL
+            exit 1
+          fi
+          for database in StagingSqlInputRegression StagingSqlInputUpgrade; do
+            for iteration in 1 2; do
+              for module in Seating Sales; do
+                sql_run "$database" < "artifacts/release-source/artifacts/generated/$module.sql"
+              done
+            done
+            sql_run "$database" <<SQL
+          IF OBJECT_ID(N'seating.YeuCauDaXuLy') IS NULL OR OBJECT_ID(N'sales.DonHang') IS NULL THROW 51000, 'Migration objects missing', 1;
+          IF (SELECT COUNT(*) FROM seating.__EFMigrationsHistory) <> 2 OR (SELECT COUNT(*) FROM sales.__EFMigrationsHistory) <> 1 THROW 51000, 'Migration history mismatch', 1;
+          DBCC CHECKDB ([$database]) WITH NO_INFOMSGS;
+          SQL
+          done
+          sql_run StagingSqlInputUpgrade <<SQL
+          IF (SELECT COUNT(*) FROM seating.KhuVuc WHERE Ma='CI_PRESERVE' AND HoatDong=1 AND Version=0x$previous_version) <> 1 THROW 51000, 'Existing data changed', 1;
+          SQL
+          unicode=$(printf '\357\273\277SET NOCOUNT ON; SELECT UNICODE(N\x27ệ\x27);\r\nGO\r\n' | sql_run StagingSqlInputRegression | tr -d '[:space:]')
+          test "$unicode" = 7879
+          set +e
+          printf 'INVALID_SQL_FOR_REGRESSION;\nGO\n' | sql_run StagingSqlInputRegression > "$RUNNER_TEMP/staging-bom-invalid.log" 2>&1
+          invalid_status=$?
+          set -e
+          test "$invalid_status" -ne 0
+          echo 'Fixed transport: BOM/CRLF migrations twice on fresh/initial-schema DBs, unchanged existing row/version, history, CHECKDB, Vietnamese Unicode and SQL error propagation PASS.'
+          echo '574e35a3dbbad08afff2e76d0ac9d8ee85a9ec2b8400df06f3350b27817c79a2  artifacts/release-source/artifacts/generated/Seating.sql' | sha256sum -c -
+          echo '458b581c151c6eafb96c92513b5b29b9d6b37f80281906b8ff1bfef2585068af  artifacts/release-source/artifacts/generated/Sales.sql' | sha256sum -c -
+      - name: Verify credential generation without provisioning or logging values
+        shell: bash
+        run: |
+          umask 077
+          export STAGING_CREDENTIAL_DIRECTORY="$RUNNER_TEMP/staging-credential-selfcheck"
+          trap 'rm -f "$STAGING_CREDENTIAL_DIRECTORY/credentials.json" "$STAGING_CREDENTIAL_DIRECTORY/provisioning.json"' EXIT
+          dotnet run scripts/PrepareStagingCredentials.cs

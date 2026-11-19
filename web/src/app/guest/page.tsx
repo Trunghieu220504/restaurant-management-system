@@ -134,7 +134,7 @@ function GuestMenuContent() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 pb-28 max-w-md mx-auto relative shadow-2xl border-x">
+        <div className="relative mx-auto min-h-dvh w-full max-w-7xl bg-slate-50 pb-[calc(7rem+env(safe-area-inset-bottom))] text-slate-800">
             {/* Top Banner: QR Table Identity */}
             <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -151,7 +151,7 @@ function GuestMenuContent() {
                             </span>
                         </div>
                         <p className="text-[11px] text-slate-400">
-                            Khách tự gọi món qua mã QR (UC06)
+                            Khách tự gọi món qua mã QR
                         </p>
                     </div>
                 </div>
@@ -166,7 +166,7 @@ function GuestMenuContent() {
             </div>
 
             {/* Switch table pill for demo */}
-            <div className="bg-red-50/60 px-4 py-2 border-b border-red-100 flex items-center justify-between text-xs">
+            <div className="bg-red-50/60 px-4 py-2 border-b border-red-100 flex flex-wrap gap-2 items-center justify-between text-xs">
                 <span className="text-red-800 font-medium flex items-center gap-1">
                     <QrCode size={13} className="text-red-500" />
                     Đang quét QR tại: <strong>{currentTable.name}</strong>
@@ -311,7 +311,7 @@ function GuestMenuContent() {
             )}
 
             {/* Category Pills */}
-            <div className="sticky top-[61px] z-20 bg-white px-4 py-2.5 border-b border-slate-100 flex items-center gap-2 overflow-x-auto">
+            <div className="sticky top-[61px] z-20 flex items-center gap-2 overflow-x-auto border-b bg-card px-4 py-2.5 [&>button]:min-h-11 [&>button]:shrink-0">
                 {categories.map((cat) => (
                     <button
                         key={cat.key}
@@ -329,13 +329,16 @@ function GuestMenuContent() {
             </div>
 
             {/* Menu List */}
-            <div className="p-4 space-y-3">
+            <section
+                aria-label="Thực đơn"
+                className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"
+            >
                 {filteredDishes.map((dish) => {
                     const cartItem = cart[dish.id];
                     const isOutOfStock = dish.outOfStock;
 
                     return (
-                        <div
+                        <article
                             key={dish.id}
                             className={cn(
                                 "p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs",
@@ -345,7 +348,7 @@ function GuestMenuContent() {
                             )}
                         >
                             {/* Dish info */}
-                            <div className="flex-1 space-y-1">
+                            <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex items-center gap-1.5">
                                     <h3 className="font-bold text-sm text-slate-900 leading-tight">
                                         {dish.name}
@@ -427,15 +430,15 @@ function GuestMenuContent() {
                                     </button>
                                 )}
                             </div>
-                        </div>
+                        </article>
                     );
                 })}
-            </div>
+            </section>
 
             {/* Floating Bottom Cart Bar */}
             {cartItemsCount > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 z-40 bg-gradient-to-t from-white via-white to-transparent">
-                    <div className="bg-slate-900 text-white rounded-2xl p-3.5 shadow-2xl flex items-center justify-between border border-slate-700 animate-in slide-in-from-bottom-3">
+                <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto max-w-7xl px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                    <div className="pointer-events-auto bg-slate-900 text-white rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3 border border-slate-700 sm:ml-auto sm:max-w-md animate-in slide-in-from-bottom-3">
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className="size-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
@@ -461,8 +464,7 @@ function GuestMenuContent() {
                 </div>
             )}
 
-            {/* Floating Staff Switcher Button */}
-            <div className="fixed bottom-3 right-3 z-30">
+            <div className="flex justify-end px-4">
                 <Link
                     href="/tables"
                     className="bg-white/90 backdrop-blur text-slate-800 text-[11px] font-bold px-3 py-1.5 rounded-full border border-slate-300 shadow-lg flex items-center gap-1.5 hover:bg-white"

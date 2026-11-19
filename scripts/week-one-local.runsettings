@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <xUnit>
+    <!-- Limit independent database fixtures on a developer machine.
+         Task.WhenAll/SQL transaction concurrency inside each test is unchanged. -->
+    <MaxParallelThreads>2</MaxParallelThreads>
+  </xUnit>
+</RunSettings>

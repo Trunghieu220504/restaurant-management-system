@@ -34,12 +34,12 @@ Cloudflare, configure trusted forwarded headers/firewall and edge limits before
 deployment; otherwise proxy users share the process-level IP budget.
 
 LoginSession stores IDs, stamp, times, revocation and rowversion, not raw JWT or
-refresh token. AspNetUsers.IsActive defaults true; management APIs are future
-work. Every protected request checks session ownership, expiry/revocation,
+refresh token. AspNetUsers.IsActive defaults true; account management APIs (HIE-5.2)
+are described in api/identity-contract.md section 5. Every protected request checks session ownership, expiry/revocation,
 SecurityStamp, activity and lockout in SQL, then rebuilds roles from current
 database assignments. Old scaffold test tokens without sid are rejected.
 Permissions are returned for client display; this does not implement future
-business authorization handlers or the subordinate account management APIs.
+business authorization handlers.
 
 Logout revokes only current session. Password change requires current password,
 rejects identical/weak replacement and atomically changes password/stamp and

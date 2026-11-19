@@ -37,18 +37,14 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="relative min-h-screen bg-white flex flex-col items-center justify-center p-4 overflow-hidden">
+        <div className="min-h-dvh bg-muted flex flex-col items-center justify-center px-5 py-8">
             {/* Soft Pink Background Decorative Circles from Design */}
-            <div className="absolute -top-16 -left-16 w-72 h-72 rounded-full bg-pink-100/70 blur-2xl pointer-events-none" />
-            <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-rose-100/60 blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-pink-100/70 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-rose-50/80 blur-2xl pointer-events-none" />
 
             {/* Main Container */}
-            <div className="relative z-10 max-w-sm w-full mx-auto space-y-6">
+            <div className="relative z-10 mx-auto w-full max-w-sm space-y-6 sm:max-w-md sm:rounded-2xl sm:border sm:bg-card sm:p-8 sm:shadow-sm">
                 {/* Title matching design */}
                 <div className="text-center pt-4">
-                    <h1 className="text-2xl font-medium text-rose-500 tracking-tight">
+                    <h1 className="text-2xl font-semibold text-foreground">
                         Đăng nhập
                     </h1>
                 </div>
@@ -108,7 +104,7 @@ export default function LoginPage() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:text-foreground"
                         >
                             {showPassword ? (
                                 <EyeOff size={18} />
