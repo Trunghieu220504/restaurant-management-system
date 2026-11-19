@@ -43,9 +43,9 @@ export default function ProfilePage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="space-y-4">
             {/* Header */}
-            <div className="bg-white shadow-sm flex items-center gap-3 px-4 py-4 sticky top-0 z-10">
+            <div className="bg-white rounded-xl border flex items-center gap-3 px-4 py-3">
                 <button
                     onClick={() => router.back()}
                     className="p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -53,19 +53,21 @@ export default function ProfilePage() {
                 >
                     <ArrowLeft className="w-5 h-5 text-gray-700" />
                 </button>
-                <h1 className="text-lg font-semibold text-gray-800">Hồ sơ</h1>
+                <h1 className="text-lg font-semibold text-gray-800 md:text-2xl">
+                    Hồ sơ
+                </h1>
             </div>
 
-            <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+            <div className="grid items-start gap-4 lg:grid-cols-2">
                 {/* Profile rows */}
-                <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
+                <div className="min-w-0 bg-white rounded-lg shadow-sm divide-y divide-gray-100 lg:row-span-2">
                     {profileFields.map((field) => {
                         const content = (
                             <>
-                                <span className="text-sm text-gray-500 w-32 shrink-0">
+                                <span className="text-sm text-gray-500 w-24 shrink-0 xl:w-32">
                                     {field.label}
                                 </span>
-                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                <div className="min-w-0 flex items-center gap-2 flex-1 justify-end text-right [overflow-wrap:anywhere]">
                                     <span
                                         className={`text-sm font-medium ${
                                             field.placeholder
@@ -166,7 +168,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 lg:col-span-2 lg:justify-self-start lg:[&>button]:flex-none lg:[&>button]:px-5">
                     <button
                         onClick={() => logout()}
                         className="flex-1 py-3 rounded-lg border-2 border-red-500 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors"

@@ -381,6 +381,9 @@
       "restaurant.modules.seating.contracts": {
         "type": "Project"
       },
+      "restaurant.shared.contracts": {
+        "type": "Project"
+      },
       "System.Security.Cryptography.Pkcs": {
         "type": "CentralTransitive",
         "requested": "[10.0.13, )",

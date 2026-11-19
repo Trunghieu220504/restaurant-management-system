@@ -659,7 +659,9 @@
           "Restaurant.Modules.SalesDay.Infrastructure": "[1.0.0, )",
           "Restaurant.Modules.SalesDay.Presentation": "[1.0.0, )",
           "Restaurant.Modules.Seating.Infrastructure": "[1.0.0, )",
-          "Restaurant.Modules.Seating.Presentation": "[1.0.0, )"
+          "Restaurant.Modules.Seating.Presentation": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )",
+          "Restaurant.Shared.SqlServer": "[1.0.0, )"
         }
       },
       "restaurant.modules.audit.application": {
@@ -848,7 +850,8 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Sales.Application": "[1.0.0, )",
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.presentation": {

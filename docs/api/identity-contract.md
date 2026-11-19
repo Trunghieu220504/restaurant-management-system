@@ -60,7 +60,7 @@ Ví dụ trên chỉ minh họa hình dạng; giá trị là dữ liệu giả.
 ### 1.3 Lỗi hiện tại
 
 Lỗi trả theo `application/problem+json` (ProblemDetails: `type`, `title`, `status`, `detail`, `instance`).
-**Identity chưa có trường `code`** (SalesDay đã có). Frontend phân biệt theo mã HTTP; `title` chỉ để hiển thị gỡ lỗi, không so sánh chuỗi.
+Các endpoint quản lý tài khoản (mục 5) có trường `code`; các endpoint Identity khác (đăng nhập, đổi mật khẩu, refresh) **chưa có** `code` (SalesDay đã có). Frontend phân biệt theo mã HTTP; `title` chỉ để hiển thị gỡ lỗi, không so sánh chuỗi.
 
 | Mã | Khi nào | Frontend xử lý |
 |---|---|---|
@@ -139,4 +139,68 @@ dotnet run --project src/Host/Restaurant.Api --launch-profile http
 Invoke-WebRequest http://localhost:5080/openapi/v1.json -OutFile docs/api/openapi.json
 ```
 
-Đường dẫn `/openapi/v1.json` đã được kiểm chứng ngày 10/11/2026. File xuất ra hiện gồm Identity, Seating ([seating-contract.md](seating-contract.md)), SalesDay và `/api/system/modules`.
+Đường dẫn `/openapi/v1.json` đã được kiểm chứng ngày 10/11/2026. File xuất ra hiện gồm Identity (kể cả quản lý tài khoản), Seating ([seating-contract.md](seating-contract.md)), SalesDay và `/api/system/modules`.
+
+## 5. Quản lý tài khoản (HIE-5.2)
+
+Đường dẫn gốc `/api/identity/accounts`. Cần Bearer và một trong hai quyền: `identity.accounts.manage` (Admin) hoặc
+`identity.subordinates.manage` (Manager). Khớp `openapi.json`.
+
+| Method | Đường dẫn | Request | Thành công | Lỗi |
+|---|---|---|---|---|
+| GET | `/` (query: `search`, `role`, `active`, `offset`, `limit`) | không | `200 AccountPage` | 400, 401, 403 |
+| GET | `/{id}` | không | `200 AccountDto` | 401, 403, 404 |
+| POST | `/` | `CreateAccountRequest` | `201 AccountDto` + `Location` | 400, 401, 403, 409 |
+| PUT | `/{id}/roles` | `SetRolesRequest` | `200 AccountDto` | 400, 401, 403, 404 |
+| POST | `/{id}/activate` | không | `200 AccountDto` | 401, 403, 404 |
+| POST | `/{id}/deactivate` | không | `200 AccountDto` | 401, 403, 404 |
+| POST | `/{id}/reset-password` | `ResetPasswordRequest` | `204` | 400, 401, 403, 404 |
+
+```text
+AccountDto             { id: uuid, userName: string, email: string | null, roles: string[], active: bool, lockedOut: bool }
+AccountPage            { items: AccountDto[], total: int }
+CreateAccountRequest   { userName: string, email: string, password: string, roles: string[] }
+SetRolesRequest        { roles: string[] }
+ResetPasswordRequest   { newPassword: string }
+```
+
+- Vai trò hợp lệ: `Admin`, `Manager`, `Staff`, `Kitchen`, `Bar`. Một tài khoản phải có ít nhất một vai trò.
+- Danh sách: `limit` mặc định 50, tối đa 200; `offset` ≥ 0; `search` khớp một phần tên đăng nhập hoặc email; `role` phải là vai trò hợp lệ.
+- Mật khẩu do người tạo/đặt lại cung cấp, theo cùng chính sách như đổi mật khẩu (≥ 12 ký tự, hoa, thường, số, ký tự đặc biệt).
+  Hệ thống **chưa** có cờ "bắt đổi mật khẩu ở lần đăng nhập đầu" (cần migration); người quản lý phải chuyển mật khẩu tạm qua kênh an toàn.
+  Không có `Idempotency-Key` và không có giới hạn tốc độ riêng cho nhóm endpoint này.
+
+### 5.1 Ai được làm gì
+
+| Người gọi | Phạm vi tài khoản | Vai trò được gán |
+|---|---|---|
+| Admin | mọi tài khoản | cả năm vai trò |
+| Manager | chỉ tài khoản mà **toàn bộ** vai trò thuộc {Staff, Kitchen, Bar} | chỉ Staff, Kitchen, Bar |
+
+- Manager chạm vào tài khoản có Admin/Manager (kể cả tài khoản có cả Staff lẫn Manager) → `403 out_of_scope`; gán Admin/Manager → `403 role_not_allowed`.
+- Không ai được đổi vai trò, khóa/mở khóa hoặc đặt lại mật khẩu **của chính mình** (`403 self_change`; đổi mật khẩu của mình dùng `/change-password`).
+- Phạm vi của người gọi được đọc lại từ cơ sở dữ liệu trong từng thao tác ghi, không dựa vào claim trong token; người gọi bị vô hiệu hóa hoặc mất quyền → `403 forbidden`.
+- Đổi vai trò có hiệu lực ngay với token đang dùng (vai trò được dựng lại mỗi request, xem test T17), nên **không** thu hồi phiên.
+- Vô hiệu hóa và đặt lại mật khẩu **thu hồi mọi phiên và refresh token** của tài khoản. Đặt lại mật khẩu còn xóa khóa đăng nhập và bộ đếm đăng nhập sai.
+
+### 5.2 Mã lỗi
+
+ProblemDetails kèm trường `code` ổn định (frontend so sánh theo `code`, không theo `title`).
+
+| `code` | HTTP | Khi nào |
+|---|---|---|
+| `identity.account.input_invalid` | 400 | Thiếu/sai hình dạng dữ liệu, vai trò không hợp lệ, tham số danh sách ngoài khoảng |
+| `identity.account.password_invalid` | 400 | Mật khẩu không đạt chính sách |
+| `identity.account.not_found` | 404 | Không có tài khoản này |
+| `identity.account.forbidden` | 403 | Người gọi không (còn) có quyền quản lý tài khoản |
+| `identity.account.out_of_scope` | 403 | Manager chạm vào tài khoản ngoài phạm vi |
+| `identity.account.role_not_allowed` | 403 | Manager gán vai trò Admin/Manager |
+| `identity.account.self_change` | 403 | Tự đổi vai trò/trạng thái/mật khẩu của mình |
+| `identity.account.user_name_taken` | 409 | Tên đăng nhập đã tồn tại |
+| `identity.account.email_taken` | 409 | Email đã tồn tại |
+
+### 5.3 Đồng thời
+
+Mọi thao tác ghi lấy khóa ứng dụng SQL `Restaurant.Identity.AccountAdministration` trước, rồi khóa theo người dùng
+`Restaurant.Identity.User.<id>`. Vì các thao tác ghi được tuần tự hóa, đọc lại phạm vi người gọi trong giao dịch và cấm tự thay đổi,
+hệ thống luôn còn ít nhất một Admin hoạt động: hai Admin cùng vô hiệu hóa nhau thì đúng một yêu cầu thành công. Vì vậy không có mã lỗi "last admin" riêng.

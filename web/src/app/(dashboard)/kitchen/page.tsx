@@ -2,7 +2,7 @@ import { KitchenDemo } from "@/features/kitchen/kitchen-demo";
 
 export default function KitchenPage() {
     return (
-        <main className="mx-auto w-full max-w-7xl space-y-4 p-4 sm:p-6">
+        <section className="min-w-0 space-y-4">
             <h1 className="text-2xl font-semibold">Phiếu chế biến</h1>
             {process.env.NODE_ENV === "development" ? (
                 <>
@@ -19,6 +19,6 @@ export default function KitchenPage() {
                     Chưa kết nối được nguồn phiếu chế biến.
                 </p>
             )}
-        </main>
+        </section>
     );
 }

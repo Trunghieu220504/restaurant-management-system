@@ -307,6 +307,70 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Restaurant.Modules.Sales.Infrastructure.Messaging.OutboxEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AggregateId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("AggregateVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LeaseUntil")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("IX_Outbox_ChoGui")
+                        .HasFilter("[ProcessedAt] IS NULL");
+
+                    b.HasIndex("Type", "AggregateId", "AggregateVersion")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Outbox_SuKien");
+
+                    b.ToTable("Outbox", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_Outbox_LanThu", "[Attempts] >= 0");
+
+                            t.HasCheckConstraint("CK_Outbox_PhienBan", "[AggregateVersion] > 0 AND [SchemaVersion] > 0");
+                        });
+                });
+
             modelBuilder.Entity("Restaurant.Modules.Sales.Domain.ChiTietDon", b =>
                 {
                     b.HasOne("Restaurant.Modules.Sales.Domain.DotGoiMon", null)

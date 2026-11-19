@@ -45,6 +45,7 @@ public static class ModuleRegistration
         services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
+        services.AddHostedService<OutboxDispatcherService>();
         services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver", tags: ["ready"]);
         return services;
     }

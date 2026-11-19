@@ -40,7 +40,10 @@ function TableCard({
     return (
         <article
             aria-label={table.name}
-            className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm"
+            className={cn(
+                "flex flex-col gap-3 rounded-xl border p-4 shadow-sm",
+                session ? "border-emerald-400 bg-emerald-50" : "bg-card",
+            )}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -53,8 +56,8 @@ function TableCard({
                     className={cn(
                         "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium",
                         session
-                            ? "bg-amber-100 text-amber-900"
-                            : "bg-emerald-100 text-emerald-900",
+                            ? "bg-emerald-100 text-emerald-900"
+                            : "text-muted-foreground",
                     )}
                 >
                     {canManageSessions
@@ -296,7 +299,7 @@ function BoardContent({
                             Khu vực
                             <select
                                 value={selectedArea}
-                                className="h-9 max-w-56 rounded-md border bg-background px-2"
+                                className="h-11 w-full min-w-0 max-w-56 rounded-md border bg-background px-2"
                                 onChange={(event) =>
                                     setSelectedArea(event.target.value)
                                 }
@@ -314,7 +317,7 @@ function BoardContent({
                                 Trạng thái
                                 <select
                                     value={statusFilter}
-                                    className="h-9 rounded-md border bg-background px-2"
+                                    className="h-11 rounded-md border bg-background px-2"
                                     onChange={(event) =>
                                         setStatusFilter(
                                             event.target.value as TableFilter,

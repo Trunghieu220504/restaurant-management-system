@@ -40,12 +40,14 @@ public sealed class SalesSqlServerTests : IAsyncLifetime
     }
 
     [Fact]
-    public void Model_and_migration_define_the_four_sales_tables_without_cross_module_keys_or_cascades()
+    public void Model_and_migration_define_the_sales_tables_without_cross_module_keys_or_cascades()
     {
         using var db = new SalesDbContext(new DbContextOptionsBuilder<SalesDbContext>()
             .UseSqlServer(ApiFactory.ConnectionString).Options);
-        Assert.Equal(4, db.Model.GetEntityTypes().Count());
-        Assert.Equal(["20261118103333_InitialSales", "20261119035517_SalesCatalogGuidIds"], db.Database.GetMigrations());
+        Assert.Equal(5, db.Model.GetEntityTypes().Count()); // four business tables plus the technical Outbox (HIE-3.0)
+        Assert.Equal(
+            ["20261118103333_InitialSales", "20261119025424_AddSalesOutbox", "20261119035517_SalesCatalogGuidIds"],
+            db.Database.GetMigrations());
         Assert.All(db.Model.GetEntityTypes().SelectMany(entity => entity.GetForeignKeys()), fk =>
         {
             Assert.Equal("sales", fk.PrincipalEntityType.GetSchema());

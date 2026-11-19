@@ -177,22 +177,26 @@ export function SalesDayScreen({
             ) : !loading && canManage && !error ? (
                 <form className={styles.form} onSubmit={open}>
                     <h2>Mở ngày bán</h2>
-                    <label htmlFor="business-date">Ngày kinh doanh</label>
-                    <input
-                        id="business-date"
-                        type="date"
-                        required
-                        value={date}
-                        disabled={pending}
-                        onChange={(e) => setDate(e.target.value)}
-                    />
-                    <label htmlFor="opening-cash">Tiền mặt đầu ngày</label>
-                    <MoneyInput
-                        id="opening-cash"
-                        value={cash}
-                        onChange={setCash}
-                        disabled={pending}
-                    />
+                    <div className={styles.field}>
+                        <label htmlFor="business-date">Ngày kinh doanh</label>
+                        <input
+                            id="business-date"
+                            type="date"
+                            required
+                            value={date}
+                            disabled={pending}
+                            onChange={(e) => setDate(e.target.value)}
+                        />
+                    </div>
+                    <div className={styles.field}>
+                        <label htmlFor="opening-cash">Tiền mặt đầu ngày</label>
+                        <MoneyInput
+                            id="opening-cash"
+                            value={cash}
+                            onChange={setCash}
+                            disabled={pending}
+                        />
+                    </div>
                     <Button
                         type="submit"
                         disabled={pending || cash === null || !date}
