@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Restaurant.Modules.Sales.Contracts;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
 
 namespace Restaurant.Modules.Sales.Infrastructure;
@@ -15,6 +16,8 @@ public static class SalesModule
             ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
             SalesPersistence.Configure(options, connectionString);
         });
+
+        services.AddScoped<IOrderSettlement, SalesOrderSettlement>();
 
         return services;
     }
