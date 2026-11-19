@@ -693,6 +693,9 @@
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.billing.domain": {
         "type": "Project"
       },
@@ -715,6 +718,9 @@
         "dependencies": {
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.catalog.domain": {
         "type": "Project"
@@ -829,7 +835,11 @@
       "restaurant.modules.sales.application": {
         "type": "Project",
         "dependencies": {
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.domain": {
@@ -856,6 +866,9 @@
           "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.salesday.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.salesday.domain": {
         "type": "Project"
       },
@@ -878,6 +891,9 @@
         "dependencies": {
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.seating.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.seating.domain": {
         "type": "Project"
