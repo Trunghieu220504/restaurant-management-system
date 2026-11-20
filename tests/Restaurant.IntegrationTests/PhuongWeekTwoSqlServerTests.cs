@@ -174,7 +174,8 @@ public sealed class PhuongWeekTwoSqlServerTests : IAsyncLifetime
         await using var scope = provider!.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
         await db.Database.MigrateAsync();
-        Assert.EndsWith("_InitialBilling", Assert.Single(await db.Database.GetAppliedMigrationsAsync()));
+        Assert.Single(await db.Database.GetAppliedMigrationsAsync(), id => id.EndsWith("_InitialBilling", StringComparison.Ordinal));
+        Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         var sql = db.Database;
         await sql.ExecuteSqlRawAsync("""
             INSERT billing.HoaDon (DonHangId, MaHoaDon, NgayBanLapId, TaoLuc) VALUES (1, 'HD1', NEWID(), SYSUTCDATETIME());

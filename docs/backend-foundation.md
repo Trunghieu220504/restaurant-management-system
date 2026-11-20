@@ -98,21 +98,15 @@ nó) thực hiện interface; Host đăng ký DI. Năm cặp đã chốt:
 | Sales | Billing | `IInvoiceCharging` | Ghi nghĩa vụ (một dòng hóa đơn cho mỗi phần) khi xác nhận đợt | Ghi |
 | Billing | Sales | `IOrderSettlement` | Đơn đã xử lý xong chưa; phần có thuộc đơn không | Đọc |
 
-Giao dịch: "xác nhận đợt + ghi nghĩa vụ hóa đơn" là một ghi quan trọng đồng bộ, phải
-commit hoặc rollback cùng nhau trong một SQL transaction. Contracts không có tham số
-transaction và các lời gọi không tự commit. Một bộ điều phối ở hạ tầng dùng chung mở một
-connection/transaction cho mỗi request để các DbContext cùng tham gia; bộ điều phối này
-chưa được xây (việc sau HIE-2.3) và khi xây phải thêm use case để Sales gọi, không để
-Contracts lộ transaction. Nếu `IInvoiceCharging` trả lỗi, Sales rollback việc xác nhận.
-Thứ tự khóa theo ADR-01: ngày, đơn/phiên, hóa đơn, thanh toán, kho.
+Khi xác nhận đợt, Sales mở transaction trên `SalesDbContext`. Host lấy connection và transaction đang mở để cho `BillingDbContext` tham gia. `IInvoiceCharging` lưu dòng hóa đơn trong transaction đó. Sales rollback cả hai module nếu xác nhận hoặc tính tiền thất bại. Thứ tự lấy khóa theo ADR-01 là ngày, đơn/phiên, hóa đơn, thanh toán và kho.
 
-### Dùng cổng ngày trong giao dịch ghi (PHU-2.2)
+### Dùng cổng ngày trong giao dịch ghi
 
-Host đăng ký `ISalesDayGate` theo request scope. Bộ điều phối mở transaction trên một connection, cho `SalesDayDbContext` dùng **chính connection đó** và gọi `UseTransactionAsync` với transaction của lệnh. Bên Sales lấy `ISalesDayGate` từ cùng scope và gọi `RequireOpenAsync(dayId, ct)` trước khi khóa đơn/phiên. Seating truyền transaction đang mở qua adapter của Host khi mở, chuyển và đóng phiên.
+Host đăng ký `ISalesDayGate` theo request scope. Khi Sales gọi, gate dùng transaction đang mở của `SalesDbContext`; với luồng SalesDay, gate dùng transaction của `SalesDayDbContext`. Gọi `RequireOpenAsync(dayId, ct)` trước khi khóa đơn/phiên. Seating, Catalog và Billing truyền transaction hiện tại qua adapter của Host.
 
 Gate giữ khóa Shared tới khi bên gọi commit/rollback, đọc lại trạng thái trên cùng transaction, trả `salesday.day.not_found` cho ID thiếu hoặc `salesday.day.not_open` cho ngày đang chờ chốt/đã chốt. Hết 10 giây chờ khóa, helper ném `TimeoutException`. Bên gọi phải rollback khi bị từ chối, hết hạn hoặc hủy. Bên chốt lấy khóa Exclusive cho cùng ID rồi kiểm tra lại trạng thái trước khi đổi. Test T14 mức thư viện nằm trong `PhuongWeekTwoSqlServerTests`. Ngày 20/11/2026, build Release đạt 0 cảnh báo, 0 lỗi. Trên SQL Server 2022 trong Docker, toàn solution đạt 5/5 test kiến trúc và 270/270 test tích hợp, 0 bỏ qua. Bao gồm migration Billing chạy lại, sửa món cũ sau migration, T14 và regression deadlock Catalog từ [PR #69](https://github.com/Trunghieu220504/restaurant-management-system/pull/69). Endpoint chốt và snapshot nghiệp vụ thuộc PHU-5.2.
 
-`InitialBilling` bảo vệ duy nhất một hóa đơn/đơn và một dòng/phần món. ID đơn/phần là `long`, ID ngày bán/người dùng là `Guid`. `IInvoiceCharging` đã có DTO để Sales biên dịch. Việc ghi hóa đơn qua contract khi xác nhận đợt cần triển khai handler trong giao dịch liên module ở tuần sau.
+`InitialBilling` bảo vệ duy nhất một hóa đơn/đơn và một dòng/phần món. ID đơn/phần là `long`, ID ngày bán/người dùng là `Guid`. Host đã nối `IInvoiceCharging` với transaction xác nhận của `SalesDbContext`. Nếu Sales rollback, các dòng hóa đơn, chứng từ và khóa idempotency cũng rollback. [Hướng dẫn tích hợp Catalog và Billing tuần 3](api/phuong-week3.md).
 
 Ngoài năm cặp contract trên, nhóm còn có kiểm tra quyền khách QR, việc Seating hỏi Sales khi đóng phiên và sự kiện Outbox giữa module.
 

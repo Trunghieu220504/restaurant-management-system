@@ -48,10 +48,14 @@ public static class ModuleRegistration
         services.AddScoped<ISalesDayGate>(provider =>
         {
             var db = provider.GetRequiredService<SalesDayDbContext>();
-            return new SqlSalesDayGate(() => db.Database.CurrentTransaction?.GetDbTransaction()
-                ?? throw new InvalidOperationException("Enlist SalesDayDbContext in the write transaction before calling the day gate."));
+            var sales = provider.GetRequiredService<Restaurant.Modules.Sales.Infrastructure.Persistence.SalesDbContext>();
+            return new SqlSalesDayGate(() => sales.Database.CurrentTransaction?.GetDbTransaction() ?? db.Database.CurrentTransaction?.GetDbTransaction()
+                ?? throw new InvalidOperationException("Begin the Sales or SalesDay transaction before calling the day gate."));
         });
-        services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Billing.Application.IBillingDayGate, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Billing.Contracts.IInvoiceCharging, SalesInvoiceCharging>();
+        services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
         services.AddHostedService<OutboxDispatcherService>();

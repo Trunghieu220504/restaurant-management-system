@@ -694,6 +694,9 @@
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.billing.domain": {
         "type": "Project"
       },
@@ -702,6 +705,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Billing.Application": "[1.0.0, )",
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
@@ -717,6 +721,9 @@
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.catalog.domain": {
         "type": "Project"
       },
@@ -725,6 +732,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Catalog.Application": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
