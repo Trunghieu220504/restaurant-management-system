@@ -112,6 +112,7 @@ export async function createCompleteMenuItem(
     await dialog
         .getByLabel("Trạm chế biến", { exact: true })
         .selectOption("BAR");
+    await dialog.getByLabel("Giá biến thể tiêu chuẩn (đ)").fill("35000");
     await save();
 
     await page

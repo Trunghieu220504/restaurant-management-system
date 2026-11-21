@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore.Storage;
+using Restaurant.Modules.SalesDay.Contracts;
+using Restaurant.Modules.SalesDay.Infrastructure.Persistence;
 using Restaurant.Api.Configuration;
 using Restaurant.Modules.Identity.Infrastructure;
 using Restaurant.Modules.Identity.Presentation;
@@ -42,6 +45,12 @@ public static class ModuleRegistration
         services.AddBillingModule();
         services.AddInventoryModule();
         services.AddSalesDayModule();
+        services.AddScoped<ISalesDayGate>(provider =>
+        {
+            var db = provider.GetRequiredService<SalesDayDbContext>();
+            return new SqlSalesDayGate(() => db.Database.CurrentTransaction?.GetDbTransaction()
+                ?? throw new InvalidOperationException("Enlist SalesDayDbContext in the write transaction before calling the day gate."));
+        });
         services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
