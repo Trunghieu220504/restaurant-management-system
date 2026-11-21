@@ -165,6 +165,8 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
         public Guid Day { get; } = Guid.NewGuid();
         public Task<Guid?> CurrentOpenDayAsync(CancellationToken ct) => Task.FromResult<Guid?>(Day);
         public Task<bool> IsOpenAsync(Guid dayId, CancellationToken ct) => Task.FromResult(dayId == Day);
+        public Task<bool> RequireOpenAsync(System.Data.Common.DbTransaction transaction, Guid dayId, CancellationToken ct) =>
+            Task.FromResult(dayId == Day);
     }
 
     private sealed class OpenGuard : ISessionClosureGuard
