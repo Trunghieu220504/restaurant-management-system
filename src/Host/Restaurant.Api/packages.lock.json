@@ -393,6 +393,9 @@
           "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.salesday.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.salesday.domain": {
         "type": "Project"
       },

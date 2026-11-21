@@ -2926,13 +2926,17 @@
           },
           "station": {
             "type": "string"
+          },
+          "initialVariant": {
+            "$ref": "#/components/schemas/CreateVariantRequest"
           }
         },
         "required": [
           "groupId",
           "code",
           "name",
-          "station"
+          "station",
+          "initialVariant"
         ]
       },
       "UpdateMenuItemRequest": {

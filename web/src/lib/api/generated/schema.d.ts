@@ -824,6 +824,7 @@ export interface components {
             code: string;
             name: string;
             station: string;
+            initialVariant: components["schemas"]["CreateVariantRequest"];
         };
         UpdateMenuItemRequest: {
             /** Format: uuid */

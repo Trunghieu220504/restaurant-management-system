@@ -656,6 +656,7 @@
           "Restaurant.Modules.Reporting.Presentation": "[1.0.0, )",
           "Restaurant.Modules.Sales.Infrastructure": "[1.0.0, )",
           "Restaurant.Modules.Sales.Presentation": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
           "Restaurant.Modules.SalesDay.Infrastructure": "[1.0.0, )",
           "Restaurant.Modules.SalesDay.Presentation": "[1.0.0, )",
           "Restaurant.Modules.Seating.Infrastructure": "[1.0.0, )",
@@ -855,6 +856,9 @@
         "dependencies": {
           "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.salesday.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.salesday.domain": {
         "type": "Project"

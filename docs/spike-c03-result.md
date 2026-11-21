@@ -12,7 +12,7 @@ Chạy:
 dotnet test tests/Restaurant.IntegrationTests -c Release --filter FullyQualifiedName~PhuongWeekOneSqlServerTests
 ```
 
-Cần IDENTITY_TEST_SQLSERVER trỏ đến SQL Server thử nghiệm. Đã chạy thành công qua scripts/Test-PhuongWeek1.ps1 từ terminal của người dùng. Nhóm cần chạy lại trên CI và review trước khi áp dụng khóa Shared/Exclusive vào các module tuần sau. Nếu các kịch bản bổ sung thất bại, xem phương án trạng thái chờ bền vững trong thiết kế dữ liệu.
+Cần IDENTITY_TEST_SQLSERVER trỏ đến SQL Server thử nghiệm. Đã chạy thành công qua scripts/Test-PhuongWeek1.ps1 từ terminal của người dùng. Kết quả CI và phần chờ ký được ghi bên dưới. Nếu các kịch bản bổ sung thất bại, xem phương án trạng thái chờ bền vững trong thiết kế dữ liệu.
 
 ## Chạy lặp 20 lần (18/11/2026)
 
@@ -33,13 +33,13 @@ Chín test trong mỗi lượt: ràng buộc Catalog; hai khóa Shared cùng t�
 
 - **Đã chứng minh (trên SQL Server 2022 thật, nhiều lần lặp):** `sp_getapplock` với `LockOwner=Transaction` cho phép Shared cùng tồn tại, Exclusive phải chờ Shared, và rollback giải phóng khóa; hai DbContext của hai module dùng chung được một giao dịch và rollback cùng nhau; mở ngày an toàn khi chạy đồng thời.
 - **Chưa chứng minh:** luồng chốt ngày thật (PHU-5.2) và các ca "hai người chốt chỉ ra một snapshot", "ghi muộn chờ rồi bị từ chối" ở mức nghiệp vụ, vì chốt ngày chưa được triển khai (tuần 5). Spike mới kiểm tra cơ chế khóa và giao dịch, không phải kiểm thử tải.
-- **Chưa đọc được:** kết quả trên runner CI. Lần chạy này ở máy cục bộ; bộ lọc `FullyQualifiedName~SqlServer` trong `backend-ci.yml` bao gồm các test này, nhưng số test trong TRX của CI chưa được xác nhận.
+- **CI đã xác minh:** [run 44386503780 trên repo nhóm](https://github.com/Trunghieu220504/restaurant-management-system/actions/runs/44386503780) đạt 20 lượt × 9 test SQL Server, tổng 180/180. Xem [đối chiếu TRX độc lập](reviews/c03-hai-2026-11-19.md).
 
-### Kết luận đề xuất
+### Kết luận kỹ thuật và xác nhận nghiệm thu
 
 **ĐẠT** cho phạm vi spike: cơ chế khóa ứng dụng Shared/Exclusive theo giao dịch kết hợp hai DbContext dùng chung giao dịch là khả thi trên SQL Server 2022, không phát hiện lỗi qua 20 lượt lặp. Chưa cần chuyển sang phương án trạng thái chờ bền vững. Các ca chốt ngày hoàn chỉnh vẫn phải được kiểm thử ở PHU-5.2.
 
-Đây là **đề xuất**, chưa có hiệu lực cho đến khi người chịu trách nhiệm ký:
+Kết quả kỹ thuật đã có bằng chứng CI. Hiếu (`Trunghieu220504`) đã duyệt [PR #68 về bộ chạy và bằng chứng nghiệm thu](https://github.com/Trunghieu220504/restaurant-management-system/pull/68) ngày 19/11. Review GitHub có trạng thái APPROVED và không có nội dung ký riêng cho kết luận C03. Hai ô xác nhận bên dưới dành cho người phụ trách.
 
 - Người ký (PHU-1.1): ______________________ Ngày: ____ / ____ / 2026
 - Người review (Hiếu hoặc Hải): ______________________ Ngày: ____ / ____ / 2026
