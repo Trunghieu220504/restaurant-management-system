@@ -30,7 +30,7 @@ public sealed class CatalogEndpointTests
     [
         (HttpMethod.Post, "/groups", new { name = "Nhóm", sortOrder = 0 }),
         (HttpMethod.Put, $"/groups/{Id}", new { name = "Nhóm", sortOrder = 0, active = true, version = Version }),
-        (HttpMethod.Post, "/items", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP" }),
+        (HttpMethod.Post, "/items", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP", initialVariant = new { code = "STD", name = "Chuẩn", price = 1000 } }),
         (HttpMethod.Put, $"/items/{Id}", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP", active = true, version = Version }),
         (HttpMethod.Post, $"/items/{Id}/variants", new { code = "L", name = "Lớn", price = 65000 }),
         (HttpMethod.Put, $"/items/{Id}/variants/{Id}", new { code = "L", name = "Lớn", price = 65000, active = true, version = Version }),

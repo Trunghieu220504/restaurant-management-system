@@ -362,6 +362,9 @@
           "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.audit.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.audit.domain": {
         "type": "Project"
       },

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AuthProvider } from "@/components/auth/auth-provider";
-import { RestaurantProvider } from "@/lib/store/restaurant-context";
+import { AppProviders } from "@/components/app-providers";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -18,9 +17,7 @@ export default function RootLayout({
     return (
         <html lang="vi">
             <body>
-                <AuthProvider>
-                    <RestaurantProvider>{children}</RestaurantProvider>
-                </AuthProvider>
+                <AppProviders>{children}</AppProviders>
                 <Toaster richColors position="top-right" />
             </body>
         </html>

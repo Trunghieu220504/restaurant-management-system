@@ -89,6 +89,8 @@ export function describeCatalogError(error: unknown): string {
             error.code.includes("stale")
         )
             return "Dữ liệu đã thay đổi ở nơi khác. Đóng biểu mẫu, tải lại và thử lại.";
+        if (error.code === "catalog.variant.required")
+            return "Món đang bán cần ít nhất một biến thể đang sử dụng.";
         if (error.status === 409)
             return "Dữ liệu đã thay đổi hoặc không thể dùng với trạng thái hiện tại. Đóng biểu mẫu và tải lại thực đơn.";
         return "Máy chủ chưa xử lý được yêu cầu. Vui lòng thử lại sau.";

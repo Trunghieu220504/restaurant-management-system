@@ -165,6 +165,16 @@ export function CatalogEditor({
                             data.get("station"),
                             "Trạm chế biến",
                         ),
+                        ...(!existing && {
+                            initialVariant: {
+                                code: "STD",
+                                name: "Tiêu chuẩn",
+                                price: integerValue(
+                                    data.get("price"),
+                                    "Giá bán",
+                                ),
+                            },
+                        }),
                         ...lifecycle,
                     },
                 };
@@ -364,10 +374,15 @@ export function CatalogEditor({
                                 </select>
                             </Field>
                             {!existing && (
-                                <p className={styles.hint}>
-                                    Sau khi lưu món, thêm biến thể để đặt giá
-                                    bán và gắn nhóm topping hoặc tùy chọn.
-                                </p>
+                                <Field label="Giá biến thể tiêu chuẩn (đ)">
+                                    <input
+                                        type="number"
+                                        name="price"
+                                        min="0"
+                                        step="1"
+                                        required
+                                    />
+                                </Field>
                             )}
                         </>
                     )}

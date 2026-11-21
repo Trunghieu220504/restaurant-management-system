@@ -1,8 +1,8 @@
 namespace Restaurant.Modules.Audit.Contracts;
 
 /// <summary>
-/// Proposed append-only sink for audit messages. The implementation and producer transaction
-/// integration require owner review before registration or use by another module.
+/// Append-only sink for audit messages. Producers require a separately reviewed durable
+/// transaction boundary; this sink alone does not make their business operations atomic.
 /// </summary>
 public interface IAuditLog
 {

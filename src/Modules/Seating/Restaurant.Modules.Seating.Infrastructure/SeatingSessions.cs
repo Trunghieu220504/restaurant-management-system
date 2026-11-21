@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
@@ -135,8 +136,8 @@ public sealed class SeatingSessions(
     /// <summary>Takes the Shared day lock, then re-reads the day: a day that started closing is refused.</summary>
     private async Task<string?> EnterDayAsync(Guid dayId, CancellationToken ct)
     {
-        await db.AcquireDaySharedAsync(dayId, ct);
-        return await days.IsOpenAsync(dayId, ct) ? null : SeatingErrors.DayNotOpen;
+        var transaction = db.Database.CurrentTransaction!.GetDbTransaction();
+        return await days.RequireOpenAsync(transaction, dayId, ct) ? null : SeatingErrors.DayNotOpen;
     }
 
     private async Task<SeatingResult<SessionDto>> RunAsync(
@@ -192,7 +193,7 @@ public sealed class SeatingSessions(
                 if (sql.Number == SeatingSql.Deadlock) return SeatingResult<SessionDto>.Fail(SeatingErrors.ConcurrencyConflict);
                 throw;
             }
-            catch (SqlException ex) when (ex.Number == SeatingSql.DayLockTimeout)
+            catch (TimeoutException)
             {
                 return SeatingResult<SessionDto>.Fail(SeatingErrors.DayNotOpen);
             }

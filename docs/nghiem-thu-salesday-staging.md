@@ -156,6 +156,14 @@ token, cookie hay chuỗi băm vào biên bản. Id và `RequestKey` không ph�
 
 NOT_RUN và BLOCKED không được tính là PASS.
 
+### Đối chiếu màn hình do Phương cung cấp ngày 20/11/2026
+
+Màn hình **Ngày bán** hiển thị **ĐANG BÁN**, tiền đầu ngày **0 VND**, mở lúc **14:30 ngày 19/11/2026**. Ảnh không hiển thị URL, ID ngày, người mở hoặc phản hồi HTTP. Smoke staging của nhóm trước đó xác nhận đăng nhập và đọc ngày bằng Manager/Staff. [Biên bản của nhóm trên issue #70](https://github.com/Trunghieu220504/restaurant-management-system/issues/70)
+
+Trên máy phát triển ngày 20/11, một database SQL Server 2022 tạm đã trả 201 khi Manager mở ngày, 409 `salesday.previous_not_closed` với khóa mới, và GET current trả 200 với ID ban đầu.
+
+Giữ nguyên ngày đang bán trên staging. Để nghiệm thu ca ghi, đối chiếu log gốc của lần mở (201) với lần thử bằng khóa mới (409 `salesday.previous_not_closed`) và GET current cùng ID trước/sau. Nếu thiếu log 201, chờ lượt mở ngày được nhóm bố trí trên staging sạch. Dòng 201/409 trong biên bản chỉ chuyển sang PASS khi có bằng chứng đúng môi trường.
+
 ## 7. Sau nghiệm thu
 
 - Chạy 05 để vô hiệu hóa `manager.test`/`staff.test`, rồi đăng nhập thử một lần để thấy 401. Xóa bản sao
