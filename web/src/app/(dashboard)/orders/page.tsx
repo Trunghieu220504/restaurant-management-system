@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo, Suspense } from "react";
+import Link from "next/link";
+import { StaffOrders } from "@/features/orders/staff-orders";
+import { usePermissions } from "@/components/permission-provider";
 import { useSearchParams } from "next/navigation";
 import {
     Search,
-    Plus,
     Clock,
     CheckCircle2,
     AlertCircle,
@@ -14,11 +16,8 @@ import {
     Banknote,
     Percent,
     X,
-    ChefHat,
-    Coffee,
     Check,
     Utensils,
-    ArrowRight,
 } from "lucide-react";
 import {
     useRestaurant,
@@ -30,20 +29,17 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 function OrdersContent() {
+    const { can } = usePermissions();
     const searchParams = useSearchParams();
     const initialOrderId = searchParams.get("orderId");
 
     const {
         orders,
-        tables,
-        menuItems,
-        salesDay,
         confirmOrder,
         serveItem,
         addPayment,
         waiveOrder,
         closeOrder,
-        createOrder,
     } = useRestaurant();
 
     const [activeTab, setActiveTab] = useState<string>("ALL");
@@ -59,7 +55,6 @@ function OrdersContent() {
         },
     );
 
-    const [createOrderModalOpen, setCreateOrderModalOpen] = useState(false);
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [waiveModalOpen, setWaiveModalOpen] = useState(false);
 
@@ -72,15 +67,6 @@ function OrdersContent() {
     // Waive form state
     const [waiveAmount, setWaiveAmount] = useState<number>(0);
     const [waiveReason, setWaiveReason] = useState<string>("");
-
-    // Create Order form state
-    const [createType, setCreateType] = useState<"TABLE" | "TAKEAWAY">("TABLE");
-    const [selectedTableId, setSelectedTableId] = useState<string>("");
-    const [customerNameInput, setCustomerNameInput] =
-        useState<string>("Khách hàng");
-    const [selectedDishes, setSelectedDishes] = useState<
-        { dishId: number; quantity: number; note: string }[]
-    >([]);
 
     // Update selectedOrder if orders update
     const currentOrder = useMemo(() => {
@@ -179,29 +165,6 @@ function OrdersContent() {
         setWaiveReason("");
     };
 
-    const handleCreateOrderSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (selectedDishes.length === 0) {
-            toast.error("Vui lòng chọn ít nhất 1 món ăn!");
-            return;
-        }
-        const tableId = createType === "TABLE" ? selectedTableId : "MV";
-        if (createType === "TABLE" && !tableId) {
-            toast.error("Vui lòng chọn bàn!");
-            return;
-        }
-        const newOrderId = createOrder(
-            tableId,
-            selectedDishes,
-            customerNameInput,
-            createType === "TAKEAWAY",
-        );
-        setCreateOrderModalOpen(false);
-        setSelectedDishes([]);
-        const created = orders.find((o) => o.id === newOrderId);
-        if (created) setSelectedOrder(created);
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col space-y-4 pb-12">
             {/* Header */}
@@ -212,20 +175,7 @@ function OrdersContent() {
                         Quản lý Đơn hàng & Thanh toán
                     </h1>
                 </div>
-                <button
-                    onClick={() => {
-                        if (salesDay.status !== "DANG_BAN") {
-                            toast.error(
-                                "Ngày bán chưa mở! Hãy mở ngày bán trước.",
-                            );
-                            return;
-                        }
-                        setCreateOrderModalOpen(true);
-                    }}
-                    className="flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-colors"
-                >
-                    <Plus size={16} /> Tạo đơn mới
-                </button>
+                <Link href="/orders">Gọi món và xem các đợt</Link>
             </div>
 
             {/* Tabs theo đặc tả Tab 2: Quản lý Đơn hàng */}
@@ -401,17 +351,18 @@ function OrdersContent() {
 
                                     {/* Fast Action Buttons */}
                                     <div className="flex items-center gap-2">
-                                        {order.status === "CHO_XAC_NHAN" && (
-                                            <button
-                                                onClick={() =>
-                                                    confirmOrder(order.id)
-                                                }
-                                                className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors"
-                                            >
-                                                <Check size={14} /> Duyệt đợt
-                                                món
-                                            </button>
-                                        )}
+                                        {can("sales.batches.confirm") &&
+                                            order.status === "CHO_XAC_NHAN" && (
+                                                <button
+                                                    onClick={() =>
+                                                        confirmOrder(order.id)
+                                                    }
+                                                    className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors"
+                                                >
+                                                    <Check size={14} /> Duyệt
+                                                    đợt món
+                                                </button>
+                                            )}
 
                                         <button
                                             onClick={() =>
@@ -627,16 +578,17 @@ function OrdersContent() {
 
                         {/* Operational Action Buttons */}
                         <div className="pt-2 border-t flex flex-wrap items-center justify-end gap-2 text-xs">
-                            {currentOrder.status === "CHO_XAC_NHAN" && (
-                                <button
-                                    onClick={() =>
-                                        confirmOrder(currentOrder.id)
-                                    }
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm"
-                                >
-                                    Xác nhận đợt gọi món
-                                </button>
-                            )}
+                            {can("sales.batches.confirm") &&
+                                currentOrder.status === "CHO_XAC_NHAN" && (
+                                    <button
+                                        onClick={() =>
+                                            confirmOrder(currentOrder.id)
+                                        }
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm"
+                                    >
+                                        Xác nhận đợt gọi món
+                                    </button>
+                                )}
 
                             {currentOrder.status !== "DA_DONG" && (
                                 <>
@@ -874,284 +826,20 @@ function OrdersContent() {
                     </div>
                 </div>
             )}
-
-            {/* ── MODAL: TẠO ĐƠN MỚI (UC07) ─────────────────────────────────── */}
-            {createOrderModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center-safe justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border space-y-4 animate-in fade-in zoom-in-95 my-8">
-                        <div className="flex items-center justify-between border-b pb-3">
-                            <h3 className="text-base font-bold text-gray-900">
-                                Tạo đơn hàng mới (Tại bàn / Mang về)
-                            </h3>
-                            <button
-                                onClick={() => setCreateOrderModalOpen(false)}
-                                className="p-1 rounded-lg text-gray-400 hover:text-gray-600"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form
-                            onSubmit={handleCreateOrderSubmit}
-                            className="space-y-4 text-xs"
-                        >
-                            {/* Type Switch */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setCreateType("TABLE")}
-                                    className={cn(
-                                        "py-2 rounded-lg font-bold border transition-colors",
-                                        createType === "TABLE"
-                                            ? "bg-red-50 border-red-500 text-red-700"
-                                            : "bg-gray-50 border-gray-200 text-gray-600",
-                                    )}
-                                >
-                                    Tại bàn
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setCreateType("TAKEAWAY")}
-                                    className={cn(
-                                        "py-2 rounded-lg font-bold border transition-colors",
-                                        createType === "TAKEAWAY"
-                                            ? "bg-orange-50 border-orange-500 text-orange-700"
-                                            : "bg-gray-50 border-gray-200 text-gray-600",
-                                    )}
-                                >
-                                    Mang về
-                                </button>
-                            </div>
-
-                            {/* Table select if table */}
-                            {createType === "TABLE" ? (
-                                <div>
-                                    <label className="block font-semibold text-gray-700 mb-1">
-                                        Chọn bàn:
-                                    </label>
-                                    <select
-                                        value={selectedTableId}
-                                        onChange={(e) =>
-                                            setSelectedTableId(e.target.value)
-                                        }
-                                        required
-                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    >
-                                        <option value="">
-                                            -- Chọn bàn phục vụ --
-                                        </option>
-                                        {tables.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} ({t.area}){" "}
-                                                {t.status === "DANG_DUNG"
-                                                    ? "- [Đang dùng]"
-                                                    : "- [Trống]"}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className="block font-semibold text-gray-700 mb-1">
-                                        Mã mang về:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        disabled
-                                        value="Tự động sinh (MV-XX)"
-                                        className="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Customer Name */}
-                            <div>
-                                <label className="block font-semibold text-gray-700 mb-1">
-                                    Tên khách hàng:
-                                </label>
-                                <input
-                                    type="text"
-                                    value={customerNameInput}
-                                    onChange={(e) =>
-                                        setCustomerNameInput(e.target.value)
-                                    }
-                                    placeholder="Khách hàng"
-                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                                />
-                            </div>
-
-                            {/* Dish selection list */}
-                            <div className="space-y-2">
-                                <label className="block font-semibold text-gray-700">
-                                    Chọn món từ thực đơn (Chỉ món còn hàng):
-                                </label>
-                                <div className="max-h-56 overflow-y-auto border rounded-xl divide-y divide-gray-100">
-                                    {menuItems.map((dish) => {
-                                        const selected = selectedDishes.find(
-                                            (d) => d.dishId === dish.id,
-                                        );
-                                        return (
-                                            <div
-                                                key={dish.id}
-                                                className={cn(
-                                                    "p-2.5 flex items-center justify-between transition-colors",
-                                                    dish.outOfStock
-                                                        ? "bg-gray-100 opacity-60"
-                                                        : "bg-white hover:bg-gray-50",
-                                                )}
-                                            >
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-gray-900">
-                                                            {dish.name}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
-                                                            {dish.station ===
-                                                            "BEP"
-                                                                ? "Bếp"
-                                                                : "Bar"}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-gray-500">
-                                                        {dish.price.toLocaleString(
-                                                            "vi-VN",
-                                                        )}{" "}
-                                                        đ
-                                                    </span>
-                                                </div>
-
-                                                {dish.outOfStock ? (
-                                                    <span className="text-xs text-red-500 font-bold">
-                                                        Đã hết
-                                                    </span>
-                                                ) : selected ? (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (
-                                                                    selected.quantity >
-                                                                    1
-                                                                ) {
-                                                                    setSelectedDishes(
-                                                                        (
-                                                                            prev,
-                                                                        ) =>
-                                                                            prev.map(
-                                                                                (
-                                                                                    d,
-                                                                                ) =>
-                                                                                    d.dishId ===
-                                                                                    dish.id
-                                                                                        ? {
-                                                                                              ...d,
-                                                                                              quantity:
-                                                                                                  d.quantity -
-                                                                                                  1,
-                                                                                          }
-                                                                                        : d,
-                                                                            ),
-                                                                    );
-                                                                } else {
-                                                                    setSelectedDishes(
-                                                                        (
-                                                                            prev,
-                                                                        ) =>
-                                                                            prev.filter(
-                                                                                (
-                                                                                    d,
-                                                                                ) =>
-                                                                                    d.dishId !==
-                                                                                    dish.id,
-                                                                            ),
-                                                                    );
-                                                                }
-                                                            }}
-                                                            className="size-6 bg-gray-200 rounded text-gray-800 font-bold"
-                                                        >
-                                                            -
-                                                        </button>
-                                                        <span className="w-5 text-center font-bold">
-                                                            {selected.quantity}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setSelectedDishes(
-                                                                    (prev) =>
-                                                                        prev.map(
-                                                                            (
-                                                                                d,
-                                                                            ) =>
-                                                                                d.dishId ===
-                                                                                dish.id
-                                                                                    ? {
-                                                                                          ...d,
-                                                                                          quantity:
-                                                                                              d.quantity +
-                                                                                              1,
-                                                                                      }
-                                                                                    : d,
-                                                                        ),
-                                                                )
-                                                            }
-                                                            className="size-6 bg-red-500 rounded text-white font-bold"
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setSelectedDishes(
-                                                                (prev) => [
-                                                                    ...prev,
-                                                                    {
-                                                                        dishId: dish.id,
-                                                                        quantity: 1,
-                                                                        note: "",
-                                                                    },
-                                                                ],
-                                                            )
-                                                        }
-                                                        className="px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded font-semibold hover:bg-red-100"
-                                                    >
-                                                        + Chọn
-                                                    </button>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 pt-2 border-t">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setCreateOrderModalOpen(false)
-                                    }
-                                    className="flex-1 py-2 font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={selectedDishes.length === 0}
-                                    className="flex-1 py-2 font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg shadow-sm"
-                                >
-                                    Gửi đợt gọi món
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
 
+function OrderRoute() {
+    const params = useSearchParams();
+    const { can } = usePermissions();
+    return can("sales.orders.manage") &&
+        (params.has("orderId") || params.get("view") === "service") ? (
+        <OrdersContent />
+    ) : (
+        <StaffOrders />
+    );
+}
 export default function OrdersPage() {
     return (
         <Suspense
@@ -1161,7 +849,7 @@ export default function OrdersPage() {
                 </div>
             }
         >
-            <OrdersContent />
+            <OrderRoute />
         </Suspense>
     );
 }

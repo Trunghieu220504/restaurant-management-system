@@ -14,6 +14,10 @@ Frontend `/menu` gọi API thật, dùng `authFetch` với access token trong b�
 
 POST trả 201, PUT trả 200, DELETE trả 204. Kiểu dữ liệu trong [openapi.json](openapi.json). OpenAPI Catalog được đối chiếu thủ công với DTO/endpoint do Windows Application Control chặn chạy host để xuất lại; cần xuất lại từ host khi môi trường cho phép. Client TypeScript đã sinh lại từ hợp đồng đã cập nhật.
 
+Khi tạo món, gửi thêm `initialVariant` gồm `code`, `name`, `price`. Ví dụ `{"code":"STD","name":"Tiêu chuẩn","price":55000}`. Server lưu món và biến thể trong cùng transaction và trả biến thể trong `variants` của phản hồi 201. Thiếu biến thể hợp lệ trả 400. Khi cập nhật, việc tắt biến thể hoạt động cuối cùng của món đang bán hoặc bật món chưa có biến thể hoạt động trả 409 `catalog.variant.required`.
+
+Triển khai API và web cùng phiên bản. Migration `DeactivateItemsWithoutActiveVariant` tạm ngưng các món cũ thiếu biến thể hoạt động. Quản lý thêm hoặc bật biến thể, kiểm tra giá rồi bật lại món.
+
 Giá là số nguyên VND từ 0 đến `Number.MAX_SAFE_INTEGER`. Mã món/biến thể chỉ gồm chữ ASCII, số, `_`, `-`; tối đa 50 ký tự. Tên có 1–200 ký tự sau trim. Trạm `BEP` hoặc `BAR`.
 
 PUT thực thể gửi nguyên `version` Base64 do server trả về; phiên bản cũ trả 409 `catalog.concurrency.conflict`. Gắn nhóm gửi `{ minSelections, maxSelections }`, yêu cầu `0 <= min <= max`, `1 <= max <= số lựa chọn đang sử dụng`. Dữ liệu ghi được kiểm tra trong transaction Serializable. Không xóa cứng thực thể; PUT `active: false` để ngừng sử dụng. Không thể ngừng lựa chọn nếu làm sai giới hạn của nhóm đã gắn.
@@ -25,8 +29,8 @@ Lỗi nghiệp vụ trả ProblemDetails có `code`: 400 `catalog.input.invalid`
 ## Đối chiếu cột 4
 
 1. Mở `/menu` bằng Manager; trong **Nhóm món**, tạo nhóm.
-2. Trong **Món ăn**, tạo món với nhóm vừa tạo, mã và trạm chế biến.
-3. Trong chi tiết món, thêm biến thể và giá bán.
+2. Trong **Món ăn**, chọn nhóm, nhập mã, trạm chế biến và giá biến thể tiêu chuẩn.
+3. Trong chi tiết món, kiểm tra giá biến thể tiêu chuẩn rồi thêm biến thể thứ hai với giá riêng.
 4. Trong **Tùy chọn & topping**, tạo nhóm TOPPING, thêm lựa chọn và giá cộng.
 5. Quay lại chi tiết món, gắn nhóm với min/max hợp lệ.
 6. Kiểm tra GET `/api/catalog/menu` có đúng món, biến thể, nhóm topping, lựa chọn và min/max; tải lại trang và kiểm tra dữ liệu còn tồn tại.
@@ -42,4 +46,4 @@ cd web
 npx playwright test --config e2e-catalog-real/playwright.config.ts
 ```
 
-**Chưa xác nhận Done cột 4:** cần kiểm thử thành công bằng API và SQL Server thật. Xem [kết quả kiểm tra](../baoanh-catalog-verification.md).
+**Kiểm chứng ngày 20/11/2026 tại máy phát triển.** Chromium đăng nhập bằng Manager test, tạo món cùng biến thể tiêu chuẩn, thêm biến thể và topping, gắn min/max rồi tải lại. Ca `e2e-catalog-real/catalog-real.spec.ts` đọc được dữ liệu qua API thật với SQL Server 2022 trong Docker. Năm ca trình duyệt dùng fixture cũng đạt. Kết quả ngày 19/11 được lưu trong [biên bản ban đầu](../baoanh-catalog-verification.md).

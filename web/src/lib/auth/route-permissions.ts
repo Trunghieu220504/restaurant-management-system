@@ -9,7 +9,7 @@
  */
 export const routePermissions: Readonly<Record<string, readonly string[]>> = {
     "/tables": ["seating.sessions.manage", "seating.catalog.manage"],
-    "/orders": ["sales.orders.manage"],
+    "/orders": ["sales.orders.manage", "sales.batches.confirm"],
     "/menu": ["catalog.menu.manage", "catalog.availability.manage"],
     "/inventory": [
         "inventory.catalog.manage",

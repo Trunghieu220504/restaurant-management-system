@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:5080
+@managerToken = replace-with-your-own-manager-access-token
+
+### Manager audit history: exclusive end, UTC timestamps, bounded page
+GET {{baseUrl}}/api/audit/logs?entityType=Order&fromUtc=2026-11-19T00:00:00Z&toUtc=2026-11-20T00:00:00Z&page=1&pageSize=20
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### Invalid bounds: 400 application/problem+json with code audit.query.invalid
+GET {{baseUrl}}/api/audit/logs?pageSize=101
+Authorization: Bearer {{managerToken}}

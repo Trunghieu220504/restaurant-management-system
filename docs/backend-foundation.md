@@ -106,8 +106,15 @@ chưa được xây (việc sau HIE-2.3) và khi xây phải thêm use case đ�
 Contracts lộ transaction. Nếu `IInvoiceCharging` trả lỗi, Sales rollback việc xác nhận.
 Thứ tự khóa theo ADR-01: ngày, đơn/phiên, hóa đơn, thanh toán, kho.
 
-Chưa nằm trong năm cặp này: kiểm tra quyền truy cập khách QR (làm cùng task QR), Seating
-hỏi Sales khi đóng phiên, sự kiện outbox giữa module.
+### Dùng cổng ngày trong giao dịch ghi (PHU-2.2)
+
+Host đăng ký `ISalesDayGate` theo request scope. Bộ điều phối mở transaction trên một connection, cho `SalesDayDbContext` dùng **chính connection đó** và gọi `UseTransactionAsync` với transaction của lệnh. Bên Sales lấy `ISalesDayGate` từ cùng scope và gọi `RequireOpenAsync(dayId, ct)` trước khi khóa đơn/phiên. Seating truyền transaction đang mở qua adapter của Host khi mở, chuyển và đóng phiên.
+
+Gate giữ khóa Shared tới khi bên gọi commit/rollback, đọc lại trạng thái trên cùng transaction, trả `salesday.day.not_found` cho ID thiếu hoặc `salesday.day.not_open` cho ngày đang chờ chốt/đã chốt. Hết 10 giây chờ khóa, helper ném `TimeoutException`. Bên gọi phải rollback khi bị từ chối, hết hạn hoặc hủy. Bên chốt lấy khóa Exclusive cho cùng ID rồi kiểm tra lại trạng thái trước khi đổi. Test T14 mức thư viện nằm trong `PhuongWeekTwoSqlServerTests`. Ngày 20/11/2026, build Release đạt 0 cảnh báo, 0 lỗi. Trên SQL Server 2022 trong Docker, toàn solution đạt 5/5 test kiến trúc và 270/270 test tích hợp, 0 bỏ qua. Bao gồm migration Billing chạy lại, sửa món cũ sau migration, T14 và regression deadlock Catalog từ [PR #69](https://github.com/Trunghieu220504/restaurant-management-system/pull/69). Endpoint chốt và snapshot nghiệp vụ thuộc PHU-5.2.
+
+`InitialBilling` bảo vệ duy nhất một hóa đơn/đơn và một dòng/phần món. ID đơn/phần là `long`, ID ngày bán/người dùng là `Guid`. `IInvoiceCharging` đã có DTO để Sales biên dịch. Việc ghi hóa đơn qua contract khi xác nhận đợt cần triển khai handler trong giao dịch liên module ở tuần sau.
+
+Ngoài năm cặp contract trên, nhóm còn có kiểm tra quyền khách QR, việc Seating hỏi Sales khi đóng phiên và sự kiện Outbox giữa module.
 
 Thêm cặp mới cần: Contracts của bên cung cấp, cập nhật `CrossModuleContracts` trong
 `DependencyTests` và bảng/sơ đồ trên trong cùng PR. Không tham chiếu Infrastructure/Domain

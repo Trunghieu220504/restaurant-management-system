@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../Restaurant.Modules.Audit.Domain/Restaurant.Modules.Audit.Domain.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Audit.Application/Restaurant.Modules.Audit.Application.csproj" />
+    <ProjectReference Include="../Restaurant.Modules.Audit.Contracts/Restaurant.Modules.Audit.Contracts.csproj" />
   </ItemGroup>
 </Project>

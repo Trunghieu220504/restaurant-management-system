@@ -42,6 +42,26 @@ jobs:
         run: dotnet build RestaurantManagement.slnx -c Release --no-restore
       - name: Test
         run: dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore --logger trx --results-directory TestResults
+      - name: Export idempotent Audit migration from this exact source
+        shell: bash
+        env:
+          ConnectionStrings__Restaurant: Server=127.0.0.1,1;Database=OfflineScriptOnly;Integrated Security=True;Encrypt=True;Connect Timeout=1
+        run: |
+          set -euo pipefail
+          dotnet tool restore
+          mkdir -p artifacts/migrations
+          dotnet ef migrations script --idempotent --context AuditDbContext \
+            --project src/Modules/Audit/Restaurant.Modules.Audit.Infrastructure \
+            --startup-project src/Modules/Audit/Restaurant.Modules.Audit.Infrastructure \
+            --configuration Release --no-build --output artifacts/migrations/audit.sql
+          (cd artifacts/migrations && sha256sum audit.sql > SHA256SUMS)
+      - name: Upload Audit migration for reviewed deployment
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: audit-sql-idempotent
+          path: artifacts/migrations/
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish API
         run: dotnet publish src/Host/Restaurant.Api/Restaurant.Api.csproj -c Release --no-build --no-restore -o artifacts/api
       - name: Upload test results

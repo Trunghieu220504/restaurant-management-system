@@ -55,18 +55,25 @@ The local preview is available only in development. Its browser tests live in
 
 ### Lộ trình gỡ restaurant-context
 
-Thời hạn đề xuất cho từng trang tính theo ngày làm việc kể từ khi toàn bộ API phụ thuộc của dòng đó có trên môi trường tích hợp. Trong thời gian chuyển tiếp, phiên thật ở `/tables` và dữ liệu mẫu của `/orders`, `/guest` thuộc hai luồng riêng.
+Thời hạn đề xuất cho từng trang tính theo ngày làm việc kể từ khi toàn bộ API phụ thuộc của dòng đó có trên môi trường tích hợp.
 
 | Trang                             | Dữ liệu cần chuyển                                                                | Hạn đề xuất |
 | --------------------------------- | --------------------------------------------------------------------------------- | ----------- |
 | `/orders`                         | Phiên bàn, tạo đơn, phục vụ, thu tiền và đóng đơn từ Seating, Sales và thanh toán | 3 ngày      |
 | `/kitchen`                        | Hàng đợi bếp và chuyển trạng thái món từ Fulfillment                              | 2 ngày      |
-| `/guest`                          | Truy cập phiên qua QR, thực đơn và gửi đơn từ Guest, Catalog và Sales             | 3 ngày      |
 | `/`                               | Số liệu bàn và đơn hàng từ Seating và Sales hoặc endpoint tổng hợp theo quyền     | 2 ngày      |
 | `/reports`                        | Doanh thu và ngày kinh doanh từ Reporting và SalesDay                             | 2 ngày      |
 | Khung dashboard (`app-shell.tsx`) | Nhãn ngày bán từ SalesDay                                                         | 1 ngày      |
 
 Sau khi chuyển dòng cuối cùng, tìm `useRestaurant` và `RestaurantProvider` trong `src`, bỏ provider ở layout gốc rồi xóa store trong cùng PR. Các trang ngoài MVP đã gỡ gồm `/customers`, `/promotions`, `/stores` và `/settings`. Trang `/more` giữ các lối vào MVP trên điện thoại theo quyền tài khoản.
+
+## Nghiệm thu giao diện tuần 3
+
+Trang `/orders` đọc phiên đang mở từ Seating và giá từ Catalog, kiểm tra ngày bán và đọc lại giá khi gửi đợt. Trên bản develop dùng để tích hợp (a06708e), Sales chưa công bố endpoint tạo và duyệt đợt HIE-3.1. Adapter thử nghiệm trong `features/orders/batches.ts` lưu đợt theo tài khoản trong tab hiện tại. Lệnh xác nhận thử chưa tạo phiếu bếp hay nghĩa vụ thanh toán. Các đơn của giao diện phục vụ cũ vẫn truy cập được qua liên kết trên trang.
+
+Khách mở `/guest/<tableCode>` để xem thực đơn công khai mẫu và chọn món vào giỏ tạm. Liên kết cũ dạng `/guest?table=T04` dẫn đến cùng trang. Mã bàn chỉ định vị bàn. Trang bỏ fragment chứa mã tham gia và chưa kích hoạt đổi token, đọc đơn hay gửi đơn.
+
+**Lighthouse lần đầu cho BAO-3.3.** Ngày 19/11/2026 lúc 09:33 UTC, Lighthouse 12.8.2 chạy trên Edge headless, Next.js production tại localhost, đường dẫn `/guest/T04`, mobile 360 × 800 px, DPR 1.75. Performance 95, Accessibility 95, Best Practices 96, SEO 100. LCP 2.50 giây, CLS 0. Tuần 5 có thể chạy lại cùng đường dẫn, cấu hình mobile và kích thước để so sánh.
 
 ## Identity Authentication & Client-side Route Guard
 

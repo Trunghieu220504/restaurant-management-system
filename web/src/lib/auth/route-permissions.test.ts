@@ -15,6 +15,7 @@ describe("route permissions", () => {
     it("matches nested paths and ignores query strings", () => {
         expect(requiredPermissions("/orders/123")).toEqual([
             "sales.orders.manage",
+            "sales.batches.confirm",
         ]);
         expect(requiredPermissions("/kitchen?station=bar")).toEqual([
             "fulfillment.kitchen.process",

@@ -65,10 +65,18 @@ async function catalogFixture(
             return route.fulfill({ status: 201, json: entry });
         }
         if (method === "POST" && path === "/api/catalog/items") {
+            const item = entity();
+            const { initialVariant, ...fields } = body;
             const entry = {
-                ...entity(),
-                ...body,
-                variants: [],
+                ...item,
+                ...fields,
+                variants: [
+                    {
+                        ...entity(),
+                        ...(initialVariant as object),
+                        itemId: item.id,
+                    },
+                ],
                 optionGroups: [],
                 imageObjectKey: null,
             } as MenuSnapshot["items"][number];
