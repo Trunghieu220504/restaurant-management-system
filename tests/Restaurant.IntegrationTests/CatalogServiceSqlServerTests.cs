@@ -49,8 +49,8 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         await using var db = NewContext();
         var service = new CatalogMenu(db);
         var group = Ok(await service.CreateGroupAsync(new("Món chính", 1), default));
-        var item = Ok(await service.CreateItemAsync(new(group.Id, "PHO", "Phở bò", "BEP"), default));
-        var variant = Ok(await service.CreateVariantAsync(item.Id, new("LON", "Tô lớn", 65000), default));
+        var item = Ok(await service.CreateItemAsync(new(group.Id, "PHO", "Phở bò", "BEP", new("LON", "Tô lớn", 65000)), default));
+        var variant = Assert.Single(item.Variants);
         var options = Ok(await service.CreateOptionGroupAsync(new("Thêm topping", "TOPPING"), default));
         var option = Ok(await service.CreateOptionAsync(options.Id, new("Thêm bò", 15000), default));
         Ok(await service.AssignOptionGroupAsync(item.Id, options.Id, new(0, 1), default));
@@ -86,7 +86,7 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         var seeded = await SeedAsync();
         await using var db = NewContext();
         var service = new CatalogMenu(db);
-        var otherItem = Ok(await service.CreateItemAsync(new(seeded.Group.Id, "BUN", "Bún bò", "BEP"), default));
+        var otherItem = Ok(await service.CreateItemAsync(new(seeded.Group.Id, "BUN", "Bún bò", "BEP", new("STD", "Chuẩn", 1000)), default));
         var otherGroup = Ok(await service.CreateOptionGroupAsync(new("Nước dùng", "TUY_CHON"), default));
         Assert.Equal(CatalogErrors.VariantNotFound, (await service.UpdateVariantAsync(otherItem.Id, seeded.Variant.Id,
             new("LON", "Sai món", 1, true, seeded.Variant.Version), default)).Error);
@@ -100,7 +100,7 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         Assert.Equal(CatalogErrors.InputInvalid,
             (await service.CreateOptionAsync(seeded.Options.Id, new("Giá sai", -1), default)).Error);
         await using var verify = NewContext();
-        Assert.Equal("Tô lớn", (await verify.Set<BienThe>().SingleAsync()).Ten);
+        Assert.Equal("Tô lớn", (await verify.Set<BienThe>().SingleAsync(x => x.Id == seeded.Variant.Id)).Ten);
         Assert.Equal("Thêm bò", (await verify.Set<TuyChon>().SingleAsync()).Ten);
         Assert.Equal(1, (await verify.Set<MonNhomTuyChon>().SingleAsync()).ChonToiDa);
     }
@@ -119,13 +119,28 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         Assert.Equal(CatalogErrors.ConcurrencyConflict, (await secondService.UpdateItemAsync(seeded.Item.Id,
             new(seeded.Group.Id, "PHO", "Ghi đè cũ", "BAR", true, seeded.Item.Version), default)).Error);
         Assert.Equal(CatalogErrors.ItemCodeConflict,
-            (await secondService.CreateItemAsync(new(seeded.Group.Id, "PHO", "Trùng mã", "BEP"), default)).Error);
+            (await secondService.CreateItemAsync(new(seeded.Group.Id, "PHO", "Trùng mã", "BEP", new("STD", "Chuẩn", 1000)), default)).Error);
         Assert.Equal(CatalogErrors.VariantCodeConflict,
             (await secondService.CreateVariantAsync(seeded.Item.Id, new("LON", "Trùng mã", 1000), default)).Error);
         var current = Assert.Single((await secondService.GetMenuAsync(default)).Items);
         Assert.Equal("Phở đặc biệt", current.Name);
         Assert.Equal("BEP", current.Station);
         Assert.Single(current.Variants);
+    }
+
+    [SqlServerFact]
+    public async Task Active_dish_requires_a_valid_initial_variant_and_keeps_one_active_variant()
+    {
+        var seed = await SeedAsync();
+        await using var db = NewContext();
+        var service = new CatalogMenu(db);
+        Assert.Equal(CatalogErrors.InputInvalid, (await service.CreateItemAsync(
+            new(seed.Group.Id, "BAD", "Món lỗi", "BEP", new("STD", "Chuẩn", -1)), default)).Error);
+        Assert.Single((await service.GetMenuAsync(default)).Items);
+        var disable = new UpdateVariantRequest("LON", "Tô lớn", 65000, false, seed.Variant.Version);
+        Assert.Equal(CatalogErrors.VariantRequired, (await service.UpdateVariantAsync(seed.Item.Id, seed.Variant.Id, disable, default)).Error);
+        Ok(await service.CreateVariantAsync(seed.Item.Id, new("NHO", "Tô nhỏ", 45000), default));
+        Assert.False(Ok(await service.UpdateVariantAsync(seed.Item.Id, seed.Variant.Id, disable, default)).Active);
     }
 
     [SqlServerFact]
@@ -156,7 +171,7 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         var results = await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
         {
             await using var db = NewContext();
-            return await new CatalogMenu(db).CreateItemAsync(new(groupId, "SAME", "Món", "BEP"), default);
+            return await new CatalogMenu(db).CreateItemAsync(new(groupId, "SAME", "Món", "BEP", new("STD", "Chuẩn", 1000)), default);
         }));
         Assert.Single(results, x => x.Error is null);
         Assert.All(results.Where(x => x.Error is not null), x =>
@@ -197,14 +212,14 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         });
         await using var db = NewContext(fault);
         var service = new CatalogMenu(db);
-        var failed = await service.CreateItemAsync(new(groupId, "FAILED", "Món lỗi", "BEP"), default);
+        var failed = await service.CreateItemAsync(new(groupId, "FAILED", "Món lỗi", "BEP", new("STD", "Chuẩn", 1000)), default);
         await completeBlocker.WaitAsync(TimeSpan.FromSeconds(30));
         Assert.True(fault.Injected);
         Assert.Equal(CatalogErrors.ConcurrencyConflict, failed.Error);
         Assert.Empty(db.ChangeTracker.Entries());
 
         await db.Database.ExecuteSqlRawAsync("SET DEADLOCK_PRIORITY NORMAL;");
-        var created = Ok(await service.CreateItemAsync(new(groupId, "AFTER", "Món sau", "BEP"), default));
+        var created = Ok(await service.CreateItemAsync(new(groupId, "AFTER", "Món sau", "BEP", new("STD", "Chuẩn", 1000)), default));
         await using var verify = NewContext();
         var saved = Assert.Single(await verify.Set<Mon>().ToArrayAsync());
         Assert.Equal(created.Id, saved.Id);

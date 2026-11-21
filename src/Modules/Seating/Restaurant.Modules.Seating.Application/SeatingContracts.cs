@@ -84,7 +84,7 @@ public interface ISeatingSessions
 
 /// <summary>
 /// Port to the business day owned by SalesDay. The host supplies the adapter, so Seating never references
-/// another module. Replace it with ISalesDayGate once that contract is implemented.
+/// another module. The host gates writes on the caller-owned transaction.
 /// </summary>
 public interface IBusinessDayDirectory
 {
@@ -92,7 +92,7 @@ public interface IBusinessDayDirectory
     Task<Guid?> CurrentOpenDayAsync(CancellationToken ct);
 
     /// <summary>True only when the given day is the active day and is still open for sales.</summary>
-    Task<bool> IsOpenAsync(Guid dayId, CancellationToken ct);
+    Task<bool> RequireOpenAsync(System.Data.Common.DbTransaction transaction, Guid dayId, CancellationToken ct);
 }
 
 /// <summary>
