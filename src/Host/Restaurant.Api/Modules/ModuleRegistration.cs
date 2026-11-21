@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore.Storage;
+using Restaurant.Modules.SalesDay.Contracts;
+using Restaurant.Modules.SalesDay.Infrastructure.Persistence;
 using Restaurant.Api.Configuration;
 using Restaurant.Modules.Identity.Infrastructure;
 using Restaurant.Modules.Identity.Presentation;
@@ -42,7 +45,17 @@ public static class ModuleRegistration
         services.AddBillingModule();
         services.AddInventoryModule();
         services.AddSalesDayModule();
-        services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
+        services.AddScoped<ISalesDayGate>(provider =>
+        {
+            var db = provider.GetRequiredService<SalesDayDbContext>();
+            var sales = provider.GetRequiredService<Restaurant.Modules.Sales.Infrastructure.Persistence.SalesDbContext>();
+            return new SqlSalesDayGate(() => sales.Database.CurrentTransaction?.GetDbTransaction() ?? db.Database.CurrentTransaction?.GetDbTransaction()
+                ?? throw new InvalidOperationException("Begin the Sales or SalesDay transaction before calling the day gate."));
+        });
+        services.AddScoped<Restaurant.Modules.Billing.Application.IBillingDayGate, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Billing.Contracts.IInvoiceCharging, SalesInvoiceCharging>();
+        services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
         services.AddHostedService<OutboxDispatcherService>();

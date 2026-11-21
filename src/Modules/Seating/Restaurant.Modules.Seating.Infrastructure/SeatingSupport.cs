@@ -63,7 +63,6 @@ internal static class SeatingSql
     public const int UniqueIndexViolation = 2601;
     public const int UniqueConstraintViolation = 2627;
     public const int Deadlock = 1205;
-    public const int DayLockTimeout = 51000;
 
     public static bool IsUniqueViolation(SqlException ex) =>
         ex.Number is UniqueIndexViolation or UniqueConstraintViolation;
@@ -82,18 +81,4 @@ internal static class SeatingLocks
             .FromSqlInterpolated($"SELECT * FROM [seating].[KhuVuc] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
             .ToListAsync(ct)).SingleOrDefault();
 
-    /// <summary>
-    /// Takes the business-day lock in Shared mode for the current transaction (ADR-01: day, then session).
-    /// The resource name matches the shared protocol of BusinessDayLock; swap to that helper or ISalesDayGate
-    /// once modules may reference the shared projects. A timeout throws SQL error 51000.
-    /// </summary>
-    public static Task AcquireDaySharedAsync(this SeatingDbContext db, Guid dayId, CancellationToken ct)
-    {
-        var resource = "restaurant:salesday:" + dayId.ToString("N");
-        return db.Database.ExecuteSqlInterpolatedAsync($"""
-            DECLARE @r int;
-            EXEC @r = sys.sp_getapplock @Resource={resource}, @LockMode=N'Shared', @LockOwner=N'Transaction', @LockTimeout=10000;
-            IF @r < 0 THROW 51000, N'Business day lock timeout', 1;
-            """, ct);
-    }
 }
