@@ -2,6 +2,20 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
+    ArrowUpRight,
+    ChevronRight,
+    Coffee,
+    Grid2X2,
+    Plus,
+    ReceiptText,
+    Search,
+    ShoppingBasket,
+    Soup,
+    Utensils,
+    WalletCards,
+} from "lucide-react";
+import styles from "./orders.module.css";
+import {
     catalogApi,
     formatPrice,
     describeCatalogError,
@@ -173,20 +187,28 @@ function Workspace({ account }: { account: string }) {
         }
     }
     return (
-        <div className="space-y-5 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:font-semibold [&_button]:rounded-md [&_button]:border [&_button]:px-3 [&_button]:py-2 [&_button:disabled]:opacity-50 [&_input:not([type=checkbox])]:border [&_select]:border [&_section]:space-y-3">
-            <h1>Đơn hàng nhân viên</h1>
-            {seating && (
-                <Link className="underline" href="/tables">
-                    Sơ đồ và chuyển bàn
-                </Link>
-            )}
-            {manage && <LivePortions />}
-            <p>Đợt gọi món đang được lưu thử trong tab này.</p>
-            {manage && (
-                <Link className="underline" href="/orders?view=service">
-                    Phục vụ và thanh toán đơn hiện có
-                </Link>
-            )}
+        <div className={styles.page}>
+            <header className={styles.header}>
+                <h1>
+                    <span className={styles.titleIcon}>
+                        <ReceiptText />
+                    </span>
+                    Đơn hàng nhân viên
+                </h1>
+                <nav aria-label="Điều hướng đơn hàng">
+                    {seating && (
+                        <Link href="/tables">
+                            <Grid2X2 /> Sơ đồ và chuyển bàn
+                        </Link>
+                    )}
+                    {manage && (
+                        <Link href="/orders?view=service">
+                            <WalletCards /> Phục vụ và thanh toán{" "}
+                            <ArrowUpRight />
+                        </Link>
+                    )}
+                </nav>
+            </header>
             {error && (
                 <p role="alert">
                     {error}{" "}
@@ -202,225 +224,353 @@ function Workspace({ account }: { account: string }) {
             )}
             {notice && <p role="status">{notice}</p>}
             {manage && (
-                <section>
-                    <h2>Gọi món</h2>
-                    {availability.isError && (
-                        <p role="alert">Chưa xác minh được tình trạng bán.</p>
-                    )}
-                    {stock?.businessDayId === null && <p>Chưa mở ngày bán.</p>}
-                    {board.isError && (
-                        <p role="alert">Không thể cập nhật bàn đang mở.</p>
-                    )}
-                    <fieldset disabled={busy} className="space-y-3">
-                        <label>
-                            Loại đơn{" "}
-                            <select
-                                value={takeaway ? "away" : "table"}
-                                onChange={(e) =>
-                                    setTakeaway(e.target.value === "away")
-                                }
-                            >
-                                <option value="table">Tại bàn</option>
-                                <option value="away">Mang về</option>
-                            </select>
-                        </label>
-                        <form
-                            id="send-batch"
-                            onSubmit={submit}
-                            className="flex flex-wrap gap-3"
-                        >
-                            {takeaway ? (
-                                <>
-                                    <label>
-                                        Tên khách{" "}
-                                        <input
-                                            required
-                                            value={name}
-                                            onChange={(e) =>
-                                                setName(e.target.value)
-                                            }
-                                        />
-                                    </label>
-                                    <label>
-                                        Điện thoại{" "}
-                                        <input
-                                            required
-                                            type="tel"
-                                            pattern="[+]?[0-9 ]{8,20}"
-                                            value={phone}
-                                            onChange={(e) =>
-                                                setPhone(e.target.value)
-                                            }
-                                        />
-                                    </label>
-                                    <label>
-                                        Giờ nhận{" "}
-                                        <input
-                                            required
-                                            type="datetime-local"
-                                            value={pickup}
-                                            onChange={(e) =>
-                                                setPickup(e.target.value)
-                                            }
-                                        />
-                                    </label>
-                                </>
-                            ) : (
+                <div className={styles.workspace}>
+                    <section className={styles.panel}>
+                        <h2>
+                            <Utensils />
+                            Gọi món
+                        </h2>
+                        {availability.isError && (
+                            <p role="alert">
+                                Chưa xác minh được tình trạng bán.
+                            </p>
+                        )}
+                        {stock?.businessDayId === null && (
+                            <p>Chưa mở ngày bán.</p>
+                        )}
+                        {board.isError && (
+                            <p role="alert">Không thể cập nhật bàn đang mở.</p>
+                        )}
+                        <fieldset disabled={busy}>
+                            <div className={styles.destination}>
                                 <label>
-                                    Bàn đang mở{" "}
+                                    Loại đơn{" "}
                                     <select
-                                        required
-                                        value={session}
+                                        value={takeaway ? "away" : "table"}
                                         onChange={(e) =>
-                                            chooseTable(e.target.value)
+                                            setTakeaway(
+                                                e.target.value === "away",
+                                            )
                                         }
                                     >
-                                        <option value="">Chọn bàn</option>
-                                        {tables.map((t) => (
-                                            <option
-                                                key={String(t.session!.id)}
-                                                value={String(t.session!.id)}
-                                            >
-                                                {t.name}
-                                            </option>
-                                        ))}
+                                        <option value="table">Tại bàn</option>
+                                        <option value="away">Mang về</option>
                                     </select>
                                 </label>
-                            )}
-                        </form>
-                        <label>
-                            Nhóm món{" "}
-                            <select
-                                value={group}
-                                onChange={(e) => filter(e.target.value)}
-                            >
-                                <option value="">Tất cả</option>
-                                {menu?.groups
-                                    .filter((g) => g.active)
-                                    .map((g) => (
-                                        <option key={g.id} value={g.id}>
-                                            {g.name}
-                                        </option>
-                                    ))}
-                            </select>
-                        </label>{" "}
-                        <label>
-                            Tìm món{" "}
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(e) => find(e.target.value)}
-                            />
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                            {menu?.items
-                                .filter(
-                                    (i) =>
-                                        i.active &&
-                                        menu.groups.some(
-                                            (g) =>
-                                                g.active && g.id === i.groupId,
-                                        ) &&
-                                        i.variants.some((v) => v.active) &&
-                                        (!group || group === i.groupId) &&
-                                        i.name
-                                            .toLocaleLowerCase()
-                                            .includes(
-                                                search
-                                                    .trim()
-                                                    .toLocaleLowerCase(),
-                                            ),
-                                )
-                                .map((i) => {
-                                    const sold =
-                                        stock &&
-                                        unavailableItem(stock, menu, i);
-                                    return (
-                                        <button
-                                            key={i.id}
-                                            disabled={
-                                                !stock?.businessDayId || sold
-                                            }
-                                            onClick={() => choose(i)}
-                                        >
-                                            <MenuPhoto
-                                                objectKey={i.imageObjectKey}
-                                            />
-                                            {i.name}
-                                            {stock?.businessDayId &&
-                                                sold &&
-                                                " · Hết món"}
-                                        </button>
-                                    );
-                                })}
-                        </div>
-                        <h3>Giỏ món</h3>
-                        {lines.map((l) => (
-                            <p key={l.id}>
-                                {l.label} · {formatPrice(l.unitPrice)}{" "}
-                                {stock?.businessDayId &&
-                                    unavailableChoice(stock, l) && (
-                                        <strong>Hết món</strong>
-                                    )}
-                                <label>
-                                    Số lượng{" "}
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={99}
-                                        value={l.quantity}
-                                        onChange={(e) => {
-                                            const n = Number(e.target.value);
-                                            if (
-                                                Number.isInteger(n) &&
-                                                n >= 1 &&
-                                                n <= 99
-                                            )
-                                                cart(
-                                                    lines.map((r) =>
-                                                        r.id === l.id
-                                                            ? {
-                                                                  ...r,
-                                                                  quantity: n,
-                                                              }
-                                                            : r,
-                                                    ),
-                                                );
-                                        }}
-                                    />
-                                </label>{" "}
-                                <button
-                                    onClick={() =>
-                                        cart(lines.filter((r) => r.id !== l.id))
-                                    }
+                                <form
+                                    id="send-batch"
+                                    onSubmit={submit}
+                                    className={styles.fields}
                                 >
-                                    Bỏ món
-                                </button>
-                            </p>
-                        ))}
-                        <p>
-                            Tổng{" "}
-                            {formatPrice(
-                                lines.reduce(
-                                    (sum, l) => sum + l.unitPrice * l.quantity,
-                                    0,
-                                ),
+                                    {takeaway ? (
+                                        <>
+                                            <label>
+                                                Tên khách{" "}
+                                                <input
+                                                    required
+                                                    value={name}
+                                                    onChange={(e) =>
+                                                        setName(e.target.value)
+                                                    }
+                                                />
+                                            </label>
+                                            <label>
+                                                Điện thoại{" "}
+                                                <input
+                                                    required
+                                                    type="tel"
+                                                    pattern="[+]?[0-9 ]{8,20}"
+                                                    value={phone}
+                                                    onChange={(e) =>
+                                                        setPhone(e.target.value)
+                                                    }
+                                                />
+                                            </label>
+                                            <label>
+                                                Giờ nhận{" "}
+                                                <input
+                                                    required
+                                                    type="datetime-local"
+                                                    value={pickup}
+                                                    onChange={(e) =>
+                                                        setPickup(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </label>
+                                        </>
+                                    ) : (
+                                        <label>
+                                            Bàn đang mở{" "}
+                                            <select
+                                                required
+                                                value={session}
+                                                onChange={(e) =>
+                                                    chooseTable(e.target.value)
+                                                }
+                                            >
+                                                <option value="">
+                                                    Chọn bàn
+                                                </option>
+                                                {tables.map((t) => (
+                                                    <option
+                                                        key={String(
+                                                            t.session!.id,
+                                                        )}
+                                                        value={String(
+                                                            t.session!.id,
+                                                        )}
+                                                    >
+                                                        {t.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    )}
+                                </form>
+                            </div>
+                            <div className={styles.filters}>
+                                <label>
+                                    Nhóm món{" "}
+                                    <select
+                                        value={group}
+                                        onChange={(e) => filter(e.target.value)}
+                                    >
+                                        <option value="">Tất cả</option>
+                                        {menu?.groups
+                                            .filter((g) => g.active)
+                                            .map((g) => (
+                                                <option key={g.id} value={g.id}>
+                                                    {g.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </label>{" "}
+                                <label>
+                                    Tìm món{" "}
+                                    <span className={styles.search}>
+                                        <Search aria-hidden="true" />
+                                        <input
+                                            type="search"
+                                            placeholder="Nhập tên món…"
+                                            value={search}
+                                            onChange={(e) =>
+                                                find(e.target.value)
+                                            }
+                                        />
+                                    </span>
+                                </label>
+                            </div>
+                            <div className={styles.products}>
+                                {menu?.items
+                                    .filter(
+                                        (i) =>
+                                            i.active &&
+                                            menu.groups.some(
+                                                (g) =>
+                                                    g.active &&
+                                                    g.id === i.groupId,
+                                            ) &&
+                                            i.variants.some((v) => v.active) &&
+                                            (!group || group === i.groupId) &&
+                                            i.name
+                                                .toLocaleLowerCase()
+                                                .includes(
+                                                    search
+                                                        .trim()
+                                                        .toLocaleLowerCase(),
+                                                ),
+                                    )
+                                    .map((i) => {
+                                        const sold =
+                                            stock &&
+                                            unavailableItem(stock, menu, i);
+                                        const prices = i.variants
+                                            .filter((v) => v.active)
+                                            .map((v) => v.price);
+                                        const Icon =
+                                            i.station === "BAR" ? Coffee : Soup;
+                                        return (
+                                            <button
+                                                key={i.id}
+                                                className={styles.product}
+                                                aria-label={
+                                                    i.name +
+                                                    (stock?.businessDayId &&
+                                                    sold
+                                                        ? " · Hết món"
+                                                        : "")
+                                                }
+                                                disabled={
+                                                    !stock?.businessDayId ||
+                                                    sold
+                                                }
+                                                onClick={() => choose(i)}
+                                            >
+                                                <span
+                                                    className={
+                                                        styles.productTop
+                                                    }
+                                                >
+                                                    <span
+                                                        className={
+                                                            styles.dishIcon
+                                                        }
+                                                    >
+                                                        {i.imageObjectKey ? (
+                                                            <MenuPhoto
+                                                                objectKey={
+                                                                    i.imageObjectKey
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <Icon />
+                                                        )}
+                                                    </span>
+                                                    <span
+                                                        className={
+                                                            styles.addIcon
+                                                        }
+                                                    >
+                                                        <Plus size={14} />
+                                                    </span>
+                                                </span>
+                                                <small>
+                                                    {
+                                                        menu.groups.find(
+                                                            (g) =>
+                                                                g.id ===
+                                                                i.groupId,
+                                                        )?.name
+                                                    }
+                                                </small>
+                                                <strong>{i.name}</strong>
+                                                <span className={styles.price}>
+                                                    {stock?.businessDayId &&
+                                                    sold
+                                                        ? "Hết món"
+                                                        : (Math.min(
+                                                              ...prices,
+                                                          ) !==
+                                                          Math.max(...prices)
+                                                              ? "Từ "
+                                                              : "") +
+                                                          formatPrice(
+                                                              Math.min(
+                                                                  ...prices,
+                                                              ),
+                                                          )}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                            </div>
+                        </fieldset>
+                    </section>
+                    <section className={styles.cart}>
+                        <div className={styles.cartHeader}>
+                            <h2>
+                                <ShoppingBasket />
+                                Giỏ món
+                            </h2>
+                            <span>
+                                {lines.reduce((sum, l) => sum + l.quantity, 0)}{" "}
+                                phần
+                            </span>
+                        </div>
+                        <fieldset disabled={busy} className={styles.cartBody}>
+                            {!lines.length && (
+                                <div className={styles.emptyCart}>
+                                    <ShoppingBasket size={28} />
+                                    <strong>Giỏ món đang trống</strong>
+                                    <span>
+                                        Chọn món từ thực đơn để thêm vào giỏ.
+                                    </span>
+                                </div>
                             )}
-                        </p>
-                        <button
-                            form="send-batch"
-                            disabled={
-                                !stock?.businessDayId ||
-                                !lines.length ||
-                                busy ||
-                                lines.some((l) => unavailableChoice(stock, l))
-                            }
-                        >
-                            Gửi đợt món
-                        </button>
-                    </fieldset>
-                </section>
+                            {lines.map((l) => (
+                                <div key={l.id} className={styles.cartLine}>
+                                    <strong>{l.label}</strong>
+                                    <span>{formatPrice(l.unitPrice)}</span>
+                                    {stock?.businessDayId &&
+                                        unavailableChoice(stock, l) && (
+                                            <strong>Hết món</strong>
+                                        )}
+                                    <label>
+                                        Số lượng{" "}
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={99}
+                                            value={l.quantity}
+                                            onChange={(e) => {
+                                                const n = Number(
+                                                    e.target.value,
+                                                );
+                                                if (
+                                                    Number.isInteger(n) &&
+                                                    n >= 1 &&
+                                                    n <= 99
+                                                )
+                                                    cart(
+                                                        lines.map((r) =>
+                                                            r.id === l.id
+                                                                ? {
+                                                                      ...r,
+                                                                      quantity:
+                                                                          n,
+                                                                  }
+                                                                : r,
+                                                        ),
+                                                    );
+                                            }}
+                                        />
+                                    </label>{" "}
+                                    <button
+                                        onClick={() =>
+                                            cart(
+                                                lines.filter(
+                                                    (r) => r.id !== l.id,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        Bỏ món
+                                    </button>
+                                </div>
+                            ))}
+                            <p className={styles.total}>
+                                Tổng cộng{" "}
+                                <strong>
+                                    {formatPrice(
+                                        lines.reduce(
+                                            (sum, l) =>
+                                                sum + l.unitPrice * l.quantity,
+                                            0,
+                                        ),
+                                    )}
+                                </strong>
+                            </p>
+                            <button
+                                className={styles.submit}
+                                form="send-batch"
+                                disabled={
+                                    !stock?.businessDayId ||
+                                    !lines.length ||
+                                    busy ||
+                                    lines.some((l) =>
+                                        unavailableChoice(stock, l),
+                                    )
+                                }
+                            >
+                                Gửi đợt món <ChevronRight size={16} />
+                            </button>
+                        </fieldset>
+                    </section>
+                </div>
             )}
+            {manage && <LivePortions />}
             {item && menu && (
                 <ItemPicker
                     item={item}
@@ -430,7 +580,7 @@ function Workspace({ account }: { account: string }) {
                     add={(l) => cart([...lines, l])}
                 />
             )}
-            <fieldset disabled={busy}>
+            <fieldset className={styles.panel} disabled={busy}>
                 <BatchList
                     orders={orders.map((order) => {
                         const dest = order.destination;
