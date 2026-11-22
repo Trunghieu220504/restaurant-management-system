@@ -207,6 +207,7 @@ public sealed class CatalogEndpointTests
 
     private sealed class StubStock : IMenuAvailability
     {
+        public Task<PublicMenu> PublicAsync(CancellationToken ct) => Task.FromResult(new PublicMenu(null, []));
         public Task<AvailabilitySnapshot> SnapshotAsync(CancellationToken ct) => Task.FromResult(new AvailabilitySnapshot(Guid.Parse(Id), []));
         public Task<string?> SetAsync(AvailabilityChange change, Guid actor, CancellationToken ct) => Task.FromResult<string?>(null);
     }

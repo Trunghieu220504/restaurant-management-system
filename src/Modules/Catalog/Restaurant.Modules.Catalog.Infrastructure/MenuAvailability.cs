@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -79,5 +80,18 @@ public sealed class MenuAvailability(CatalogDbContext db, ICatalogBusinessDays d
         catch (DbUpdateConcurrencyException) { return CatalogErrors.ConcurrencyConflict; }
         catch (Exception ex) when (ex.GetBaseException() is SqlException { Number: 1205 }) { return CatalogErrors.ConcurrencyConflict; }
         finally { db.ChangeTracker.Clear(); }
+    }
+    public async Task<PublicMenu> PublicAsync(CancellationToken ct)
+    {
+        var dayId = await days.CurrentOpenDayAsync(ct);
+        if (dayId is null) return new(null, []);
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        if (!await days.RequireOpenAsync(tx.GetDbTransaction(), dayId.Value, ct)) return new(null, []);
+        var day = await DayMenu.LoadAsync(db, dayId.Value, ct);
+        var groups = day.Menu.Groups.Where(x => x.Active).Select(g => new PublicGroup(g.Id, g.Name,
+            day.Menu.Items.Where(i => i.GroupId == g.Id).Select(day.PublicItem).OfType<PublicItem>().ToArray()))
+            .Where(x => x.Items.Count > 0).ToArray();
+        await tx.CommitAsync(ct);
+        return new(dayId, groups);
     }
 }
