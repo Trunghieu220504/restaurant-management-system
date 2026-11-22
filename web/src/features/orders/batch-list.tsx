@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Batch, StaffOrder } from "./batches";
+import { useAuth } from "@/components/auth/auth-provider";
 const statuses = {
     pending: "Chờ xác nhận",
     confirmed: "Đã xác nhận",
@@ -20,6 +21,14 @@ function BatchDetail({
     const [reason, setReason] = useState("");
     const [lineId, setLineId] = useState("");
     const [count, setCount] = useState(1);
+    const [editing, setEditing] = useState(false);
+    const [note, setNote] = useState("");
+    const { user } = useAuth();
+    // Draft batches have no kitchen ticket to prove a confirmed portion is still unstarted.
+    const allowed =
+        manage &&
+        (batch.status === "pending" ||
+            (batch.status === "confirmed" && user?.roles.includes("Manager")));
     return (
         <section className="my-3 border-t pt-3">
             <h4>
@@ -28,37 +37,84 @@ function BatchDetail({
             {batch.lines.map((l) => (
                 <div key={l.id}>
                     {l.label} × {l.quantity}
+                    {l.note && <span> · {l.note}</span>}
+                    {l.editReason && <span> · Lý do sửa: {l.editReason}</span>}
                     {!!l.cancelled && (
                         <span>
                             {" "}
                             · Đã hủy {l.cancelled} ({l.cancelReason})
                         </span>
                     )}
-                    {manage &&
-                        (batch.status === "confirmed" ||
-                            batch.status === "pending") &&
-                        (l.cancelled ?? 0) < l.quantity && (
+                    {allowed && (l.cancelled ?? 0) < l.quantity && (
+                        <>
                             <button
                                 type="button"
                                 onClick={() => {
                                     setLineId(l.id);
+                                    setEditing(true);
+                                    setNote(l.note ?? "");
+                                    setReason("");
+                                    setCount(1);
+                                }}
+                            >
+                                Sửa phần món
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLineId(l.id);
+                                    setEditing(false);
                                     setReason("");
                                     setCount(1);
                                 }}
                             >
                                 Hủy phần món
                             </button>
-                        )}
-                    {lineId === l.id && manage && (
+                        </>
+                    )}
+                    {lineId === l.id && allowed && (
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 if (
-                                    !reason.trim() ||
+                                    ((!editing ||
+                                        batch.status === "confirmed") &&
+                                        !reason.trim()) ||
+                                    !Number.isInteger(count) ||
                                     count < 1 ||
                                     count > l.quantity - (l.cancelled ?? 0)
                                 )
                                     return;
+                                if (editing) {
+                                    const revised = {
+                                        ...l,
+                                        id: crypto.randomUUID(),
+                                        quantity: count,
+                                        cancelled: 0,
+                                        cancelReason: undefined,
+                                        note: note.trim(),
+                                        editReason: reason.trim() || undefined,
+                                    };
+                                    update({
+                                        ...batch,
+                                        lines: batch.lines.flatMap((row) => {
+                                            if (row.id !== l.id) return [row];
+                                            return count === row.quantity
+                                                ? [revised]
+                                                : [
+                                                      {
+                                                          ...row,
+                                                          quantity:
+                                                              row.quantity -
+                                                              count,
+                                                      },
+                                                      revised,
+                                                  ];
+                                        }),
+                                    });
+                                    setLineId("");
+                                    return;
+                                }
                                 const remaining =
                                     batch.lines.reduce(
                                         (sum, row) =>
@@ -90,7 +146,7 @@ function BatchDetail({
                             }}
                         >
                             <label>
-                                Số phần hủy
+                                {editing ? "Số phần sửa" : "Số phần hủy"}
                                 <input
                                     type="number"
                                     min={1}
@@ -102,15 +158,36 @@ function BatchDetail({
                                     }
                                 />
                             </label>
-                            <label>
-                                Lý do hủy
-                                <input
-                                    required
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                />
-                            </label>
-                            <button>Xác nhận hủy</button>
+                            {editing && (
+                                <label>
+                                    Ghi chú chế biến{" "}
+                                    <input
+                                        maxLength={2000}
+                                        value={note}
+                                        onChange={(e) =>
+                                            setNote(e.target.value)
+                                        }
+                                    />
+                                </label>
+                            )}
+                            {(!editing || batch.status === "confirmed") && (
+                                <label>
+                                    {editing ? "Lý do sửa" : "Lý do hủy"}
+                                    <input
+                                        required
+                                        value={reason}
+                                        onChange={(e) =>
+                                            setReason(e.target.value)
+                                        }
+                                    />
+                                </label>
+                            )}
+                            <button>
+                                {editing ? "Lưu phần món" : "Xác nhận hủy"}
+                            </button>
+                            <button type="button" onClick={() => setLineId("")}>
+                                Đóng
+                            </button>
                         </form>
                     )}
                 </div>

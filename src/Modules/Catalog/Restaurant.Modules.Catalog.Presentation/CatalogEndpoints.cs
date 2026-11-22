@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc;
 using Restaurant.Modules.Catalog.Application;
 
 namespace Restaurant.Modules.Catalog.Presentation;
@@ -17,6 +18,15 @@ public static class CatalogEndpoints
             .WithName("CatalogGetMenu").Produces<MenuDto>(200).Produces(401)
             .WithDescription("Employee menu, including inactive records for management. Prices are integer VND. Sold-out flags and images are outside this milestone.");
 
+        group.MapGet("/availability", async ([FromServices] IMenuAvailability menu, CancellationToken ct) => Results.Ok(await menu.SnapshotAsync(ct)))
+            .WithName("CatalogGetAvailability").Produces<AvailabilitySnapshot>();
+        group.MapPut("/availability", async (AvailabilityChange change, HttpContext http, [FromServices] IMenuAvailability menu, CancellationToken ct) =>
+        {
+            if (!Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)) return Results.Unauthorized();
+            var error = await menu.SetAsync(change, actor, ct);
+            return error is null ? Results.NoContent() : Problem(error);
+        }).RequireAuthorization(p => p.RequireClaim("permission", "catalog.availability.manage")).WithName("CatalogSetAvailability")
+            .Produces(204).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         var manage = group.MapGroup("").RequireAuthorization(policy => policy.RequireClaim("permission", "catalog.menu.manage"));
         manage.MapPost("/groups", async (CreateMenuGroupRequest request, ICatalogMenu menu, CancellationToken ct) =>
                 Respond(await menu.CreateGroupAsync(request, ct), x => $"/api/catalog/groups/{x.Id}"))

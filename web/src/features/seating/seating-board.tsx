@@ -195,10 +195,10 @@ function BoardContent({
     canManageCatalog,
     canManageSessions,
 }: BoardProps) {
-    const query = useSeatingBoard(gateway);
+    const query = useSeatingBoard(gateway, canManageSessions);
     const mutation = useSeatingChange(gateway);
     const board = query.data,
-        loading = query.isFetching,
+        loading = query.isLoading,
         saving = mutation.isPending;
     const loadError = query.error ? describeSeatingFailure(query.error) : null;
     const reload = () => void query.refetch();
@@ -224,6 +224,20 @@ function BoardContent({
 
         setEditorError(null);
         try {
+            if (
+                editor?.kind === "transfer" &&
+                change.kind === "transferSession" &&
+                (board?.tables.find((t) => t.id === editor.from.id)?.session
+                    ?.id !== change.session.id ||
+                    !board.tables.some(
+                        (t) => t.id === change.targetTableId && !t.session,
+                    ))
+            ) {
+                setEditorError(
+                    "Phiên hoặc bàn đích đã thay đổi. Hãy chọn lại bàn.",
+                );
+                return;
+            }
             const payload = JSON.stringify(change);
             if (intent.current?.payload !== payload)
                 intent.current = { payload, key: crypto.randomUUID() };

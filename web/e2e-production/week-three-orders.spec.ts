@@ -11,6 +11,12 @@ test("staff builds batches with a topping, reviews a price change and handles ta
         ],
     });
     let price = 30000;
+    await page.route("**/api/catalog/availability", (route) =>
+        route.fulfill({ json: { businessDayId: "open-day", soldOut: [] } }),
+    );
+    await page.route("**/api/sales/portions", (route) =>
+        route.fulfill({ json: [] }),
+    );
     const row = { active: true, version: "AQ==" };
     await page.route("**/api/catalog/menu", (route) =>
         route.fulfill({
@@ -98,15 +104,23 @@ test("staff builds batches with a topping, reviews a price change and handles ta
     await send.click();
     await expect(page.getByText(/order.price.changed/)).toBeVisible();
     await send.click();
+    await page.getByRole("button", { name: "Sửa phần món" }).click();
+    await page.getByLabel("Số phần sửa").fill("2");
+    await page.getByLabel("Ghi chú chế biến").fill("Ít đá");
+    await page.getByRole("button", { name: "Lưu phần món" }).click();
+    await expect(page.getByText(/· Ít đá/)).toBeVisible();
+    await page.getByRole("button", { name: "Hủy phần món" }).click();
+    await page.getByLabel("Lý do hủy").fill("Khách giảm một phần");
+    await page.getByRole("button", { name: "Xác nhận hủy" }).click();
+    await expect(page.getByText(/Đã hủy 1/)).toBeVisible();
     await page.getByRole("button", { name: "Xác nhận đợt" }).click();
     await page.getByLabel("Chỉ hiện đợt chờ xác nhận").uncheck();
     await expect(
         page.getByRole("heading", { name: /Đã xác nhận/ }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Hủy phần món" }).click();
-    await page.getByLabel("Lý do hủy").fill("Khách giảm một phần");
-    await page.getByRole("button", { name: "Xác nhận hủy" }).click();
-    await expect(page.getByText(/Đã hủy 1/)).toBeVisible();
+    await expect(
+        page.getByRole("button", { name: "Hủy phần món" }),
+    ).toHaveCount(0);
     await add();
     await send.click();
     await expect(page.getByRole("article")).toHaveCount(1);
