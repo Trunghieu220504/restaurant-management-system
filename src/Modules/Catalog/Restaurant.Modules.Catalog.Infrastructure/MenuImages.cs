@@ -27,7 +27,8 @@ internal sealed class MenuImages(CatalogDbContext db, IConfiguration configurati
         return new AmazonS3Client(section["AccessKeyId"], section["SecretAccessKey"], new AmazonS3Config
         {
             ServiceURL = $"https://{section["AccountId"]}.r2.cloudflarestorage.com",
-            AuthenticationRegion = "auto", ForcePathStyle = true
+            AuthenticationRegion = "auto",
+            ForcePathStyle = true
         });
     }
 
@@ -42,8 +43,11 @@ internal sealed class MenuImages(CatalogDbContext db, IConfiguration configurati
         var id = Guid.NewGuid();
         var sign = new GetPreSignedUrlRequest
         {
-            BucketName = Bucket, Key = Incoming(itemId, id), Verb = HttpVerb.PUT,
-            Expires = DateTime.UtcNow.AddMinutes(5), ContentType = MediaType
+            BucketName = Bucket,
+            Key = Incoming(itemId, id),
+            Verb = HttpVerb.PUT,
+            Expires = DateTime.UtcNow.AddMinutes(5),
+            ContentType = MediaType
         };
         sign.Headers.ContentLength = request.Bytes;
         return CatalogResult<ImageUpload>.Ok(new(id, await s3.GetPreSignedURLAsync(sign)));
@@ -71,8 +75,16 @@ internal sealed class MenuImages(CatalogDbContext db, IConfiguration configurati
             if (item.AnhObjectKey == key) return CatalogResult<string>.Ok(key);
             if (!item.Version.SequenceEqual(version)) return CatalogResult<string>.Fail(CatalogErrors.ConcurrencyConflict);
             using var stream = new MemoryStream(bytes, writable: false);
-            await s3.PutObjectAsync(new PutObjectRequest { BucketName = Bucket, Key = key, InputStream = stream,
-                ContentType = MediaType, UseChunkEncoding = false, DisablePayloadSigning = true, DisableDefaultChecksumValidation = true }, ct);
+            await s3.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = Bucket,
+                Key = key,
+                InputStream = stream,
+                ContentType = MediaType,
+                UseChunkEncoding = false,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true
+            }, ct);
             item.AnhObjectKey = key;
             await db.SaveChangesAsync(ct);
             return CatalogResult<string>.Ok(key);

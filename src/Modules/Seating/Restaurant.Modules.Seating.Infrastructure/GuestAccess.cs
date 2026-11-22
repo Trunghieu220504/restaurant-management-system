@@ -64,12 +64,18 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
         var used = await db.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE seating.MaThamGiaPhien SET DaDungLuc={now.UtcDateTime}
             WHERE MaHash={hash} AND DaDungLuc IS NULL AND ThuHoiLuc IS NULL
-            """,ct);
+            """, ct);
         if (used != 1) return SeatingResult<GuestToken>.Fail("qr.code.used");
         var bytes = RandomNumberGenerator.GetBytes(32);
         var expiry = now.AddHours(4);
-        db.Grants.Add(new QuyenTruyCapKhach { Id = Guid.NewGuid(), PhienSuDungId=session.Id, TokenHash=SHA256.HashData(bytes),
-            TaoLuc=now.UtcDateTime, HetHanLuc=expiry.UtcDateTime });
+        db.Grants.Add(new QuyenTruyCapKhach
+        {
+            Id = Guid.NewGuid(),
+            PhienSuDungId = session.Id,
+            TokenHash = SHA256.HashData(bytes),
+            TaoLuc = now.UtcDateTime,
+            HetHanLuc = expiry.UtcDateTime
+        });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return SeatingResult<GuestToken>.Ok(new(WebEncoders.Base64UrlEncode(bytes), expiry));
@@ -79,9 +85,11 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
     {
         var hash = Hash(token);
         if (hash is null) return SeatingResult<GuestSession>.Fail("qr.token.invalid");
-        var row = await (from g in db.Grants join s in db.Sessions on g.PhienSuDungId equals s.Id
-                         join t in db.Tables on s.BanHienTaiId equals t.Id where g.TokenHash == hash
-                         select new {g.HetHanLuc,g.ThuHoiLuc,s.DongLuc,t.Ten}).SingleOrDefaultAsync(ct);
+        var row = await (from g in db.Grants
+                         join s in db.Sessions on g.PhienSuDungId equals s.Id
+                         join t in db.Tables on s.BanHienTaiId equals t.Id
+                         where g.TokenHash == hash
+                         select new { g.HetHanLuc, g.ThuHoiLuc, s.DongLuc, t.Ten }).SingleOrDefaultAsync(ct);
         if (row is null) return SeatingResult<GuestSession>.Fail("qr.token.invalid");
         if (row.ThuHoiLuc is not null || row.DongLuc is not null) return SeatingResult<GuestSession>.Fail("qr.token.revoked");
         if (row.HetHanLuc <= clock.GetUtcNow().UtcDateTime) return SeatingResult<GuestSession>.Fail("qr.token.expired");

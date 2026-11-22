@@ -27,16 +27,16 @@ public static class AuthenticationConfiguration
                 var retry = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay) ? delay.TotalSeconds : 60;
                 response.Headers.RetryAfter = ((int)Math.Ceiling(retry)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 response.Headers.CacheControl = "no-store";
-                await Results.Problem(statusCode:429, extensions:new Dictionary<string, object?> { ["code"]="qr.rate.limited" }).ExecuteAsync(context.HttpContext);
+                await Results.Problem(statusCode: 429, extensions: new Dictionary<string, object?> { ["code"] = "qr.rate.limited" }).ExecuteAsync(context.HttpContext);
             };
             options.AddPolicy("qr-exchange", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit=10, Window=TimeSpan.FromMinutes(1), QueueLimit=0 }));
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("qr-read", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Request.Headers.Authorization.ToString() is { Length: 49 } header && header.StartsWith("Guest ", StringComparison.OrdinalIgnoreCase)
                     ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(header)))
                     : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit=60, Window=TimeSpan.FromMinutes(1), QueueLimit=0 }));
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("identity-login", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
