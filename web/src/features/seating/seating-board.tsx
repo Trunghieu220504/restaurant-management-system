@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSeatingBoard, useSeatingChange } from "./queries";
 import { LayoutGrid, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuestInviteButton } from "./guest-invite";
 import { cn } from "@/lib/utils";
 import { SeatingEditor, type SeatingEditorAction } from "./seating-editor";
 import {
@@ -27,6 +28,7 @@ function TableCard({
     canManageSessions,
     disabled,
     hasFreeTable,
+    guestInvites,
     onEdit,
 }: {
     table: SeatingTable;
@@ -34,6 +36,7 @@ function TableCard({
     canManageSessions: boolean;
     disabled: boolean;
     hasFreeTable: boolean;
+    guestInvites?: boolean;
     onEdit: (action: SeatingEditorAction) => void;
 }) {
     const session = table.session;
@@ -79,6 +82,13 @@ function TableCard({
                 <div className="flex flex-wrap gap-2">
                     {session ? (
                         <>
+                            {guestInvites && (
+                                <GuestInviteButton
+                                    key={session.id}
+                                    sessionId={session.id}
+                                    name={table.name}
+                                />
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -177,6 +187,7 @@ function TableCard({
 }
 
 type BoardProps = {
+    guestInvites?: boolean;
     gateway: SeatingGateway;
     canManageCatalog: boolean;
     canManageSessions: boolean;
@@ -191,6 +202,7 @@ export function SeatingBoardView(props: BoardProps) {
     );
 }
 function BoardContent({
+    guestInvites,
     gateway,
     canManageCatalog,
     canManageSessions,
@@ -447,6 +459,7 @@ function BoardContent({
                                             }
                                             disabled={disabled}
                                             hasFreeTable={hasFreeTable}
+                                            guestInvites={guestInvites}
                                             onEdit={edit}
                                         />
                                     ))}

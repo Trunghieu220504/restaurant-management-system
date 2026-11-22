@@ -20,6 +20,7 @@ import {
 } from "./batches";
 import { BatchList } from "./batch-list";
 import { ItemPicker } from "./item-picker";
+import { MenuPhoto } from "@/features/catalog/menu-photo";
 import { LiveQueryScope, liveInterval } from "@/lib/realtime/live-query";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -342,6 +343,9 @@ function Workspace({ account }: { account: string }) {
                                             }
                                             onClick={() => choose(i)}
                                         >
+                                            <MenuPhoto
+                                                objectKey={i.imageObjectKey}
+                                            />
                                             {i.name}
                                             {stock?.businessDayId &&
                                                 sold &&
