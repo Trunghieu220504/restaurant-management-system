@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ListOrdered } from "lucide-react";
+import styles from "./orders.module.css";
 import type { Batch, StaffOrder } from "./batches";
 import { useAuth } from "@/components/auth/auth-provider";
 const statuses = {
@@ -240,7 +242,13 @@ export function BatchList({
     const [pending, filter] = useState(true);
     return (
         <section>
-            <h2>Đợt gọi món</h2>
+            <h2>
+                <ListOrdered />
+                Đợt gọi món
+            </h2>
+            <p className={styles.hint}>
+                Các đợt gọi món thử được lưu trong tab này.
+            </p>
             <label>
                 <input
                     type="checkbox"

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ClipboardList, PencilLine, X } from "lucide-react";
+import styles from "./orders.module.css";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { authFetch } from "@/lib/auth/auth-client";
 import { liveInterval } from "@/lib/realtime/live-query";
@@ -67,33 +69,45 @@ export function LivePortions() {
     return (
         <section
             aria-label="Phần món trên đơn đang mở"
-            className="rounded-xl border p-4"
+            className={styles.panel}
         >
-            <h2>Phần món trên đơn đang mở</h2>
+            <h2>
+                <ClipboardList />
+                Phần món trên đơn đang mở
+            </h2>
             {portions.isError && (
                 <p role="alert">Không thể tải phần món trên máy chủ.</p>
             )}
             {portions.data?.length === 0 && <p>Chưa có phần món.</p>}
             {portions.data?.map((row) => (
-                <div
-                    key={row.id}
-                    className="flex flex-wrap items-center gap-2 border-t py-2"
-                >
-                    <strong>{row.orderCode}</strong> {row.dish} · {row.variant}{" "}
-                    {row.note && <span>{row.note}</span>}
+                <div key={row.id} className={styles.portion}>
+                    <span className={styles.code}>{row.orderCode}</span>
+                    <div className={styles.portionInfo}>
+                        <strong>{row.dish}</strong>
+                        <small>
+                            {row.variant}
+                            {row.note && (
+                                <>
+                                    {" "}
+                                    · <span>{row.note}</span>
+                                </>
+                            )}
+                        </small>
+                    </div>
                     {row.status === "CHO_XAC_NHAN" ? (
                         <>
                             <button
                                 disabled={change.isPending || portions.isError}
                                 onClick={() => open(row, false)}
                             >
-                                Sửa ghi chú
+                                <PencilLine size={14} /> Sửa ghi chú
                             </button>
                             <button
                                 disabled={change.isPending || portions.isError}
                                 onClick={() => open(row, true)}
+                                className={styles.cancel}
                             >
-                                Hủy phần món
+                                <X size={14} /> Hủy phần món
                             </button>
                         </>
                     ) : (
@@ -105,7 +119,7 @@ export function LivePortions() {
             ))}
             {editor && (
                 <form
-                    className="space-x-2"
+                    className={styles.editForm}
                     onSubmit={(e) => {
                         e.preventDefault();
                         if (
