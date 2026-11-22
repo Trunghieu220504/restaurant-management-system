@@ -20,6 +20,15 @@ import {
 } from "./batches";
 import { BatchList } from "./batch-list";
 import { ItemPicker } from "./item-picker";
+import { LiveQueryScope, liveInterval } from "@/lib/realtime/live-query";
+import { useQuery } from "@tanstack/react-query";
+import {
+    unavailableItem,
+    readAvailability,
+    unavailableChoice,
+    useAvailability,
+} from "@/features/catalog/availability";
+import { LivePortions } from "./live-portions";
 
 type Table = { name: string; session: { id: string | number } | null };
 async function readTables(signal?: AbortSignal): Promise<Table[]> {
@@ -33,15 +42,29 @@ async function readTables(signal?: AbortSignal): Promise<Table[]> {
 }
 export function StaffOrders() {
     const { user } = useAuth();
-    return user && <Workspace key={user.id} account={user.id} />;
+    return (
+        user && (
+            <LiveQueryScope key={user.id}>
+                <Workspace account={user.id} />
+            </LiveQueryScope>
+        )
+    );
 }
 function Workspace({ account }: { account: string }) {
     const { can } = usePermissions();
     const manage = can("sales.orders.manage"),
         confirm = can("sales.batches.confirm"),
         seating = can("seating.sessions.manage");
-    const [menu, setMenu] = useState<CatalogMenu | null>(null),
-        [tables, setTables] = useState<Table[]>([]);
+    const [menu, setMenu] = useState<CatalogMenu | null>(null);
+    const board = useQuery({
+        queryKey: ["staff", "tables"],
+        queryFn: ({ signal }) => readTables(signal),
+        enabled: manage && seating,
+        refetchInterval: liveInterval,
+    });
+    const tables = board.data ?? [];
+    const availability = useAvailability(manage);
+    const stock = availability.isError ? undefined : availability.data;
     const [takeaway, setTakeaway] = useState(false),
         [session, chooseTable] = useState("");
     const [name, setName] = useState(""),
@@ -66,10 +89,6 @@ function Workspace({ account }: { account: string }) {
                 if (manage) {
                     const data = await catalogApi.load(c.signal);
                     if (!c.signal.aborted) setMenu(data);
-                    if (seating) {
-                        const list = await readTables(c.signal);
-                        if (!c.signal.aborted) setTables(list);
-                    }
                 }
             } catch (err) {
                 if (!c.signal.aborted)
@@ -113,14 +132,20 @@ function Workspace({ account }: { account: string }) {
                 };
             } else {
                 const latest = await readTables();
-                setTables(latest);
                 const table = latest.find(
                     (t) => String(t.session?.id) === session,
                 );
                 if (!table) throw Error("Chọn bàn có phiên đang mở.");
                 destination = { kind: "table", name: table.name, session };
             }
-            const fresh = await catalogApi.load();
+            const [fresh, flags] = await Promise.all([
+                catalogApi.load(),
+                readAvailability(),
+            ]);
+            if (lines.some((line) => unavailableChoice(flags, line)))
+                throw Error(
+                    "Giỏ có mục đã hết hoặc ngày bán đã đóng. Kiểm tra lại giỏ món.",
+                );
             setMenu(fresh);
             const checked = lines.map((l) => ({ ...l, ...quote(fresh, l) }));
             if (checked.some((l, i) => l.unitPrice !== lines[i].unitPrice)) {
@@ -149,6 +174,12 @@ function Workspace({ account }: { account: string }) {
     return (
         <div className="space-y-5 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:font-semibold [&_button]:rounded-md [&_button]:border [&_button]:px-3 [&_button]:py-2 [&_button:disabled]:opacity-50 [&_input:not([type=checkbox])]:border [&_select]:border [&_section]:space-y-3">
             <h1>Đơn hàng nhân viên</h1>
+            {seating && (
+                <Link className="underline" href="/tables">
+                    Sơ đồ và chuyển bàn
+                </Link>
+            )}
+            {manage && <LivePortions />}
             <p>Đợt gọi món đang được lưu thử trong tab này.</p>
             {manage && (
                 <Link className="underline" href="/orders?view=service">
@@ -172,6 +203,13 @@ function Workspace({ account }: { account: string }) {
             {manage && (
                 <section>
                     <h2>Gọi món</h2>
+                    {availability.isError && (
+                        <p role="alert">Chưa xác minh được tình trạng bán.</p>
+                    )}
+                    {stock?.businessDayId === null && <p>Chưa mở ngày bán.</p>}
+                    {board.isError && (
+                        <p role="alert">Không thể cập nhật bàn đang mở.</p>
+                    )}
                     <fieldset disabled={busy} className="space-y-3">
                         <label>
                             Loại đơn{" "}
@@ -292,19 +330,34 @@ function Workspace({ account }: { account: string }) {
                                                     .toLocaleLowerCase(),
                                             ),
                                 )
-                                .map((i) => (
-                                    <button
-                                        key={i.id}
-                                        onClick={() => choose(i)}
-                                    >
-                                        {i.name}
-                                    </button>
-                                ))}
+                                .map((i) => {
+                                    const sold =
+                                        stock &&
+                                        unavailableItem(stock, menu, i);
+                                    return (
+                                        <button
+                                            key={i.id}
+                                            disabled={
+                                                !stock?.businessDayId || sold
+                                            }
+                                            onClick={() => choose(i)}
+                                        >
+                                            {i.name}
+                                            {stock?.businessDayId &&
+                                                sold &&
+                                                " · Hết món"}
+                                        </button>
+                                    );
+                                })}
                         </div>
                         <h3>Giỏ món</h3>
                         {lines.map((l) => (
                             <p key={l.id}>
                                 {l.label} · {formatPrice(l.unitPrice)}{" "}
+                                {stock?.businessDayId &&
+                                    unavailableChoice(stock, l) && (
+                                        <strong>Hết món</strong>
+                                    )}
                                 <label>
                                     Số lượng{" "}
                                     <input
@@ -352,7 +405,12 @@ function Workspace({ account }: { account: string }) {
                         </p>
                         <button
                             form="send-batch"
-                            disabled={!lines.length || busy}
+                            disabled={
+                                !stock?.businessDayId ||
+                                !lines.length ||
+                                busy ||
+                                lines.some((l) => unavailableChoice(stock, l))
+                            }
                         >
                             Gửi đợt món
                         </button>
@@ -363,13 +421,26 @@ function Workspace({ account }: { account: string }) {
                 <ItemPicker
                     item={item}
                     menu={menu}
+                    stock={stock}
                     close={() => choose(null)}
                     add={(l) => cart([...lines, l])}
                 />
             )}
             <fieldset disabled={busy}>
                 <BatchList
-                    orders={orders}
+                    orders={orders.map((order) => {
+                        const dest = order.destination;
+                        if (dest.kind !== "table") return order;
+                        const table = tables.find(
+                            (t) => String(t.session?.id) === dest.session,
+                        );
+                        return table
+                            ? {
+                                  ...order,
+                                  destination: { ...dest, name: table.name },
+                              }
+                            : order;
+                    })}
                     manage={manage}
                     confirm={confirm}
                     save={(next) => {

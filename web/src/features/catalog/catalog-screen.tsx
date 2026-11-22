@@ -9,6 +9,7 @@ import {
     type CatalogChange,
 } from "./api";
 import { CatalogEditor, type Editor } from "./catalog-editor";
+import { AvailabilityEditor } from "./availability-editor";
 import styles from "./catalog.module.css";
 
 export function CatalogScreen() {
@@ -81,6 +82,9 @@ export function CatalogScreen() {
                     Tải lại
                 </button>
             </header>
+            {menu && can("catalog.availability.manage") && (
+                <AvailabilityEditor menu={menu} />
+            )}
             <nav className={styles.tabs} aria-label="Danh mục thực đơn">
                 {["Món ăn", "Nhóm món", "Tùy chọn & topping"].map((t) => (
                     <button
