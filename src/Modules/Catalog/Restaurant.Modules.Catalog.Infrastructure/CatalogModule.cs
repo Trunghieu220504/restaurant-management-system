@@ -18,6 +18,8 @@ public static class CatalogModule
         });
 
         services.AddScoped<ICatalogMenu, CatalogMenu>();
+        services.AddScoped<IMenuAvailability, MenuAvailability>();
+        services.AddScoped<IMenuImages, MenuImages>();
         return services;
     }
 }

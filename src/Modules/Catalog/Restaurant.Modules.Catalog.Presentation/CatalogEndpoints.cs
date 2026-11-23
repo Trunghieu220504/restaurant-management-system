@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc;
 using Restaurant.Modules.Catalog.Application;
 
 namespace Restaurant.Modules.Catalog.Presentation;
@@ -17,7 +18,29 @@ public static class CatalogEndpoints
             .WithName("CatalogGetMenu").Produces<MenuDto>(200).Produces(401)
             .WithDescription("Employee menu, including inactive records for management. Prices are integer VND. Sold-out flags and images are outside this milestone.");
 
+        group.MapGet("/availability", async ([FromServices] IMenuAvailability menu, CancellationToken ct) => Results.Ok(await menu.SnapshotAsync(ct)))
+            .WithName("CatalogGetAvailability").Produces<AvailabilitySnapshot>();
+        group.MapPut("/availability", async (AvailabilityChange change, HttpContext http, [FromServices] IMenuAvailability menu, CancellationToken ct) =>
+        {
+            if (!Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)) return Results.Unauthorized();
+            var error = await menu.SetAsync(change, actor, ct);
+            return error is null ? Results.NoContent() : Problem(error);
+        }).RequireAuthorization(p => p.RequireClaim("permission", "catalog.availability.manage")).WithName("CatalogSetAvailability")
+            .Produces(204).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         var manage = group.MapGroup("").RequireAuthorization(policy => policy.RequireClaim("permission", "catalog.menu.manage"));
+        endpoints.MapGet("/api/public/menu", async ([FromServices] IMenuAvailability menu, CancellationToken ct) => Results.Ok(await menu.PublicAsync(ct)))
+            .AllowAnonymous().WithName("CatalogPublicMenu").WithTags("Catalog").Produces<PublicMenu>();
+        endpoints.MapGet("/api/public/menu-images/{itemId:guid}/{name}", (Guid itemId, string name, Microsoft.Extensions.Configuration.IConfiguration config) =>
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[0-9a-f]{64}\.webp\z")) return Results.NotFound();
+            if (!Uri.TryCreate(config["MenuImages:PublicBaseUrl"], UriKind.Absolute, out var url) || url.Scheme != "https")
+                return Results.StatusCode(503);
+            return Results.Redirect($"{url.AbsoluteUri.TrimEnd('/')}/menu/{itemId:N}/{name}");
+        }).AllowAnonymous().WithName("CatalogPublicImage").WithTags("Catalog");
+        manage.MapPost("/items/{itemId:guid}/image/upload", async (Guid itemId, ImageUploadRequest request, [FromServices] IMenuImages images, CancellationToken ct) =>
+            Respond(await images.PrepareAsync(itemId, request, ct))).WithName("CatalogPrepareImage").Produces<ImageUpload>();
+        manage.MapPut("/items/{itemId:guid}/image", async (Guid itemId, AttachImageRequest request, [FromServices] IMenuImages images, CancellationToken ct) =>
+            Respond(await images.AttachAsync(itemId, request, ct))).WithName("CatalogAttachImage").Produces<string>();
         manage.MapPost("/groups", async (CreateMenuGroupRequest request, ICatalogMenu menu, CancellationToken ct) =>
                 Respond(await menu.CreateGroupAsync(request, ct), x => $"/api/catalog/groups/{x.Id}"))
             .WithName("CatalogCreateGroup").Produces<MenuGroupDto>(201).ProducesProblem(400).ProducesProblem(409);
@@ -64,7 +87,7 @@ public static class CatalogEndpoints
         result.Error is not null ? Problem(result.Error) : created is null ? Results.Ok(result.Value) : Results.Created(created(result.Value!), result.Value);
 
     private static IResult Problem(string code) => Results.Problem(
-        statusCode: code is CatalogErrors.InputInvalid or CatalogErrors.SelectionRangeInvalid ? 400 :
+        statusCode: code == "catalog.image.unconfigured" ? 503 : code is CatalogErrors.InputInvalid or CatalogErrors.SelectionRangeInvalid ? 400 :
             code.EndsWith(".not_found", StringComparison.Ordinal) ? 404 : 409,
         title: code, extensions: new Dictionary<string, object?> { ["code"] = code });
 }
