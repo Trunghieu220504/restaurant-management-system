@@ -33,6 +33,28 @@ public static class SalesDayEndpoints
             Change(dayId, false, http, requestKey, service, ct)).Produces<CloseChecklist>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         closing.MapPost("/cancel-close", (Guid dayId, HttpContext http, [FromHeader(Name = "Idempotency-Key")] string? requestKey, IDayClosing service, CancellationToken ct) =>
             Change(dayId, true, http, requestKey, service, ct)).Produces<CloseChecklist>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        group.MapGet("/history", async (int? offset, int? limit, IDaySettlement service, CancellationToken ct) =>
+            offset is < 0 || limit is < 1 or > 100 ? Problem("salesday.input.invalid", 400) :
+                Results.Ok(await service.HistoryAsync(offset ?? 0, limit ?? 30, ct)))
+            .RequireAuthorization(p => p.RequireClaim("permission", "salesday.manage"))
+            .Produces<IReadOnlyList<Restaurant.Modules.SalesDay.Domain.DaySnapshot>>();
+        closing.MapGet("/settlement-preview", async (Guid dayId, IDaySettlement service, CancellationToken ct) =>
+            await service.PreviewAsync(dayId, ct) is { } view ? Results.Ok(view) : Problem("salesday.active_day.not_found", 404))
+            .Produces<SettlementPreview>();
+        closing.MapGet("/snapshot", async (Guid dayId, IDaySettlement service, CancellationToken ct) =>
+            await service.SnapshotAsync(dayId, ct) is { } view ? Results.Ok(view) : Problem("salesday.snapshot.not_found", 404))
+            .Produces<Restaurant.Modules.SalesDay.Domain.DaySnapshot>();
+        closing.MapPost("/finalize", async (Guid dayId, FinalizeDay input, HttpContext http, [FromHeader(Name = "Idempotency-Key")] string? requestKey,
+            IDaySettlement service, CancellationToken ct) =>
+        {
+            if (!Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)) return Results.Unauthorized();
+            if (!Guid.TryParse(requestKey, out var key) || key == Guid.Empty) return Problem("salesday.idempotency.required", 400);
+            var result = await service.FinalizeAsync(dayId, input, actor, key, ct);
+            if (result.Error == null) return Results.Ok(result.Snapshot);
+            var status = result.Error switch { "salesday.day.not_found" => 404, "salesday.input.invalid" => 400, _ => 409 };
+            return Results.Problem(title: result.Error, statusCode: status,
+                extensions: new Dictionary<string, object?> { ["code"] = result.Error, ["blockers"] = result.Blockers });
+        }).Produces<Restaurant.Modules.SalesDay.Domain.DaySnapshot>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         return group;
     }
     private static async Task<IResult> Change(Guid dayId, bool cancel, HttpContext http, string? requestKey, IDayClosing service, CancellationToken ct)
