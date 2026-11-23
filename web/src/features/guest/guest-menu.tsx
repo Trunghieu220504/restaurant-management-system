@@ -3,34 +3,71 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Minus, ArrowRight, User } from "lucide-react";
-import type { MenuItem } from "@/lib/store/restaurant-context";
-import { publicMenu as menuItems } from "./public-menu";
+import { MenuPhoto } from "@/features/catalog/menu-photo";
+import { GuestAccessStatus } from "./guest-access";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
+import type { components } from "@/lib/api/generated";
+type PublicMenu = components["schemas"]["PublicMenu"];
 export function GuestMenu({ tableCode }: { tableCode: string }) {
+    const [menu, setMenu] = useState<PublicMenu | null>(null),
+        [error, fail] = useState(""),
+        [attempt, retry] = useState(0);
     useEffect(() => {
-        if (location.hash)
-            history.replaceState(
-                history.state,
-                "",
-                location.pathname + location.search,
-            );
-    }, []);
-    const currentTable = { name: tableCode };
-    // Cart state: map dishId -> { quantity, note }
+        const c = new AbortController();
+        async function load() {
+            try {
+                const res = await fetch("/api/public/menu", {
+                    signal: c.signal,
+                    credentials: "omit",
+                    cache: "no-store",
+                });
+                if (res.status === 429)
+                    throw Error(
+                        "Quá nhiều yêu cầu. Vui lòng thử lại sau " +
+                            (res.headers.get("Retry-After") ?? 60) +
+                            " giây.",
+                    );
+                if (!res.ok)
+                    throw Error("Không thể tải thực đơn. Vui lòng thử lại.");
+                const data: PublicMenu = await res.json();
+                if (!c.signal.aborted) {
+                    setMenu(data);
+                    fail("");
+                }
+            } catch (e) {
+                if (!c.signal.aborted)
+                    fail(
+                        e instanceof Error
+                            ? e.message
+                            : "Không thể tải thực đơn.",
+                    );
+            }
+        }
+        void load();
+        return () => c.abort();
+    }, [attempt]);
+    const menuItems =
+        menu?.groups.flatMap((g) =>
+            g.items.flatMap((i) =>
+                i.variants.map((v) => ({
+                    id: v.id,
+                    name: i.name + " · " + v.name,
+                    category: g.id,
+                    price: Number(v.price),
+                    imageObjectKey: i.imageObjectKey,
+                    optionGroups: i.optionGroups,
+                })),
+            ),
+        ) ?? [];
     const [cart, setCart] = useState<
-        Record<number, { quantity: number; note: string }>
+        Record<string, { quantity: number; note: string }>
     >({});
-    const [activeCategory, setActiveCategory] = useState<string>("ALL");
-
+    const [activeCategory, setActiveCategory] = useState("ALL");
     const categories = [
         { key: "ALL", label: "Tất cả" },
-        { key: "KHAI_VI", label: "Khai vị" },
-        { key: "MON_CHINH", label: "Món chính" },
-        { key: "DO_UONG", label: "Đồ uống" },
+        ...(menu?.groups.map((g) => ({ key: g.id, label: g.name })) ?? []),
     ];
-
     const filteredDishes = menuItems.filter((dish) => {
         if (activeCategory === "ALL") return true;
         return dish.category === activeCategory;
@@ -42,17 +79,13 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
     );
     const cartTotalPrice = Object.entries(cart).reduce(
         (sum, [dishIdStr, item]) => {
-            const dish = menuItems.find((d) => d.id === Number(dishIdStr));
+            const dish = menuItems.find((d) => d.id === dishIdStr);
             return sum + (dish ? dish.price * item.quantity : 0);
         },
         0,
     );
 
-    const handleAddToCart = (dish: MenuItem) => {
-        if (dish.outOfStock) {
-            toast.error(`Món "${dish.name}" đã hết ở bếp, không thể gọi!`);
-            return;
-        }
+    const handleAddToCart = (dish: (typeof menuItems)[number]) => {
         setCart((prev) => {
             const current = prev[dish.id];
             const newQty = (current?.quantity || 0) + 1;
@@ -63,7 +96,7 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
         });
     };
 
-    const handleRemoveFromCart = (dishId: number) => {
+    const handleRemoveFromCart = (dishId: string) => {
         setCart((prev) => {
             const current = prev[dishId];
             if (!current) return prev;
@@ -90,11 +123,11 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
                     <div>
                         <div className="flex items-center gap-1.5">
                             <span className="font-bold text-slate-900 text-sm">
-                                {currentTable.name}
+                                {tableCode}
                             </span>
                         </div>
                         <p className="text-[11px] text-slate-400">
-                            Khách tự gọi món qua mã QR
+                            Thực đơn tại bàn
                         </p>
                     </div>
                 </div>
@@ -108,6 +141,25 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
                 </Link>
             </div>
 
+            <div className="px-4 pt-3">
+                <GuestAccessStatus tableCode={tableCode} />
+                {error && (
+                    <p role="alert">
+                        {error}{" "}
+                        <button onClick={() => retry((n) => n + 1)}>
+                            Tải lại
+                        </button>
+                    </p>
+                )}
+                {!menu && !error && <p>Đang tải thực đơn…</p>}
+                {menu && menuItems.length === 0 && (
+                    <p>
+                        {menu.businessDayId
+                            ? "Chưa có món đang bán."
+                            : "Chưa mở ngày bán."}
+                    </p>
+                )}
+            </div>
             {/* Category Pills */}
             <div className="sticky top-[61px] z-20 flex items-center gap-2 overflow-x-auto border-b bg-card px-4 py-2.5 [&>button]:min-h-11 [&>button]:shrink-0">
                 {categories.map((cat) => (
@@ -133,38 +185,36 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
             >
                 {filteredDishes.map((dish) => {
                     const cartItem = cart[dish.id];
-                    const isOutOfStock = dish.outOfStock;
 
                     return (
                         <article
                             key={dish.id}
-                            className={cn(
-                                "p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs",
-                                isOutOfStock
-                                    ? "bg-slate-100/80 border-slate-200 opacity-60"
-                                    : "bg-white border-slate-200 hover:border-red-200",
-                            )}
+                            className="p-3 rounded-2xl border bg-white border-slate-200 flex items-center justify-between gap-3 shadow-xs"
                         >
-                            {/* Dish info */}
+                            <MenuPhoto objectKey={dish.imageObjectKey} />
                             <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex items-center gap-1.5">
                                     <h3 className="font-bold text-sm text-slate-900 leading-tight">
                                         {dish.name}
                                     </h3>
-                                    {isOutOfStock && (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">
-                                            Đã hết
-                                        </span>
-                                    )}
                                 </div>
                                 <p className="text-xs font-semibold text-red-600">
                                     {dish.price.toLocaleString("vi-VN")} đ
                                 </p>
-                                <span className="text-[10px] text-slate-400 uppercase">
-                                    {dish.station === "BEP"
-                                        ? "🍳 Trạm Bếp"
-                                        : "🍹 Trạm Bar"}
-                                </span>
+                                {dish.optionGroups.map((g) => (
+                                    <details key={g.id}>
+                                        <summary>{g.name}</summary>
+                                        {g.options.map((o) => (
+                                            <p key={o.id}>
+                                                {o.name} ·{" "}
+                                                {Number(
+                                                    o.extraPrice,
+                                                ).toLocaleString("vi-VN")}{" "}
+                                                đ
+                                            </p>
+                                        ))}
+                                    </details>
+                                ))}
 
                                 {/* Dish Note input if in cart */}
                                 {cartItem && (
@@ -190,14 +240,7 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
 
                             {/* Add / Quantity Controls */}
                             <div className="shrink-0">
-                                {isOutOfStock ? (
-                                    <button
-                                        disabled
-                                        className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-400 text-xs font-bold cursor-not-allowed"
-                                    >
-                                        Hết món
-                                    </button>
-                                ) : cartItem ? (
+                                {cartItem ? (
                                     <div className="flex items-center gap-2 bg-red-50 p-1 rounded-xl border border-red-200">
                                         <button
                                             onClick={() =>

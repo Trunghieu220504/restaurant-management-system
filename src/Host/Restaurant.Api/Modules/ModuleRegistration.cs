@@ -63,6 +63,7 @@ public static class ModuleRegistration
         services.AddScoped<Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, BusinessDayDirectory>();
         services.AddScoped<Restaurant.Modules.Billing.Contracts.IInvoiceCharging, SalesInvoiceCharging>();
         services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, BusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
         services.AddHostedService<OutboxDispatcherService>();

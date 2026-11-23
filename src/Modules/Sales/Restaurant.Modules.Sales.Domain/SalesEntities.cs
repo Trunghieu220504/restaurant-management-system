@@ -222,6 +222,19 @@ public sealed partial class DonHang
             ? SalesResult.Ok() : SalesResult.Fail(SalesErrors.BatchNotPending);
     }
 
+    public SalesResult EditPendingNote(int batchNumber, long portionId, string? note)
+    {
+        if (TrangThai != OrderStatus.Open) return SalesResult.Fail(SalesErrors.OrderNotOpen);
+        var batch = dots.SingleOrDefault(x => x.SoDot == batchNumber);
+        if (batch?.TrangThai != BatchStatus.Pending) return SalesResult.Fail(SalesErrors.BatchNotPending);
+        var portion = batch.Portions.SingleOrDefault(x => x.Id == portionId);
+        if (portion?.TrangThai != PortionStatus.Pending) return SalesResult.Fail(SalesErrors.PortionNotFound);
+        if (!Text.Optional(note, 2000, out var clean)) return SalesResult.Fail(SalesErrors.InputInvalid);
+        portion.SetNote(clean);
+        Touch();
+        return SalesResult.Ok();
+    }
+
     private void Touch() => SoLanCapNhat++;
 
     private void Finish(string status, DateTime now)
@@ -292,6 +305,8 @@ public sealed class DotGoiMon
 /// <summary>One row is one ordered portion. Names and prices are copies, so later menu edits never change history.</summary>
 public sealed class ChiTietDon
 {
+    internal void SetNote(string? note) => GhiChu = note;
+
     private readonly List<TuyChonDaDat> options = [];
 
     private ChiTietDon()

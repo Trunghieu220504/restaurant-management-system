@@ -9,6 +9,8 @@ import {
     type CatalogChange,
 } from "./api";
 import { CatalogEditor, type Editor } from "./catalog-editor";
+import { AvailabilityEditor } from "./availability-editor";
+import { MenuPhoto, PhotoUpload } from "./menu-photo";
 import styles from "./catalog.module.css";
 
 export function CatalogScreen() {
@@ -81,6 +83,9 @@ export function CatalogScreen() {
                     Tải lại
                 </button>
             </header>
+            {menu && can("catalog.availability.manage") && (
+                <AvailabilityEditor menu={menu} />
+            )}
             <nav className={styles.tabs} aria-label="Danh mục thực đơn">
                 {["Món ăn", "Nhóm món", "Tùy chọn & topping"].map((t) => (
                     <button
@@ -171,10 +176,26 @@ export function CatalogScreen() {
                                             key={x.id}
                                             className={styles.card}
                                         >
-                                            <div className={styles.placeholder}>
-                                                Chưa có ảnh
-                                            </div>
+                                            {x.imageObjectKey ? (
+                                                <MenuPhoto
+                                                    objectKey={x.imageObjectKey}
+                                                />
+                                            ) : (
+                                                <div
+                                                    className={
+                                                        styles.placeholder
+                                                    }
+                                                >
+                                                    Chưa có ảnh
+                                                </div>
+                                            )}
                                             <h3>{x.name}</h3>
+                                            {manage && (
+                                                <PhotoUpload
+                                                    item={x}
+                                                    refresh={load}
+                                                />
+                                            )}
                                             <p>
                                                 {
                                                     menu.groups.find(

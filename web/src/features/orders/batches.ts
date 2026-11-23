@@ -8,6 +8,8 @@ export type Line = Choice & {
     quantity: number;
     cancelled?: number;
     cancelReason?: string;
+    note?: string;
+    editReason?: string;
 };
 export type Destination =
     | { kind: "table"; session: string; name: string }

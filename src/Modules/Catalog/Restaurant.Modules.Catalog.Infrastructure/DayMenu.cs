@@ -32,6 +32,6 @@ internal sealed record DayMenu(MenuDto Menu, HashSet<Guid> SoldItems, HashSet<Gu
             if (options.Length > 0) groups.Add(new(group.Id, group.Name, group.Type, assignment.MinSelections,
                 Math.Min(assignment.MaxSelections, options.Length), options));
         }
-        return new(item.Id, item.Name, variants, groups);
+        return new(item.Id, item.Name, item.ImageObjectKey, variants, groups);
     }
 }
