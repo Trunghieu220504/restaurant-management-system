@@ -362,6 +362,9 @@
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.billing.domain": {
         "type": "Project"
       },

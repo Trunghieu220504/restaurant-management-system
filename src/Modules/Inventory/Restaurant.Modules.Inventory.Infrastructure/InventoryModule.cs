@@ -16,6 +16,8 @@ public static class InventoryModule
             InventoryPersistence.Configure(options, connectionString);
         });
 
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IInventory, InventoryService>();
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IStockCounts, StockCounts>();
         return services;
     }
 }

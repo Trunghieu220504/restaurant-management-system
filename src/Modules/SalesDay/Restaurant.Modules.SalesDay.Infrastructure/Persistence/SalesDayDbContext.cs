@@ -24,6 +24,27 @@ public sealed class SalesDayDbContext(DbContextOptions<SalesDayDbContext> option
         day.HasIndex(x => x.BusinessDate).IsUnique();
         day.HasIndex(x => x.RequestKey).IsUnique();
         day.HasIndex(x => x.ActiveSlot).IsUnique().HasFilter("[ActiveSlot] IS NOT NULL");
+        var closing = modelBuilder.Entity<Restaurant.Modules.SalesDay.Domain.ClosingEntry>();
+        closing.ToTable("ClosingHistory", Schema);
+        closing.HasKey(x => new { x.DayId, x.RequestKey });
+        closing.HasOne<Restaurant.Modules.SalesDay.Domain.BusinessDay>().WithMany().HasForeignKey(x => x.DayId);
+        closing.Property(x => x.Status).HasMaxLength(16);
+        var snapshot = modelBuilder.Entity<Restaurant.Modules.SalesDay.Domain.DaySnapshot>();
+        snapshot.ToTable("TongHopNgay", Schema);
+        snapshot.HasKey(x => x.DayId);
+        snapshot.HasOne<Restaurant.Modules.SalesDay.Domain.BusinessDay>().WithOne().HasForeignKey<Restaurant.Modules.SalesDay.Domain.DaySnapshot>(x => x.DayId);
+        snapshot.Property(x => x.LateReason).HasMaxLength(1000);
+        snapshot.Property(x => x.DifferenceReason).HasMaxLength(1000);
+        foreach (var property in snapshot.Metadata.GetProperties().Where(x => x.ClrType == typeof(decimal)))
+            snapshot.Property(property.Name).HasPrecision(28, property.Name == "RoundingDifference" ? 8 : 0);
+        var method = modelBuilder.Entity<Restaurant.Modules.SalesDay.Domain.DayMethodSnapshot>();
+        method.ToTable("TongHopNgayPhuongThuc", Schema);
+        method.HasKey(x => new { x.DayId, x.Method });
+        method.Property(x => x.Method).HasMaxLength(32);
+        method.Property(x => x.Receipts).HasPrecision(28, 0);
+        method.Property(x => x.Refunds).HasPrecision(28, 0);
+        method.Property(x => x.Net).HasPrecision(28, 0);
+        snapshot.HasMany(x => x.Methods).WithOne().HasForeignKey(x => x.DayId);
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SalesDayDbContext).Assembly);
     }
