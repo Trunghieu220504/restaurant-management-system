@@ -97,6 +97,18 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
             e.HasOne<QuyDoi>().WithMany().HasForeignKey(x => new { x.NguyenLieuId, x.DonViId }).OnDelete(DeleteBehavior.NoAction);
         });
 
+        modelBuilder.Entity<DieuChinhTon>(e =>
+        {
+            e.ToTable("DieuChinhTon", t => t.HasCheckConstraint("CK_DieuChinhTon_Sign",
+                "[SoLuongChuan] <> 0 AND (SIGN([SoLuongChuan]) = SIGN([GiaTriDieuChinh]) OR [GiaTriDieuChinh] = 0)"));
+            e.HasOne<NguyenLieu>().WithMany().HasForeignKey(x => x.NguyenLieuId).OnDelete(DeleteBehavior.NoAction);
+            e.HasIndex(x => x.KhoaYeuCau).IsUnique();
+            e.HasIndex(x => new { x.NgayBanId, x.NguyenLieuId });
+            e.Property(x => x.SoLuongChuan).HasPrecision(28, 8);
+            e.Property(x => x.GiaTriDieuChinh).HasPrecision(28, 8);
+            e.Property(x => x.LyDo).HasMaxLength(1000);
+        });
+
         modelBuilder.Entity<KiemKeTon>(e =>
         {
             e.ToTable("KiemKeTon", t =>
@@ -105,11 +117,18 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
             });
             e.HasOne<NguyenLieu>().WithMany().HasForeignKey(x => x.NguyenLieuId).OnDelete(DeleteBehavior.NoAction);
             e.Property(x => x.CheDoChot).HasMaxLength(32);
-            e.Property(x => x.TonDau).HasPrecision(18, 4);
-            e.Property(x => x.GiaTriTonDau).HasPrecision(18, 0);
-            e.Property(x => x.SoDemNhap).HasPrecision(18, 4);
-            e.Property(x => x.SoDemDuyet).HasPrecision(18, 4);
-            e.Property(x => x.GiaTriTonCuoi).HasPrecision(18, 0);
+            e.Property(x => x.TonDau).HasPrecision(28, 8);
+            e.Property(x => x.GiaTriTonDau).HasPrecision(28, 8);
+            e.Property(x => x.SoDemNhap).HasPrecision(28, 8);
+            e.Property(x => x.SoDemDuyet).HasPrecision(28, 8);
+            e.Property(x => x.GiaTriTonCuoi).HasPrecision(28, 8);
+            e.Property(x => x.TongNhapChot).HasPrecision(28, 8);
+            e.Property(x => x.GiaTriNhapChot).HasPrecision(28, 8);
+            e.Property(x => x.DieuChinhLuongChot).HasPrecision(28, 8);
+            e.Property(x => x.DieuChinhGiaTriChot).HasPrecision(28, 8);
+            e.Property(x => x.GiaBinhQuanChot).HasPrecision(28, 8);
+            e.Property(x => x.LuongDungChot).HasPrecision(28, 8);
+            e.Property(x => x.GiaVonChot).HasPrecision(28, 8);
             e.Property(x => x.Version).IsRowVersion();
             e.HasIndex(x => new { x.NgayBanId, x.NguyenLieuId }).IsUnique();
         });

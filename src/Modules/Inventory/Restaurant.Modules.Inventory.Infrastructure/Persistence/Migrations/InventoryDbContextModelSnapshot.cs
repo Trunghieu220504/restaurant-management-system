@@ -92,6 +92,60 @@ namespace Restaurant.Modules.Inventory.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Restaurant.Modules.Inventory.Domain.DieuChinhTon", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("GiaTriDieuChinh")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<Guid>("KhoaYeuCau")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LyDo")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("NgayBanGocId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NgayBanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NguoiDuyetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("NguyenLieuId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("SoLuongChuan")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<DateTimeOffset>("TaoLuc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KhoaYeuCau")
+                        .IsUnique();
+
+                    b.HasIndex("NguyenLieuId");
+
+                    b.HasIndex("NgayBanId", "NguyenLieuId");
+
+                    b.ToTable("DieuChinhTon", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_DieuChinhTon_Sign", "[SoLuongChuan] <> 0 AND (SIGN([SoLuongChuan]) = SIGN([GiaTriDieuChinh]) OR [GiaTriDieuChinh] = 0)");
+                        });
+                });
+
             modelBuilder.Entity("Restaurant.Modules.Inventory.Domain.DonVi", b =>
                 {
                     b.Property<long>("Id")
@@ -142,16 +196,43 @@ namespace Restaurant.Modules.Inventory.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ChotLuc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<decimal?>("DieuChinhGiaTriChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<decimal?>("DieuChinhLuongChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<long?>("DonViChotId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("DuyetLuc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<decimal?>("GiaBinhQuanChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<decimal?>("GiaTriNhapChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
                     b.Property<decimal?>("GiaTriTonCuoi")
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
 
                     b.Property<decimal>("GiaTriTonDau")
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<decimal?>("GiaVonChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<decimal?>("LuongDungChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
 
                     b.Property<Guid>("NgayBanId")
                         .HasColumnType("uniqueidentifier");
@@ -159,20 +240,30 @@ namespace Restaurant.Modules.Inventory.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("NguoiDuyetId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("NguoiNhapId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<long>("NguyenLieuId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTimeOffset?>("NhapLuc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<decimal?>("SoDemDuyet")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
 
                     b.Property<decimal?>("SoDemNhap")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
 
                     b.Property<decimal>("TonDau")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<decimal?>("TongNhapChot")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
 
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
@@ -393,6 +484,15 @@ namespace Restaurant.Modules.Inventory.Infrastructure.Persistence.Migrations
                     b.HasOne("Restaurant.Modules.Inventory.Domain.QuyDoi", null)
                         .WithMany()
                         .HasForeignKey("NguyenLieuId", "DonViId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.Inventory.Domain.DieuChinhTon", b =>
+                {
+                    b.HasOne("Restaurant.Modules.Inventory.Domain.NguyenLieu", null)
+                        .WithMany()
+                        .HasForeignKey("NguyenLieuId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });

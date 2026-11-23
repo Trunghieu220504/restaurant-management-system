@@ -77,6 +77,16 @@ public sealed class KiemKeTon
     public string CheDoChot { get; set; } = "";
     public decimal TonDau { get; set; }
     public decimal GiaTriTonDau { get; set; }
+    public Guid? NguoiNhapId { get; set; }
+    public DateTimeOffset? NhapLuc { get; set; }
+    public long? DonViChotId { get; set; }
+    public decimal? TongNhapChot { get; set; }
+    public decimal? GiaTriNhapChot { get; set; }
+    public decimal? DieuChinhLuongChot { get; set; }
+    public decimal? DieuChinhGiaTriChot { get; set; }
+    public decimal? GiaBinhQuanChot { get; set; }
+    public decimal? LuongDungChot { get; set; }
+    public decimal? GiaVonChot { get; set; }
     public decimal? SoDemNhap { get; set; }
     public decimal? SoDemDuyet { get; set; }
     public Guid? NguoiDuyetId { get; set; }

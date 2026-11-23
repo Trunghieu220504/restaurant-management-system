@@ -48,7 +48,10 @@ public static class ModuleRegistration
         services.AddInventoryModule();
         services.AddScoped<Restaurant.Modules.Inventory.Application.IInventoryDayGate, BusinessDayDirectory>();
         services.AddSalesDayModule();
-        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDayClosing, DayClosing>();
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IOpeningInventory, OpeningInventory>();
+        services.AddScoped<DayClosing>();
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDayClosing>(p => p.GetRequiredService<DayClosing>());
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDaySettlement>(p => p.GetRequiredService<DayClosing>());
         services.AddScoped<ISalesDayGate>(provider =>
         {
             var db = provider.GetRequiredService<SalesDayDbContext>();
