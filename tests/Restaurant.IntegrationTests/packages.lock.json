@@ -671,6 +671,9 @@
           "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.audit.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.audit.domain": {
         "type": "Project"
       },
@@ -679,6 +682,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Audit.Application": "[1.0.0, )",
+          "Restaurant.Modules.Audit.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
         }
       },
