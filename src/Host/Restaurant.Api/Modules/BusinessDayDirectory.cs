@@ -4,11 +4,11 @@ using Restaurant.Modules.Seating.Application;
 namespace Restaurant.Api.Modules;
 
 /// <summary>
-/// Composition-root adapter: lets Seating ask SalesDay about the open day without either module referencing
-/// the other. Session writes use the same transaction for the day gate and the table change.
+/// Routes day-scoped operations to SalesDay using each caller's write transaction.
 /// </summary>
-internal sealed class SeatingBusinessDayDirectory(IBusinessDays days) : IBusinessDayDirectory,
-    Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, Restaurant.Modules.Sales.Application.IStaffPortionDay
+internal sealed class BusinessDayDirectory(IBusinessDays days) : IBusinessDayDirectory,
+    Restaurant.Modules.Inventory.Application.IInventoryDayGate, Restaurant.Modules.Billing.Application.IBillingDayGate, Restaurant.Modules.Catalog.Application.ICatalogBusinessDays,
+    Restaurant.Modules.Sales.Application.IStaffPortionDay
 {
     private const string OpenStatus = "DANG_BAN";
 

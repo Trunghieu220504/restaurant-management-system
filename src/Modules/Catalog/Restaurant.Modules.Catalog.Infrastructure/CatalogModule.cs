@@ -19,6 +19,7 @@ public static class CatalogModule
 
         services.AddScoped<ICatalogMenu, CatalogMenu>();
         services.AddScoped<IMenuAvailability, MenuAvailability>();
+        services.AddScoped<Restaurant.Modules.Catalog.Contracts.IMenuPricing, MenuPricing>();
         services.AddScoped<IMenuImages, MenuImages>();
         return services;
     }
