@@ -60,6 +60,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     return (
         <div className="min-h-screen bg-muted/50 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:grid md:grid-cols-[12rem_minmax(0,1fr)] md:items-start md:pb-0 xl:grid-cols-[16rem_minmax(0,1fr)]">
+            <a
+                href="#staff-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:p-3"
+            >
+                Đến nội dung chính
+            </a>
             {sidebarOpen && (
                 <button
                     aria-label="Đóng menu"
@@ -68,6 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 />
             )}
             <aside
+                id="staff-sidebar"
                 className={cn(
                     "fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col border-r bg-card md:sticky md:top-0 md:visible md:h-dvh md:w-full md:max-w-none md:translate-x-0",
                     sidebarOpen
@@ -90,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                     {/* Section 1: 5 Tab chính */}
                     <div className="space-y-1">
-                        <p className="px-3 text-[10px] font-bold text-gray-400 tracking-wider">
+                        <p className="px-3 text-[10px] font-bold text-gray-600 tracking-wider">
                             5 TAB VẬN HÀNH CHÍNH
                         </p>
                         {visibleTabs.map(
@@ -141,7 +148,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {/* Section 2: Mở rộng / Chức năng thêm */}
                     {(showKitchen || showGuestQr) && (
                         <div className="space-y-1 pt-2 border-t border-gray-100">
-                            <p className="px-3 text-[10px] font-bold text-gray-400 tracking-wider">
+                            <p className="px-3 text-[10px] font-bold text-gray-600 tracking-wider">
                                 BẾP & ĐIỀU PHỐI (KDS)
                             </p>
                             {showKitchen && (
@@ -200,6 +207,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <div className="flex shrink-0 items-center gap-3">
                         <Button
                             aria-label="Mở menu"
+                            aria-controls="staff-sidebar"
+                            aria-expanded={sidebarOpen}
                             className="md:hidden"
                             size="icon"
                             variant="ghost"
@@ -263,7 +272,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </div>
                 </header>
 
-                <main className="mx-auto w-full max-w-7xl p-3 sm:p-5 lg:p-6">
+                <main
+                    id="staff-content"
+                    tabIndex={-1}
+                    className="mx-auto w-full max-w-7xl p-3 sm:p-5 lg:p-6"
+                >
                     {canAccess(pathname, can) ? children : <Forbidden />}
                 </main>
             </div>
