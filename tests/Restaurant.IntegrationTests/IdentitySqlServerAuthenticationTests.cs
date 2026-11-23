@@ -182,6 +182,61 @@ public sealed class IdentitySqlServerAuthenticationTests : IAsyncLifetime
         Assert.DoesNotContain("identity.roles.manage", account.Permissions);
     }
 
+    /// <summary>T17: the same access token works, is denied after the role is revoked, and works again once it is granted back.</summary>
+    [SqlServerFact]
+    public async Task T17_Revoking_the_only_role_denies_the_token_in_use_and_regranting_restores_it()
+    {
+        var login = await LoginAsync();
+        using var client = Client(login.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/system/modules")).StatusCode);
+        Assert.Contains("Admin", (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!.Roles);
+
+        await ChangeRolesAsync(async (users, user) => Assert.True((await users.RemoveFromRoleAsync(user, "Admin")).Succeeded));
+
+        // The token is still signed, unexpired and tied to a live session, so the account stays signed in but has no rights.
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/system/modules")).StatusCode);
+        var revoked = (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!;
+        Assert.Empty(revoked.Roles);
+        Assert.Empty(revoked.Permissions);
+
+        await ChangeRolesAsync(async (users, user) => Assert.True((await users.AddToRoleAsync(user, "Admin")).Succeeded));
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/system/modules")).StatusCode);
+        var restored = (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!;
+        Assert.Contains("Admin", restored.Roles);
+        Assert.Contains("identity.roles.manage", restored.Permissions);
+    }
+
+    /// <summary>T17: withdrawing a permission from a role takes effect on the next request of a token already issued.</summary>
+    [SqlServerFact]
+    public async Task T17_Withdrawing_a_role_permission_takes_effect_for_the_token_in_use()
+    {
+        var login = await LoginAsync();
+        using var client = Client(login.AccessToken);
+        Assert.Contains("identity.roles.manage", (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!.Permissions);
+
+        await using (var scope = factory!.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+            var removed = await db.Set<RolePermission>()
+                .Where(x => x.PermissionCode == "identity.roles.manage"
+                    && db.Roles.Any(role => role.Id == x.RoleId && role.Name == "Admin"))
+                .ExecuteDeleteAsync();
+            Assert.Equal(1, removed);
+        }
+
+        var account = (await client.GetFromJsonAsync<CurrentAccount>("/api/identity/me"))!;
+        Assert.DoesNotContain("identity.roles.manage", account.Permissions);
+        Assert.Contains("Admin", account.Roles);
+        Assert.NotEmpty(account.Permissions);
+    }
+
+    private async Task ChangeRolesAsync(Func<UserManager<IdentityUser<Guid>>, IdentityUser<Guid>, Task> change)
+    {
+        await using var scope = factory!.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<Guid>>>();
+        await change(users, (await users.FindByIdAsync(userId.ToString()))!);
+    }
+
     [SqlServerFact]
     public async Task Expired_session_and_changed_security_stamp_are_rejected()
     {
