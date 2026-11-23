@@ -10,6 +10,24 @@ namespace Restaurant.Modules.Catalog.Infrastructure;
 
 public sealed class MenuAvailability(CatalogDbContext db, ICatalogBusinessDays days) : IMenuAvailability
 {
+    public async Task<AvailabilitySnapshot> SnapshotAsync(CancellationToken ct)
+    {
+        var day = await days.CurrentOpenDayAsync(ct);
+        if (day is null) return new(null, []);
+        var items = db.Set<HetMon>().Where(x => x.NgayBanId == day && x.Het)
+            .Select(x => new { Kind = "ITEM", TargetId = x.MonId });
+        var variants = db.Set<HetBienThe>().Where(x => x.NgayBanId == day && x.Het)
+            .Select(x => new { Kind = "VARIANT", TargetId = x.BienTheId });
+        var options = from flag in db.Set<HetTuyChon>()
+                      join option in db.Set<TuyChon>() on flag.TuyChonId equals option.Id
+                      join groupRow in db.Set<NhomTuyChon>() on option.NhomTuyChonId equals groupRow.Id
+                      where flag.NgayBanId == day && flag.Het
+                      select new { Kind = groupRow.Loai == "TOPPING" ? "TOPPING" : "OPTION", TargetId = option.Id };
+        var flags = await items.Concat(variants).Concat(options)
+            .Select(x => new SoldOutTarget(x.Kind, x.TargetId)).ToListAsync(ct);
+        return new(day, flags);
+    }
+
     public async Task<string?> SetAsync(AvailabilityChange change, Guid actor, CancellationToken ct)
     {
         if (actor == Guid.Empty || change.BusinessDayId == Guid.Empty || change.TargetId == Guid.Empty) return "catalog.input.invalid";
@@ -63,7 +81,6 @@ public sealed class MenuAvailability(CatalogDbContext db, ICatalogBusinessDays d
         catch (Exception ex) when (ex.GetBaseException() is SqlException { Number: 1205 }) { return CatalogErrors.ConcurrencyConflict; }
         finally { db.ChangeTracker.Clear(); }
     }
-
     public async Task<PublicMenu> PublicAsync(CancellationToken ct)
     {
         var dayId = await days.CurrentOpenDayAsync(ct);

@@ -13,6 +13,34 @@ public static class SeatingEndpoints
     public static RouteGroupBuilder MapSeatingEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/seating").WithTags("Seating").RequireAuthorization();
+        group.MapPost("/sessions/{id:long}/guest-access", async (long id, HttpContext http,
+            [Microsoft.AspNetCore.Mvc.FromServices] IGuestAccess access, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            return TryActor(http, out var actor) ? Respond(await access.InviteAsync(id, actor, ct)) : Results.Unauthorized();
+        }).RequireAuthorization(p => p.RequireClaim("permission", SessionsPermission)).WithName("SeatingGuestInvite").Produces<GuestInvite>();
+        var guest = endpoints.MapGroup("/api/public/guest-access").AllowAnonymous().WithTags("Seating");
+        guest.MapPost("/exchange", async (GuestExchange request, HttpContext http,
+            [Microsoft.AspNetCore.Mvc.FromServices] System.Threading.RateLimiting.PartitionedRateLimiter<string> tableLimits,
+            [Microsoft.AspNetCore.Mvc.FromServices] IGuestAccess access, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            if (string.IsNullOrWhiteSpace(request.TableCode) || request.TableCode.Length > 100) return Problem("qr.code.invalid");
+            using var lease = tableLimits.AttemptAcquire(request.TableCode);
+            if (!lease.IsAcquired)
+            {
+                http.Response.Headers.RetryAfter = "60";
+                return Problem("qr.rate.limited");
+            }
+            return Respond(await access.ExchangeAsync(request, ct));
+        }).RequireRateLimiting("qr-exchange").WithName("GuestExchange").Produces<GuestToken>();
+        guest.MapGet("/session", async (HttpContext http, [Microsoft.AspNetCore.Mvc.FromServices] IGuestAccess access, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            var header = http.Request.Headers.Authorization.ToString();
+            return header.StartsWith("Guest ", StringComparison.OrdinalIgnoreCase)
+                ? Respond(await access.CheckAsync(header[6..], ct)) : Problem("qr.token.missing");
+        }).RequireRateLimiting("qr-read").WithName("GuestSession").Produces<GuestSession>();
 
         var areas = group.MapGroup("/areas")
             .RequireAuthorization(policy => policy.RequireClaim("permission", CatalogPermission));
@@ -107,6 +135,9 @@ public static class SeatingEndpoints
 
     private static int StatusOf(string code) => code switch
     {
+        "qr.code.invalid" or "qr.code.expired" => 400,
+        "qr.rate.limited" => 429,
+        _ when code.StartsWith("qr.token.", StringComparison.Ordinal) => 401,
         SeatingErrors.InputInvalid or SeatingErrors.IdempotencyRequired or SeatingErrors.TransferSameTable => 400,
         _ when code.EndsWith(".not_found", StringComparison.Ordinal) => 404,
         _ => 409

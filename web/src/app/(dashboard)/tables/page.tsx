@@ -17,6 +17,7 @@ export default function TablesPage() {
     if (!user || !(catalog || sessions)) return null;
     return (
         <SeatingBoardView
+            guestInvites
             key={[user.id, catalog, sessions].join(":")}
             gateway={gateway}
             canManageCatalog={catalog}

@@ -2111,6 +2111,30 @@
       }
     },
     "/api/catalog/availability": {
+      "get": {
+        "operationId": "CatalogGetAvailability",
+        "tags": [
+          "Catalog"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySnapshot"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
       "put": {
         "tags": [
           "Catalog"
@@ -2140,6 +2164,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -2159,12 +2189,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           }
         }
       }
@@ -3654,6 +3678,392 @@
             "description": "Forbidden"
           }
         }
+      }
+    },
+    "/api/sales/portions": {
+      "get": {
+        "operationId": "SalesStaffPortions",
+        "tags": [
+          "Sales"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffPortion"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/sales/portions/{id}/note": {
+      "put": {
+        "tags": [
+          "Sales"
+        ],
+        "operationId": "SalesEditPortionNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortionChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/sales/portions/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "operationId": "SalesCancelStaffPortion",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortionChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/catalog/items/{itemId}/image/upload": {
+      "post": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "CatalogPrepareImage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/items/{itemId}/image": {
+      "put": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "CatalogAttachImage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachImageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/menu-images/{itemId}/{name}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "CatalogPublicImage",
+        "responses": {
+          "302": {
+            "description": "Redirect to published image"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/seating/sessions/{id}/guest-access": {
+      "post": {
+        "tags": [
+          "Seating"
+        ],
+        "operationId": "SeatingGuestInvite",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestInvite"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ]
+      }
+    },
+    "/api/public/guest-access/exchange": {
+      "post": {
+        "tags": [
+          "Seating"
+        ],
+        "operationId": "GuestExchange",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestExchange"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/guest-access/session": {
+      "get": {
+        "tags": [
+          "Seating"
+        ],
+        "operationId": "GuestSession",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        },
+        "description": "Requires the session-scoped Authorization: Guest <token> header."
       }
     }
   },
@@ -5381,7 +5791,8 @@
           "id",
           "name",
           "variants",
-          "optionGroups"
+          "optionGroups",
+          "imageObjectKey"
         ],
         "type": "object",
         "properties": {
@@ -5403,6 +5814,12 @@
             "items": {
               "$ref": "#/components/schemas/PublicOptionGroup"
             }
+          },
+          "imageObjectKey": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -6258,6 +6675,218 @@
               "string"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "SoldOutTarget": {
+        "required": [
+          "kind",
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AvailabilitySnapshot": {
+        "required": [
+          "businessDayId",
+          "soldOut"
+        ],
+        "type": "object",
+        "properties": {
+          "businessDayId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "soldOut": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SoldOutTarget"
+            }
+          }
+        }
+      },
+      "StaffPortion": {
+        "required": [
+          "id",
+          "orderCode",
+          "dish",
+          "variant",
+          "note",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderCode": {
+            "type": "string"
+          },
+          "dish": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PortionChange": {
+        "required": [
+          "version",
+          "note",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ImageUploadRequest": {
+        "required": [
+          "bytes"
+        ],
+        "type": "object",
+        "properties": {
+          "bytes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ImageUpload": {
+        "required": [
+          "uploadId",
+          "uploadUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uploadUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AttachImageRequest": {
+        "required": [
+          "uploadId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "GuestInvite": {
+        "required": [
+          "tableCode",
+          "joinCode",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "tableCode": {
+            "type": "string"
+          },
+          "joinCode": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GuestExchange": {
+        "required": [
+          "tableCode",
+          "joinCode"
+        ],
+        "type": "object",
+        "properties": {
+          "tableCode": {
+            "type": "string"
+          },
+          "joinCode": {
+            "type": "string"
+          }
+        }
+      },
+      "GuestToken": {
+        "required": [
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GuestSession": {
+        "required": [
+          "tableName",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "tableName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

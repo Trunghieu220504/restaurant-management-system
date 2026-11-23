@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSeatingBoard, useSeatingChange } from "./queries";
 import { LayoutGrid, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuestInviteButton } from "./guest-invite";
 import { cn } from "@/lib/utils";
 import { SeatingEditor, type SeatingEditorAction } from "./seating-editor";
 import {
@@ -27,6 +28,7 @@ function TableCard({
     canManageSessions,
     disabled,
     hasFreeTable,
+    guestInvites,
     onEdit,
 }: {
     table: SeatingTable;
@@ -34,6 +36,7 @@ function TableCard({
     canManageSessions: boolean;
     disabled: boolean;
     hasFreeTable: boolean;
+    guestInvites?: boolean;
     onEdit: (action: SeatingEditorAction) => void;
 }) {
     const session = table.session;
@@ -79,6 +82,13 @@ function TableCard({
                 <div className="flex flex-wrap gap-2">
                     {session ? (
                         <>
+                            {guestInvites && (
+                                <GuestInviteButton
+                                    key={session.id}
+                                    sessionId={session.id}
+                                    name={table.name}
+                                />
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -177,6 +187,7 @@ function TableCard({
 }
 
 type BoardProps = {
+    guestInvites?: boolean;
     gateway: SeatingGateway;
     canManageCatalog: boolean;
     canManageSessions: boolean;
@@ -191,14 +202,15 @@ export function SeatingBoardView(props: BoardProps) {
     );
 }
 function BoardContent({
+    guestInvites,
     gateway,
     canManageCatalog,
     canManageSessions,
 }: BoardProps) {
-    const query = useSeatingBoard(gateway);
+    const query = useSeatingBoard(gateway, canManageSessions);
     const mutation = useSeatingChange(gateway);
     const board = query.data,
-        loading = query.isFetching,
+        loading = query.isLoading,
         saving = mutation.isPending;
     const loadError = query.error ? describeSeatingFailure(query.error) : null;
     const reload = () => void query.refetch();
@@ -224,6 +236,20 @@ function BoardContent({
 
         setEditorError(null);
         try {
+            if (
+                editor?.kind === "transfer" &&
+                change.kind === "transferSession" &&
+                (board?.tables.find((t) => t.id === editor.from.id)?.session
+                    ?.id !== change.session.id ||
+                    !board.tables.some(
+                        (t) => t.id === change.targetTableId && !t.session,
+                    ))
+            ) {
+                setEditorError(
+                    "Phiên hoặc bàn đích đã thay đổi. Hãy chọn lại bàn.",
+                );
+                return;
+            }
             const payload = JSON.stringify(change);
             if (intent.current?.payload !== payload)
                 intent.current = { payload, key: crypto.randomUUID() };
@@ -433,6 +459,7 @@ function BoardContent({
                                             }
                                             disabled={disabled}
                                             hasFreeTable={hasFreeTable}
+                                            guestInvites={guestInvites}
                                             onEdit={edit}
                                         />
                                     ))}
