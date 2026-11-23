@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore.Storage;
+using Restaurant.Modules.SalesDay.Contracts;
+using Restaurant.Modules.SalesDay.Infrastructure.Persistence;
 using Restaurant.Api.Configuration;
 using Restaurant.Modules.Identity.Infrastructure;
 using Restaurant.Modules.Identity.Presentation;
@@ -38,13 +41,32 @@ public static class ModuleRegistration
         services.AddSeatingModule();
         services.AddCatalogModule();
         services.AddSalesModule();
+        services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
         services.AddBillingModule();
+        services.AddScoped<Restaurant.Modules.Billing.Application.ICloseOrder, OrderClosing>();
         services.AddInventoryModule();
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IInventoryDayGate, BusinessDayDirectory>();
         services.AddSalesDayModule();
-        services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IOpeningInventory, OpeningInventory>();
+        services.AddScoped<DayClosing>();
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDayClosing>(p => p.GetRequiredService<DayClosing>());
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDaySettlement>(p => p.GetRequiredService<DayClosing>());
+        services.AddScoped<ISalesDayGate>(provider =>
+        {
+            var db = provider.GetRequiredService<SalesDayDbContext>();
+            var sales = provider.GetRequiredService<Restaurant.Modules.Sales.Infrastructure.Persistence.SalesDbContext>();
+            return new SqlSalesDayGate(() => sales.Database.CurrentTransaction?.GetDbTransaction() ?? db.Database.CurrentTransaction?.GetDbTransaction()
+                ?? throw new InvalidOperationException("Begin the Sales or SalesDay transaction before calling the day gate."));
+        });
+        services.AddScoped<Restaurant.Modules.Billing.Application.IBillingDayGate, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Billing.Contracts.IInvoiceCharging, SalesInvoiceCharging>();
+        services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, BusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
+        services.AddHostedService<OutboxDispatcherService>();
         services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver", tags: ["ready"]);
         return services;
     }

@@ -226,16 +226,7 @@ public sealed class IdentityAuthentication(
     private static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private Task<int> LockUserAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var resource = "Restaurant.Identity.User." + userId.ToString("N");
-        return db.Database.ExecuteSqlInterpolatedAsync($"""
-            DECLARE @result int;
-            EXEC @result = sys.sp_getapplock @Resource={resource},
-                @LockMode=N'Exclusive', @LockOwner=N'Transaction', @LockTimeout=15000;
-            IF @result < 0 THROW 51001, 'Could not acquire Identity user lock.', 1;
-            """, cancellationToken);
-    }
+    private Task<int> LockUserAsync(Guid userId, CancellationToken cancellationToken) => db.LockUserAsync(userId, cancellationToken);
 
     private static void EnsureSuccess(IdentityResult result)
     {

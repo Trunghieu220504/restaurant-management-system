@@ -43,7 +43,13 @@
     display: grid;
     gap: 12px;
     padding: 28px 0;
-    max-width: 360px;
+    max-width: 22.5rem;
+}
+.field {
+    display: grid;
+    align-content: start;
+    min-width: 0;
+    gap: 8px;
 }
 .form h2 {
     font-size: 18px;
@@ -54,7 +60,8 @@
     font-size: 13px;
     font-weight: 550;
 }
-.form > input {
+.field > input {
+    min-height: 44px;
     padding: 10px 12px;
     min-width: 0;
     border: 1px solid #cbd0d5;
@@ -62,8 +69,24 @@
     background: white;
 }
 .form > button {
+    min-height: 44px;
     margin-top: 12px;
     width: 100%;
+}
+@media (min-width: 48rem) {
+    .form {
+        max-width: none;
+        grid-template-columns: repeat(2, minmax(0, 22.5rem));
+        column-gap: 24px;
+    }
+    .form h2,
+    .form > button {
+        grid-column: 1 / -1;
+    }
+    .form > button {
+        justify-self: start;
+        width: auto;
+    }
 }
 .summary {
     display: grid;

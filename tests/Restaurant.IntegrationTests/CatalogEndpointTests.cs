@@ -18,6 +18,8 @@ using Restaurant.Modules.Catalog.Application;
 using Restaurant.Modules.Catalog.Presentation;
 using Restaurant.Modules.Identity.Domain;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Modules.Sales.Application;
+using Restaurant.Modules.Sales.Presentation;
 using Xunit;
 
 namespace Restaurant.IntegrationTests;
@@ -30,7 +32,7 @@ public sealed class CatalogEndpointTests
     [
         (HttpMethod.Post, "/groups", new { name = "Nhóm", sortOrder = 0 }),
         (HttpMethod.Put, $"/groups/{Id}", new { name = "Nhóm", sortOrder = 0, active = true, version = Version }),
-        (HttpMethod.Post, "/items", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP" }),
+        (HttpMethod.Post, "/items", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP", initialVariant = new { code = "STD", name = "Chuẩn", price = 1000 } }),
         (HttpMethod.Put, $"/items/{Id}", new { groupId = Id, code = "PHO", name = "Phở", station = "BEP", active = true, version = Version }),
         (HttpMethod.Post, $"/items/{Id}/variants", new { code = "L", name = "Lớn", price = 65000 }),
         (HttpMethod.Put, $"/items/{Id}/variants/{Id}", new { code = "L", name = "Lớn", price = 65000, active = true, version = Version }),
@@ -145,18 +147,46 @@ public sealed class CatalogEndpointTests
             .ToDictionary(x => x.Key, x => x.Select(row => (string)row["PermissionCode"]!).ToArray());
     }
 
+    [Theory]
+    [InlineData(null, 401, 401)]
+    [InlineData("Admin", 403, 403)]
+    [InlineData("Kitchen", 204, 403)]
+    [InlineData("Staff", 204, 204)]
+    [InlineData("Manager", 204, 204)]
+    public async Task Daily_stock_and_portion_commands_enforce_their_own_permissions(string? role, int stockStatus, int portionStatus)
+    {
+        await using var app = await StartAsync(new StubMenu(), SeededGrants());
+        using var client = app.GetTestClient();
+        using var stock = Request((HttpMethod.Put, "/availability", new AvailabilityChange(Guid.Parse(Id), "ITEM", Guid.Parse(Id), true)), role);
+        using var changed = await client.SendAsync(stock);
+        Assert.Equal(stockStatus, (int)changed.StatusCode);
+        foreach (var (method, path) in new[] { (HttpMethod.Put, "note"), (HttpMethod.Post, "cancel") })
+        {
+            using var request = new HttpRequestMessage(method, "/api/sales/portions/1/" + path)
+            {
+                Content = JsonContent.Create(new PortionChange(Version, "less ice", "guest request"))
+            };
+            if (role is not null) request.Headers.Add("Test-Role", role);
+            using var response = await client.SendAsync(request);
+            Assert.Equal(portionStatus, (int)response.StatusCode);
+        }
+    }
+
     private static async Task<WebApplication> StartAsync(StubMenu stub, Dictionary<string, string[]> grants)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddSingleton(grants);
         builder.Services.AddSingleton<ICatalogMenu>(stub);
+        builder.Services.AddSingleton<IMenuAvailability>(new StubStock());
+        builder.Services.AddSingleton<IStaffPortions>(new StubPortions());
         builder.Services.AddAuthentication("CatalogTest").AddScheme<AuthenticationSchemeOptions, TestAuthentication>("CatalogTest", _ => { });
         builder.Services.AddAuthorization();
         var app = builder.Build();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapCatalogEndpoints();
+        app.MapSalesEndpoints();
         await app.StartAsync();
         return app;
     }
@@ -169,10 +199,23 @@ public sealed class CatalogEndpointTests
         {
             var role = Request.Headers["Test-Role"].ToString();
             if (role.Length == 0) return Task.FromResult(AuthenticateResult.NoResult());
-            var claims = new[] { new Claim("role", role) }.Concat(grants.GetValueOrDefault(role, []).Select(x => new Claim("permission", x)));
+            var claims = new[] { new Claim("role", role), new Claim("sub", Id) }.Concat(grants.GetValueOrDefault(role, []).Select(x => new Claim("permission", x)));
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme.Name));
             return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name)));
         }
+    }
+
+    private sealed class StubStock : IMenuAvailability
+    {
+        public Task<PublicMenu> PublicAsync(CancellationToken ct) => Task.FromResult(new PublicMenu(null, []));
+        public Task<AvailabilitySnapshot> SnapshotAsync(CancellationToken ct) => Task.FromResult(new AvailabilitySnapshot(Guid.Parse(Id), []));
+        public Task<string?> SetAsync(AvailabilityChange change, Guid actor, CancellationToken ct) => Task.FromResult<string?>(null);
+    }
+
+    private sealed class StubPortions : IStaffPortions
+    {
+        public Task<IReadOnlyList<StaffPortion>> ListAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<StaffPortion>>([]);
+        public Task<string?> ChangeAsync(long id, PortionChange change, bool cancel, Guid actor, CancellationToken ct) => Task.FromResult<string?>(null);
     }
 
     private sealed class StubMenu : ICatalogMenu

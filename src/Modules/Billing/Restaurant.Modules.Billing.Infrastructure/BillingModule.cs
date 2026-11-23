@@ -16,6 +16,7 @@ public static class BillingModule
             BillingPersistence.Configure(options, connectionString);
         });
 
+        services.AddScoped<Restaurant.Modules.Billing.Application.IBillingLedger, BillingLedger>();
         return services;
     }
 }

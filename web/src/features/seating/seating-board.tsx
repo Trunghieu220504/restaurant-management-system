@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSeatingBoard, useSeatingChange } from "./queries";
 import { LayoutGrid, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuestInviteButton } from "./guest-invite";
 import { cn } from "@/lib/utils";
 import { SeatingEditor, type SeatingEditorAction } from "./seating-editor";
 import {
@@ -27,6 +28,7 @@ function TableCard({
     canManageSessions,
     disabled,
     hasFreeTable,
+    guestInvites,
     onEdit,
 }: {
     table: SeatingTable;
@@ -34,13 +36,17 @@ function TableCard({
     canManageSessions: boolean;
     disabled: boolean;
     hasFreeTable: boolean;
+    guestInvites?: boolean;
     onEdit: (action: SeatingEditorAction) => void;
 }) {
     const session = table.session;
     return (
         <article
             aria-label={table.name}
-            className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm"
+            className={cn(
+                "flex flex-col gap-3 rounded-xl border p-4 shadow-sm",
+                session ? "border-emerald-400 bg-emerald-50" : "bg-card",
+            )}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -53,8 +59,8 @@ function TableCard({
                     className={cn(
                         "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium",
                         session
-                            ? "bg-amber-100 text-amber-900"
-                            : "bg-emerald-100 text-emerald-900",
+                            ? "bg-emerald-100 text-emerald-900"
+                            : "text-muted-foreground",
                     )}
                 >
                     {canManageSessions
@@ -76,6 +82,13 @@ function TableCard({
                 <div className="flex flex-wrap gap-2">
                     {session ? (
                         <>
+                            {guestInvites && (
+                                <GuestInviteButton
+                                    key={session.id}
+                                    sessionId={session.id}
+                                    name={table.name}
+                                />
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -174,6 +187,7 @@ function TableCard({
 }
 
 type BoardProps = {
+    guestInvites?: boolean;
     gateway: SeatingGateway;
     canManageCatalog: boolean;
     canManageSessions: boolean;
@@ -188,14 +202,15 @@ export function SeatingBoardView(props: BoardProps) {
     );
 }
 function BoardContent({
+    guestInvites,
     gateway,
     canManageCatalog,
     canManageSessions,
 }: BoardProps) {
-    const query = useSeatingBoard(gateway);
+    const query = useSeatingBoard(gateway, canManageSessions);
     const mutation = useSeatingChange(gateway);
     const board = query.data,
-        loading = query.isFetching,
+        loading = query.isLoading,
         saving = mutation.isPending;
     const loadError = query.error ? describeSeatingFailure(query.error) : null;
     const reload = () => void query.refetch();
@@ -221,6 +236,20 @@ function BoardContent({
 
         setEditorError(null);
         try {
+            if (
+                editor?.kind === "transfer" &&
+                change.kind === "transferSession" &&
+                (board?.tables.find((t) => t.id === editor.from.id)?.session
+                    ?.id !== change.session.id ||
+                    !board.tables.some(
+                        (t) => t.id === change.targetTableId && !t.session,
+                    ))
+            ) {
+                setEditorError(
+                    "Phiên hoặc bàn đích đã thay đổi. Hãy chọn lại bàn.",
+                );
+                return;
+            }
             const payload = JSON.stringify(change);
             if (intent.current?.payload !== payload)
                 intent.current = { payload, key: crypto.randomUUID() };
@@ -296,7 +325,7 @@ function BoardContent({
                             Khu vực
                             <select
                                 value={selectedArea}
-                                className="h-9 max-w-56 rounded-md border bg-background px-2"
+                                className="h-11 w-full min-w-0 max-w-56 rounded-md border bg-background px-2"
                                 onChange={(event) =>
                                     setSelectedArea(event.target.value)
                                 }
@@ -314,7 +343,7 @@ function BoardContent({
                                 Trạng thái
                                 <select
                                     value={statusFilter}
-                                    className="h-9 rounded-md border bg-background px-2"
+                                    className="h-11 rounded-md border bg-background px-2"
                                     onChange={(event) =>
                                         setStatusFilter(
                                             event.target.value as TableFilter,
@@ -430,6 +459,7 @@ function BoardContent({
                                             }
                                             disabled={disabled}
                                             hasFreeTable={hasFreeTable}
+                                            guestInvites={guestInvites}
                                             onEdit={edit}
                                         />
                                     ))}

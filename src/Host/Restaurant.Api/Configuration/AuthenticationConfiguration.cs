@@ -14,9 +14,29 @@ public static class AuthenticationConfiguration
     public static IServiceCollection AddApiAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+        services.AddSingleton(PartitionedRateLimiter.Create<string, string>(table =>
+            RateLimitPartition.GetFixedWindowLimiter(table, _ => new FixedWindowRateLimiterOptions
+            { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })));
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = async (context, ct) =>
+            {
+                var response = context.HttpContext.Response;
+                if (!context.HttpContext.Request.Path.StartsWithSegments("/api/public/guest-access")) return;
+                var retry = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay) ? delay.TotalSeconds : 60;
+                response.Headers.RetryAfter = ((int)Math.Ceiling(retry)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                response.Headers.CacheControl = "no-store";
+                await Results.Problem(statusCode: 429, extensions: new Dictionary<string, object?> { ["code"] = "qr.rate.limited" }).ExecuteAsync(context.HttpContext);
+            };
+            options.AddPolicy("qr-exchange", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            options.AddPolicy("qr-read", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Request.Headers.Authorization.ToString() is { Length: 49 } header && header.StartsWith("Guest ", StringComparison.OrdinalIgnoreCase)
+                    ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(header)))
+                    : context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.AddPolicy("identity-login", context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

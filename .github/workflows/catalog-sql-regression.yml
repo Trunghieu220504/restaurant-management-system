@@ -1,0 +1,84 @@
+name: Catalog SQL regression
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - src/Modules/Catalog/**
+      - tests/Restaurant.IntegrationTests/Catalog*Tests.cs
+      - .github/workflows/catalog-sql-regression.yml
+permissions:
+  contents: read
+jobs:
+  sql-regression:
+    name: Full SQL suite and repeated Catalog regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73
+        with:
+          global-json-file: global.json
+      - name: Restore and build
+        run: |
+          dotnet restore RestaurantManagement.slnx --locked-mode
+          dotnet build RestaurantManagement.slnx -c Release --no-restore
+      - name: Start own SQL Server 2022
+        shell: bash
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 24)Aa1!"
+          echo "::add-mask::$password"
+          export MSSQL_SA_PASSWORD="$password"
+          docker run -d --name catalog-regression-sql -p 127.0.0.1:1433:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD mcr.microsoft.com/mssql/server:2022-latest
+          echo "IDENTITY_TEST_SQLSERVER=Server=127.0.0.1,1433;User Id=sa;Password=$password;Encrypt=True;TrustServerCertificate=True;Command Timeout=120" >> "$GITHUB_ENV"
+          ready=false
+          for attempt in $(seq 1 90); do
+            if docker exec catalog-regression-sql bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q "SELECT 1"' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Full solution with real SQL and no skips
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item artifacts/catalog-regression -ItemType Directory -Force | Out-Null
+          '<RunSettings><xUnit><MaxParallelThreads>2</MaxParallelThreads></xUnit></RunSettings>' | Set-Content artifacts/catalog-regression/local.runsettings
+          dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore --settings artifacts/catalog-regression/local.runsettings --logger trx --results-directory artifacts/catalog-regression/full
+          if ($LASTEXITCODE) { throw 'Full SQL suite failed' }
+          $passed = 0
+          foreach ($file in Get-ChildItem artifacts/catalog-regression/full/*.trx) {
+            [xml]$trx = Get-Content -LiteralPath $file.FullName -Raw
+            $c = $trx.TestRun.ResultSummary.Counters
+            if ([int]$c.failed -ne 0 -or [int]$c.notExecuted -ne 0 -or [int]$c.passed -ne [int]$c.total) { throw 'Failure or skip in full suite' }
+            $passed += [int]$c.passed
+          }
+          if ($passed -lt 243) { throw 'Incomplete full suite' }
+          @{fullPassed=$passed;fullSkipped=0} | ConvertTo-Json | Set-Content artifacts/catalog-regression/summary.json
+      - name: Repeat real deadlock and concurrent creation twenty times
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($iteration in 1..20) {
+            $folder = "artifacts/catalog-regression/run-$($iteration.ToString('00'))"
+            dotnet test tests/Restaurant.IntegrationTests -c Release --no-build --no-restore --filter 'FullyQualifiedName~Concurrent_same_code_creation_returns_one_success_and_a_conflict|FullyQualifiedName~Wrapped_deadlock_returns_conflict_and_does_not_replay_failed_changes' --logger 'trx;LogFileName=catalog.trx' --results-directory $folder
+            if ($LASTEXITCODE) { throw "Regression iteration $iteration failed" }
+            [xml]$trx = Get-Content "$folder/catalog.trx"
+            $c = $trx.TestRun.ResultSummary.Counters
+            if ([int]$c.total -ne 2 -or [int]$c.passed -ne 2 -or [int]$c.notExecuted -ne 0) { throw 'Incomplete regression run' }
+          }
+          $summary = Get-Content artifacts/catalog-regression/summary.json -Raw | ConvertFrom-Json
+          $summary | Add-Member repeatedPassed 40
+          $summary | Add-Member repetitions 20
+          $summary | ConvertTo-Json | Set-Content artifacts/catalog-regression/summary.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: catalog-sql-regression
+          path: artifacts/catalog-regression/
+          retention-days: 7
+      - name: Remove own SQL container
+        if: always()
+        run: docker rm -f -v catalog-regression-sql || true

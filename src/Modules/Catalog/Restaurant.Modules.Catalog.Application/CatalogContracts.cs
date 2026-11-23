@@ -14,6 +14,7 @@ public static class CatalogErrors
     public const string OptionGroupInactive = "catalog.option_group.inactive";
     public const string OptionNotFound = "catalog.option.not_found";
     public const string SelectionRangeInvalid = "catalog.selection.invalid";
+    public const string VariantRequired = "catalog.variant.required";
     public const string OptionRequired = "catalog.option.required";
     public const string ConcurrencyConflict = "catalog.concurrency.conflict";
 }
@@ -38,7 +39,7 @@ public sealed record ItemOptionGroupDto(Guid OptionGroupId, int MinSelections, i
 
 public sealed record CreateMenuGroupRequest(string Name, int SortOrder);
 public sealed record UpdateMenuGroupRequest(string Name, int SortOrder, bool Active, string Version);
-public sealed record CreateMenuItemRequest(Guid GroupId, string Code, string Name, string Station);
+public sealed record CreateMenuItemRequest(Guid GroupId, string Code, string Name, string Station, CreateVariantRequest InitialVariant);
 public sealed record UpdateMenuItemRequest(Guid GroupId, string Code, string Name, string Station, bool Active, string Version);
 public sealed record CreateVariantRequest(string Code, string Name, long Price);
 public sealed record UpdateVariantRequest(string Code, string Name, long Price, bool Active, string Version);

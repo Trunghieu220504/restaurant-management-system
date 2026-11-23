@@ -20,6 +20,20 @@
           "Microsoft.OpenApi": "2.0.0"
         }
       },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.1.1.1",
+        "contentHash": "paZNy+g/hXMCsEpWvmOFr14x9gVzIY2JRSzSk+nXpKcnaASxEFBMWE4CNBuI/WwGN1ygTwojRTsPRn3yXuhSYQ==",
+        "dependencies": {
+          "AWSSDK.Extensions.Numerics": "[4.1.0, 5.0.0)",
+          "System.IO.Hashing": "11.0.0"
+        }
+      },
+      "AWSSDK.Extensions.Numerics": {
+        "type": "Transitive",
+        "resolved": "4.1.0",
+        "contentHash": "hhoiXT1aUyVgIiQbQoqG3L1EEneqXDh2GKyH5izUlO6Rzi9GAAi8S6mlLiVwow23+EGg77zHjdmUi+ia3RSUTg=="
+      },
       "Azure.Core": {
         "type": "Transitive",
         "resolved": "1.47.1",
@@ -191,6 +205,11 @@
           "Microsoft.IdentityModel.Tokens": "8.0.1"
         }
       },
+      "System.IO.Hashing": {
+        "type": "Transitive",
+        "resolved": "11.0.0",
+        "contentHash": "U+Bv2qCYt6eONi+arSP0QIp4uTO6os6uceBsqiAwruZ+Wo2HrRhO/0tj38M9URJtS+4DhAtT3ka2TGNFYsnhyQ=="
+      },
       "System.Memory.Data": {
         "type": "Transitive",
         "resolved": "8.0.1",
@@ -207,6 +226,9 @@
           "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.audit.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.audit.domain": {
         "type": "Project"
       },
@@ -215,6 +237,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Audit.Application": "[1.0.0, )",
+          "Restaurant.Modules.Audit.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Audit.Domain": "[1.0.0, )"
         }
       },
@@ -230,6 +253,9 @@
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.billing.domain": {
         "type": "Project"
       },
@@ -238,6 +264,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Billing.Application": "[1.0.0, )",
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
@@ -253,14 +280,19 @@
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.catalog.domain": {
         "type": "Project"
       },
       "restaurant.modules.catalog.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "AWSSDK.S3": "[4.1.2, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Catalog.Application": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
@@ -366,8 +398,15 @@
       "restaurant.modules.sales.application": {
         "type": "Project",
         "dependencies": {
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.sales.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.sales.domain": {
         "type": "Project"
@@ -377,7 +416,9 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Sales.Application": "[1.0.0, )",
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Sales.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.presentation": {
@@ -391,6 +432,9 @@
         "dependencies": {
           "Restaurant.Modules.SalesDay.Domain": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.salesday.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.salesday.domain": {
         "type": "Project"
@@ -415,6 +459,9 @@
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.seating.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.seating.domain": {
         "type": "Project"
       },
@@ -423,6 +470,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Seating.Application": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
@@ -430,6 +478,21 @@
         "type": "Project",
         "dependencies": {
           "Restaurant.Modules.Seating.Application": "[1.0.0, )"
+        }
+      },
+      "restaurant.shared.contracts": {
+        "type": "Project"
+      },
+      "restaurant.shared.sqlserver": {
+        "type": "Project"
+      },
+      "AWSSDK.S3": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.2, )",
+        "resolved": "4.1.2",
+        "contentHash": "vGRpeXIxK7uRRHzVIrp2dYDri4wwlerUutG8TG7jHMolb3hX6Zu6VVDZpmwB8AlTIZ9BKLIV+V4Oi4xEsamZsQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {

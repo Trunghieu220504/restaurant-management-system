@@ -31,8 +31,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<long>("BienTheId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("BienTheId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("DotGoiMonId")
                         .HasColumnType("bigint");
@@ -44,8 +44,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                     b.Property<long>("GiaMonChot")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("MonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("MonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TenBienTheChot")
                         .IsRequired()
@@ -270,8 +270,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                     b.Property<long>("ChiTietDonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("TuyChonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("TuyChonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("GiaCongChot")
                         .HasColumnType("bigint");
@@ -282,8 +282,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(32)");
 
-                    b.Property<long>("NhomTuyChonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("NhomTuyChonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TenNhomChot")
                         .IsRequired()
@@ -304,6 +304,70 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_TuyChonDaDat_Gia", "[GiaCongChot] >= 0");
 
                             t.HasCheckConstraint("CK_TuyChonDaDat_Loai", "[LoaiNhomChot] IN ('TOPPING','TUY_CHON')");
+                        });
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.Sales.Infrastructure.Messaging.OutboxEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AggregateId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("AggregateVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LeaseUntil")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("IX_Outbox_ChoGui")
+                        .HasFilter("[ProcessedAt] IS NULL");
+
+                    b.HasIndex("Type", "AggregateId", "AggregateVersion")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Outbox_SuKien");
+
+                    b.ToTable("Outbox", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_Outbox_LanThu", "[Attempts] >= 0");
+
+                            t.HasCheckConstraint("CK_Outbox_PhienBan", "[AggregateVersion] > 0 AND [SchemaVersion] > 0");
                         });
                 });
 

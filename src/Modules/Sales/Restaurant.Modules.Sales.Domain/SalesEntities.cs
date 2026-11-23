@@ -4,11 +4,11 @@ namespace Restaurant.Modules.Sales.Domain;
 
 /// <summary>One portion's data as it is recorded at order time (names and prices are snapshots).</summary>
 public sealed record NewPortion(
-    long DishId, long VariantId, string DishName, string VariantName, long Price,
+    Guid DishId, Guid VariantId, string DishName, string VariantName, long Price,
     string Station, string? Note, IReadOnlyList<NewOption>? Options = null);
 
 public sealed record NewOption(
-    long OptionId, long GroupId, string GroupName, string GroupKind, string OptionName, long Surcharge);
+    Guid OptionId, Guid GroupId, string GroupName, string GroupKind, string OptionName, long Surcharge);
 
 /// <summary>
 /// Order aggregate. Batches, portions and options are only changed through this root, so the state machines and
@@ -222,6 +222,19 @@ public sealed partial class DonHang
             ? SalesResult.Ok() : SalesResult.Fail(SalesErrors.BatchNotPending);
     }
 
+    public SalesResult EditPendingNote(int batchNumber, long portionId, string? note)
+    {
+        if (TrangThai != OrderStatus.Open) return SalesResult.Fail(SalesErrors.OrderNotOpen);
+        var batch = dots.SingleOrDefault(x => x.SoDot == batchNumber);
+        if (batch?.TrangThai != BatchStatus.Pending) return SalesResult.Fail(SalesErrors.BatchNotPending);
+        var portion = batch.Portions.SingleOrDefault(x => x.Id == portionId);
+        if (portion?.TrangThai != PortionStatus.Pending) return SalesResult.Fail(SalesErrors.PortionNotFound);
+        if (!Text.Optional(note, 2000, out var clean)) return SalesResult.Fail(SalesErrors.InputInvalid);
+        portion.SetNote(clean);
+        Touch();
+        return SalesResult.Ok();
+    }
+
     private void Touch() => SoLanCapNhat++;
 
     private void Finish(string status, DateTime now)
@@ -292,6 +305,8 @@ public sealed class DotGoiMon
 /// <summary>One row is one ordered portion. Names and prices are copies, so later menu edits never change history.</summary>
 public sealed class ChiTietDon
 {
+    internal void SetNote(string? note) => GhiChu = note;
+
     private readonly List<TuyChonDaDat> options = [];
 
     private ChiTietDon()
@@ -300,8 +315,8 @@ public sealed class ChiTietDon
 
     public long Id { get; set; }
     public long DotGoiMonId { get; private set; }
-    public long MonId { get; private set; }
-    public long BienTheId { get; private set; }
+    public Guid MonId { get; private set; }
+    public Guid BienTheId { get; private set; }
     public string TenMonChot { get; private set; } = "";
     public string TenBienTheChot { get; private set; } = "";
     public long GiaMonChot { get; private set; }
@@ -313,7 +328,7 @@ public sealed class ChiTietDon
 
     internal static SalesResult<ChiTietDon> Create(NewPortion? input)
     {
-        if (input is null || input.DishId <= 0 || input.VariantId <= 0 || input.Price < 0 ||
+        if (input is null || input.DishId == Guid.Empty || input.VariantId == Guid.Empty || input.Price < 0 ||
             !Text.Required(input.DishName, 150, out var dish) ||
             !Text.Required(input.VariantName, 150, out var variant) ||
             !Text.Optional(input.Note, 2000, out var note) || !Stations.All.Contains(input.Station))
@@ -330,7 +345,7 @@ public sealed class ChiTietDon
         };
         foreach (var option in input.Options ?? [])
         {
-            if (option is null || option.OptionId <= 0 || option.GroupId <= 0 || option.Surcharge < 0 ||
+            if (option is null || option.OptionId == Guid.Empty || option.GroupId == Guid.Empty || option.Surcharge < 0 ||
                 !OptionGroupKinds.All.Contains(option.GroupKind) ||
                 !Text.Required(option.GroupName, 150, out var group) ||
                 !Text.Required(option.OptionName, 150, out var name) ||
@@ -357,7 +372,7 @@ public sealed class TuyChonDaDat
     {
     }
 
-    internal TuyChonDaDat(long optionId, long groupId, string groupName, string groupKind, string optionName, long surcharge)
+    internal TuyChonDaDat(Guid optionId, Guid groupId, string groupName, string groupKind, string optionName, long surcharge)
     {
         TuyChonId = optionId;
         NhomTuyChonId = groupId;
@@ -368,8 +383,8 @@ public sealed class TuyChonDaDat
     }
 
     public long ChiTietDonId { get; private set; }
-    public long TuyChonId { get; private set; }
-    public long NhomTuyChonId { get; private set; }
+    public Guid TuyChonId { get; private set; }
+    public Guid NhomTuyChonId { get; private set; }
     public string TenNhomChot { get; private set; } = "";
     public string LoaiNhomChot { get; private set; } = "";
     public string TenTuyChonChot { get; private set; } = "";

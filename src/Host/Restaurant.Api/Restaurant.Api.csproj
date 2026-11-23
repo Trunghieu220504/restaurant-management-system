@@ -7,6 +7,8 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
+    <ProjectReference Include="../../Shared/Restaurant.Shared.SqlServer/Restaurant.Shared.SqlServer.csproj" />
     <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Restaurant.Modules.Identity.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Identity/Restaurant.Modules.Identity.Presentation/Restaurant.Modules.Identity.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Seating/Restaurant.Modules.Seating.Infrastructure/Restaurant.Modules.Seating.Infrastructure.csproj" />
@@ -21,6 +23,7 @@
     <ProjectReference Include="../../Modules/Billing/Restaurant.Modules.Billing.Presentation/Restaurant.Modules.Billing.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Infrastructure/Restaurant.Modules.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Inventory/Restaurant.Modules.Inventory.Presentation/Restaurant.Modules.Inventory.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/SalesDay/Restaurant.Modules.SalesDay.Contracts/Restaurant.Modules.SalesDay.Contracts.csproj" />
     <ProjectReference Include="../../Modules/SalesDay/Restaurant.Modules.SalesDay.Infrastructure/Restaurant.Modules.SalesDay.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/SalesDay/Restaurant.Modules.SalesDay.Presentation/Restaurant.Modules.SalesDay.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Audit/Restaurant.Modules.Audit.Infrastructure/Restaurant.Modules.Audit.Infrastructure.csproj" />
