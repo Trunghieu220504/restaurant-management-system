@@ -390,6 +390,9 @@
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.catalog.domain": {
         "type": "Project"
       },

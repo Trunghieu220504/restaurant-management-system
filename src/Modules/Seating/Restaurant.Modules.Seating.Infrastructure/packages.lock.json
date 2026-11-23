@@ -362,6 +362,9 @@
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.seating.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.seating.domain": {
         "type": "Project"
       },

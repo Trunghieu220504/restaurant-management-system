@@ -253,6 +253,9 @@
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.billing.domain": {
         "type": "Project"
       },
@@ -261,6 +264,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Billing.Application": "[1.0.0, )",
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Billing.Domain": "[1.0.0, )"
         }
       },
@@ -276,6 +280,9 @@
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.catalog.domain": {
         "type": "Project"
       },
@@ -285,6 +292,7 @@
           "AWSSDK.S3": "[4.1.2, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Catalog.Application": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Catalog.Domain": "[1.0.0, )"
         }
       },
@@ -390,8 +398,15 @@
       "restaurant.modules.sales.application": {
         "type": "Project",
         "dependencies": {
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.sales.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.sales.domain": {
         "type": "Project"
@@ -401,6 +416,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Sales.Application": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
           "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
@@ -443,6 +459,9 @@
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.seating.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.seating.domain": {
         "type": "Project"
       },
@@ -451,6 +470,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Seating.Application": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
