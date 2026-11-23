@@ -13,6 +13,15 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema(Schema);
 
+        modelBuilder.Entity<BillingRequest>(entity =>
+        {
+            entity.ToTable("YeuCauDaXuLy");
+            entity.HasKey(x => x.Key);
+            entity.Property(x => x.Key).ValueGeneratedNever();
+            entity.Property(x => x.Fingerprint).HasMaxLength(64).IsUnicode(false);
+            entity.HasOne<HoaDon>().WithMany().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.NoAction);
+        });
+
         modelBuilder.Entity<HoaDon>(entity =>
         {
             entity.ToTable("HoaDon", table =>
