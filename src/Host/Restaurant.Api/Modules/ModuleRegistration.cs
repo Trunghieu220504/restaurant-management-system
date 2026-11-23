@@ -52,6 +52,8 @@ public static class ModuleRegistration
                 ?? throw new InvalidOperationException("Enlist SalesDayDbContext in the write transaction before calling the day gate."));
         });
         services.AddScoped<IBusinessDayDirectory, SeatingBusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Catalog.Application.ICatalogBusinessDays, SeatingBusinessDayDirectory>();
+        services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, SeatingBusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
         services.AddHostedService<OutboxDispatcherService>();

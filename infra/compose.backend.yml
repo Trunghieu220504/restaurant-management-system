@@ -26,6 +26,11 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-restaurant-api}
       Jwt__Audience: ${JWT_AUDIENCE:-restaurant-web}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT signing key}
+      MenuImages__AccountId: ${MenuImages__AccountId:-}
+      MenuImages__Bucket: ${MenuImages__Bucket:-}
+      MenuImages__PublicBaseUrl: ${MenuImages__PublicBaseUrl:-}
+      MenuImages__AccessKeyId: ${MenuImages__AccessKeyId:-}
+      MenuImages__SecretAccessKey: ${MenuImages__SecretAccessKey:-}
     depends_on: [sqlserver]
     expose: ["8080"]
     healthcheck:

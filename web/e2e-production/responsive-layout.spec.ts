@@ -1,3 +1,4 @@
+import { mockPublicMenu } from "./helpers/public-menu";
 import { expect, test } from "@playwright/test";
 import { mockIdentity } from "./helpers/identity";
 
@@ -43,6 +44,7 @@ test("QR menu uses multiple columns on laptop and keeps the cart on resize", asy
     page,
 }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
+    await mockPublicMenu(page);
     await page.goto("/guest?table=T04");
     const dishes = page
         .getByRole("region", { name: "Thực đơn" })

@@ -23,6 +23,7 @@ public static class SeatingModule
         services.TryAddScoped<ISessionClosureGuard, NoOrdersYetClosureGuard>();
         services.AddScoped<ISeatingCatalog, SeatingCatalog>();
         services.AddScoped<ISeatingSessions, SeatingSessions>();
+        services.AddScoped<IGuestAccess, GuestAccess>();
 
         return services;
     }
