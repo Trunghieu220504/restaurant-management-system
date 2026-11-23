@@ -153,12 +153,14 @@ public sealed class PhuongWeekFourSqlServerTests : IAsyncLifetime
         await sales.SaveChangesAsync();
         var ledger = provider.GetRequiredService<IBillingLedger>();
         var closing = provider.GetRequiredService<ICloseOrder>();
+        var itemId = Guid.NewGuid();
+        var variantId = Guid.NewGuid();
         async Task<(long Invoice, long Portion)> Charge(long amount)
         {
             // Load a fresh aggregate even after a close attempt cleared the tracked order.
             var tracked = await sales.Orders.Include(o => o.Dots).ThenInclude(d => d.Portions).SingleAsync(o => o.Id == order.Id);
             var batch = tracked.AddBatch(BatchSource.Staff, null, actor, Guid.NewGuid(),
-                [new NewPortion(11, 22, "Tea", "Large", amount, Stations.Bar, null)], DateTime.UtcNow).Value!;
+                [new NewPortion(itemId, variantId, "Tea", "Large", amount, Stations.Bar, null)], DateTime.UtcNow).Value!;
             Assert.True(tracked.ConfirmBatch(batch.SoDot, actor, DateTime.UtcNow).Succeeded);
             await using var tx = await sales.Database.BeginTransactionAsync();
             await sales.SaveChangesAsync();
@@ -184,7 +186,9 @@ public sealed class PhuongWeekFourSqlServerTests : IAsyncLifetime
             CREATE TABLE fulfillment.PhieuCheBien(Id bigint PRIMARY KEY, ChiTietDonId bigint NOT NULL, Lan int NOT NULL, TrangThai varchar(32) NOT NULL);
             CREATE TABLE fulfillment.SuCoMon(Id bigint PRIMARY KEY, PhieuCheBienId bigint NOT NULL, TrangThai varchar(32) NOT NULL, QuyetDinh varchar(32));
             """);
-        await sales.Database.ExecuteSqlInterpolatedAsync($"INSERT fulfillment.PhieuCheBien VALUES (1,{first.Portion},1,'DA_GIAO'),(2,{extra.Portion},1,'DA_GIAO')");
+        const long firstTicket = 1;
+        const long extraTicket = 2;
+        await sales.Database.ExecuteSqlInterpolatedAsync($"INSERT fulfillment.PhieuCheBien VALUES ({firstTicket},{first.Portion},1,'DA_GIAO'),({extraTicket},{extra.Portion},1,'DA_GIAO')");
         Assert.Equal("billing.invoice.unsettled", (await closing.CloseAsync(order.Id, day, default)).Error);
         Assert.Null((await ledger.CollectAsync(extra.Invoice, new(day, "TIEN_MAT", 40, 40, null), actor, Guid.NewGuid(), default)).Error);
         Assert.Null((await closing.CloseAsync(order.Id, day, default)).Error);

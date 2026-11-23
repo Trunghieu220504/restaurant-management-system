@@ -862,7 +862,11 @@
       "restaurant.modules.sales.application": {
         "type": "Project",
         "dependencies": {
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.contracts": {
@@ -918,6 +922,9 @@
         "dependencies": {
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
+      },
+      "restaurant.modules.seating.contracts": {
+        "type": "Project"
       },
       "restaurant.modules.seating.domain": {
         "type": "Project"
