@@ -94,6 +94,7 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
         var last = await counts.Where(x => x.ChotLuc != null).OrderByDescending(x => x.ChotLuc).ThenByDescending(x => x.Id).FirstOrDefaultAsync(ct);
         if (last?.SoDemDuyet > 0 || last?.GiaTriTonCuoi > 0) return true;
         if (await counts.AnyAsync(x => x.NgayBanId == day && (x.TonDau > 0 || x.GiaTriTonDau > 0 || x.SoDemNhap != null || x.SoDemDuyet != null), ct)) return true;
+        if (await db.Set<DieuChinhTon>().AnyAsync(x => x.NguyenLieuId == id && x.NgayBanId == day, ct)) return true;
         return await (from line in db.Set<ChiTietPhieuNhap>()
                       join receipt in db.Set<PhieuNhap>() on line.PhieuNhapId equals receipt.Id
                       where line.NguyenLieuId == id && receipt.TrangThai != "HUY" &&

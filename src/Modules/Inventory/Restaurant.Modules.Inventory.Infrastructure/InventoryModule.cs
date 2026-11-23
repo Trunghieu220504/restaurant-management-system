@@ -17,6 +17,7 @@ public static class InventoryModule
         });
 
         services.AddScoped<Restaurant.Modules.Inventory.Application.IInventory, InventoryService>();
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IStockCounts, StockCounts>();
         return services;
     }
 }

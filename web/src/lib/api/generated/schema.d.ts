@@ -1642,6 +1642,309 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory/days/{day}/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    day: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockCountView"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory/days/{day}/counts/{ingredient}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    day: string;
+                    ingredient: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DraftCount"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inventory/days/{day}/counts/{ingredient}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    day: string;
+                    ingredient: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ApproveCount"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/salesday/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    offset?: number | string;
+                    limit?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DaySnapshot"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/salesday/{dayId}/settlement-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    dayId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SettlementPreview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/salesday/{dayId}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    dayId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DaySnapshot"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/salesday/{dayId}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
+                path: {
+                    dayId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FinalizeDay"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DaySnapshot"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/portions": {
         parameters: {
             query?: never;
@@ -2455,6 +2758,140 @@ export interface components {
             pageSize: number | string;
             /** Format: int64 */
             total: number | string;
+        };
+        ApproveCount: {
+            /** Format: byte */
+            version: string;
+        };
+        CostLine: {
+            /** Format: int64 */
+            ingredientId: number | string;
+            /** Format: int64 */
+            unitId: number | string;
+            /** Format: double */
+            usage: number | string;
+            /** Format: double */
+            average: number | string;
+            /** Format: double */
+            closingValue: number | string;
+            /** Format: double */
+            cost: number | string;
+        };
+        DayMethodSnapshot: {
+            /** Format: uuid */
+            dayId?: string;
+            method?: string;
+            /** Format: double */
+            receipts?: number | string;
+            /** Format: double */
+            refunds?: number | string;
+            /** Format: double */
+            net?: number | string;
+        };
+        DaySnapshot: {
+            /** Format: uuid */
+            dayId?: string;
+            /** Format: int32 */
+            snapshotVersion?: number | string;
+            /** Format: date */
+            businessDate?: string;
+            /** Format: uuid */
+            closedBy?: string;
+            /** Format: date-time */
+            closedAt?: string;
+            /** Format: uuid */
+            requestKey?: string;
+            lateClose?: boolean;
+            lateReason?: null | string;
+            /** Format: double */
+            openingCash?: number | string;
+            /** Format: double */
+            expectedCash?: number | string;
+            /** Format: double */
+            countedCash?: number | string;
+            /** Format: double */
+            cashDifference?: number | string;
+            differenceReason?: null | string;
+            /** Format: double */
+            drawerPurchases?: number | string;
+            /** Format: double */
+            receipts?: number | string;
+            /** Format: double */
+            refunds?: number | string;
+            /** Format: double */
+            charges?: number | string;
+            /** Format: double */
+            adjustments?: number | string;
+            /** Format: double */
+            waivers?: number | string;
+            /** Format: double */
+            netRevenue?: number | string;
+            /** Format: double */
+            cost?: number | string;
+            /** Format: double */
+            roundingDifference?: number | string;
+            /** Format: double */
+            grossProfit?: number | string;
+            methods?: components["schemas"]["DayMethodSnapshot"][];
+        };
+        DraftCount: {
+            /** Format: double */
+            quantity: number | string;
+            /** Format: byte */
+            version: null | string;
+        };
+        FinalizeDay: {
+            /** Format: double */
+            countedCash: number | string;
+            differenceReason: null | string;
+            lateClose: boolean;
+            lateReason: null | string;
+        };
+        SettlementPreview: {
+            /** Format: double */
+            openingCash: number | string;
+            /** Format: double */
+            expectedCash: number | string;
+            /** Format: double */
+            drawerPurchases: number | string;
+            /** Format: double */
+            netRevenue: number | string;
+            /** Format: double */
+            cost: null | number | string;
+            /** Format: double */
+            roundingDifference: null | number | string;
+            /** Format: double */
+            grossProfit: null | number | string;
+            ingredients: components["schemas"]["CostLine"][];
+            blockers: components["schemas"]["CloseBlocker"][];
+        };
+        StockCost: {
+            /** Format: double */
+            average: number | string;
+            /** Format: double */
+            usage: number | string;
+            /** Format: double */
+            closingValue: number | string;
+            /** Format: double */
+            cost: number | string;
+        };
+        StockCountView: {
+            /** Format: int64 */
+            ingredientId: number | string;
+            name: string;
+            /** Format: int64 */
+            unitId: number | string;
+            /** Format: double */
+            openingQuantity: number | string;
+            /** Format: double */
+            openingValue: null | number | string;
+            /** Format: double */
+            draft: null | number | string;
+            /** Format: double */
+            approved: null | number | string;
+            /** Format: byte */
+            version: null | string;
+            frozenCost?: null | components["schemas"]["StockCost"];
         };
         SoldOutTarget: {
             kind: string;
