@@ -934,6 +934,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Seating.Application": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
         }
       },
