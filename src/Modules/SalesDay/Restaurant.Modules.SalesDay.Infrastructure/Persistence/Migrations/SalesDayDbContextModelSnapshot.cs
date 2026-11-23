@@ -77,6 +77,39 @@ namespace Restaurant.Modules.SalesDay.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_NgayBan_State", "([Status] IN ('DANG_BAN','CHO_CHOT') AND [ActiveSlot] = 1 AND [ActiveSlot] IS NOT NULL) OR ([Status] = 'DA_CHOT' AND [ActiveSlot] IS NULL)");
                         });
                 });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.ClosingEntry", b =>
+                {
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequestKey")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("Actor")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("DayId", "RequestKey");
+
+                    b.ToTable("ClosingHistory", "salesday");
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.ClosingEntry", b =>
+                {
+                    b.HasOne("Restaurant.Modules.SalesDay.Domain.BusinessDay", null)
+                        .WithMany()
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 #pragma warning restore 612, 618
         }
     }

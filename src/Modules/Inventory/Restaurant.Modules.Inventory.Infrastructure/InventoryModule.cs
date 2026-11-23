@@ -16,6 +16,7 @@ public static class InventoryModule
             InventoryPersistence.Configure(options, connectionString);
         });
 
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IInventory, InventoryService>();
         return services;
     }
 }

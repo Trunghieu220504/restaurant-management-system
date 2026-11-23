@@ -841,6 +841,9 @@
           "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
         }
       },
+      "restaurant.modules.sales.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.sales.domain": {
         "type": "Project"
       },
@@ -849,6 +852,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Sales.Application": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Contracts": "[1.0.0, )",
           "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
           "Restaurant.Shared.Contracts": "[1.0.0, )"
         }

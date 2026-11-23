@@ -41,10 +41,14 @@ public static class ModuleRegistration
         services.AddSeatingModule();
         services.AddCatalogModule();
         services.AddSalesModule();
+        services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
         services.AddBillingModule();
+        services.AddScoped<Restaurant.Modules.Billing.Application.ICloseOrder, OrderClosing>();
         services.AddInventoryModule();
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IInventoryDayGate, BusinessDayDirectory>();
         services.AddSalesDayModule();
+        services.AddScoped<Restaurant.Modules.SalesDay.Application.IDayClosing, DayClosing>();
         services.AddScoped<ISalesDayGate>(provider =>
         {
             var db = provider.GetRequiredService<SalesDayDbContext>();

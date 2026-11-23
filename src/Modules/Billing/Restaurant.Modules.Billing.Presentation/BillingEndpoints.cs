@@ -32,6 +32,12 @@ public static class BillingEndpoints
         billing.MapPost("/invoices/{id:long}/waivers", (long id, WaiveBalance body, HttpContext http, [FromHeader(Name = "Idempotency-Key")] string? requestKey, IBillingLedger ledger, CancellationToken ct) =>
             Write(http, requestKey, (actor, key) => ledger.WaiveAsync(id, body, actor, key, ct)))
             .RequireAuthorization(policy => policy.RequireClaim("permission", "billing.waivers.approve")).WithName("BillingWaive").Produces<MoneyResult>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        billing.MapPost("/orders/{orderId:long}/close", async (long orderId, CloseOrderRequest body, ICloseOrder service, CancellationToken ct) =>
+        {
+            var result = await service.CloseAsync(orderId, body.BusinessDayId, ct);
+            return result.Error is { } error ? Problem(error, error.EndsWith(".not_found", StringComparison.Ordinal) ? 404 : 409) : Results.Ok(result);
+        }).RequireAuthorization(p => p.RequireClaim("permission", "sales.orders.manage"))
+            .WithName("BillingCloseOrder").Produces<MoneyResult>().ProducesProblem(409).ProducesProblem(404);
         return billing;
     }
 

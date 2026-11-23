@@ -20,7 +20,16 @@ public sealed record PrintableBill(string Number, string Kind, DateTime Issued, 
     IReadOnlyList<BillLine> Lines, decimal Obligation, decimal NetCollected, decimal Due, IReadOnlyList<BillWaiver> Waivers, BillPayment? Payment);
 public sealed record InvoiceView(long Id, long OrderId, string Number, Guid BusinessDayId, decimal Obligation, decimal NetCollected,
     decimal Due, decimal Reserved, decimal Available, IReadOnlyList<BillLine> Lines, IReadOnlyList<BillPayment> Payments,
-    IReadOnlyList<BillWaiver> Waivers, IReadOnlyList<BillDocument> Documents);
+    IReadOnlyList<BillWaiver> Waivers, IReadOnlyList<BillDocument> Documents)
+{
+    public string PaymentStatus => Due == 0 ? "DA_THU_DU" : NetCollected > 0 ? "THU_MOT_PHAN" : "CHUA_THU";
+}
+
+public sealed record CloseOrderRequest(Guid BusinessDayId);
+public interface ICloseOrder
+{
+    Task<MoneyResult> CloseAsync(long orderId, Guid day, CancellationToken ct);
+}
 public sealed record MoneyResult(long? ResourceId, string? Error = null, bool Replayed = false);
 
 public interface IBillingLedger
