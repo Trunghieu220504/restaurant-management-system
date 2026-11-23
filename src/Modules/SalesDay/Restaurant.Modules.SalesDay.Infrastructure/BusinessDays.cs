@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.SalesDay.Application;
 using Restaurant.Modules.SalesDay.Domain;
 using Restaurant.Modules.SalesDay.Infrastructure.Persistence;
 
 namespace Restaurant.Modules.SalesDay.Infrastructure;
 
-public sealed class BusinessDays(SalesDayDbContext db) : IBusinessDays
+public sealed class BusinessDays(SalesDayDbContext db, IOpeningInventory? inventory = null) : IBusinessDays
 {
     private static BusinessDayResponse Map(BusinessDay d) => new(d.Id, d.BusinessDate, d.OpeningCash, d.Status, d.OpenedAt);
     public async Task<BusinessDayResponse?> CurrentAsync(CancellationToken ct)
@@ -29,6 +30,7 @@ public sealed class BusinessDays(SalesDayDbContext db) : IBusinessDays
         var day = new BusinessDay { Id = Guid.NewGuid(), BusinessDate = request.BusinessDate, OpeningCash = request.OpeningCash, OpenedBy = actor, OpenedAt = DateTimeOffset.UtcNow, RequestKey = key };
         db.Days.Add(day);
         await db.SaveChangesAsync(ct);
+        if (inventory != null) await inventory.CarryAsync(tx.GetDbTransaction(), day.Id, ct);
         await tx.CommitAsync(ct);
         return new(Map(day), null);
     }
