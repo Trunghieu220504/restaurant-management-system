@@ -24,6 +24,7 @@ public static class SalesModule
         // Stages Sales events in the same SaveChanges as the business change. When a second module also needs an
         // IOutboxWriter, give each its own interface: a plain IOutboxWriter registration can only resolve to one writer.
         services.AddScoped<IOutboxWriter, SalesOutboxWriter>();
+        services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortions, StaffPortions>();
 
         return services;
     }

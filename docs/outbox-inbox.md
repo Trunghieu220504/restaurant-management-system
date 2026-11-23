@@ -79,8 +79,8 @@ bằng migration của mình (Fulfillment: `InitialFulfillment`, HIE-3.4).
 
 ## Chưa làm (cố ý)
 
-- Chỉ **Sales** có bảng Outbox. Seating chưa có sự kiện; Fulfillment nhận Outbox/Inbox cùng `InitialFulfillment`
-  (HIE-3.4). Thêm module khác phải thêm bảng, writer riêng, và schema vào danh sách trong `OutboxDispatcherService`.
+- **Sales** có bảng Outbox và writer. **Fulfillment** đã có bảng Outbox + Inbox (`InitialFulfillment`, xem `docs/fulfillment-initial.md`) nhưng chưa có writer/consumer. Seating chưa có sự kiện.
+  Thêm module khác phải thêm bảng, writer riêng, và schema vào danh sách trong `OutboxDispatcherService`.
 - Một DI container chỉ resolve được **một** `IOutboxWriter`. Khi module thứ hai cần ghi sự kiện, tách interface
   theo module (không đổi hợp đồng `Shared.Contracts`) hoặc dùng keyed service.
 - Chưa có dọn dẹp bản ghi đã xử lý (retention), chưa có endpoint/giám sát bản ghi park, chưa kiểm thử tải.

@@ -5,16 +5,23 @@ import {
     type MenuItem,
 } from "@/features/catalog/api";
 import { quote, type Line } from "./batches";
+import {
+    isSoldOut,
+    unavailableChoice,
+    type Availability,
+} from "@/features/catalog/availability";
 export function ItemPicker({
     menu,
     item,
     add,
     close,
+    stock,
 }: {
     menu: CatalogMenu;
     item: MenuItem;
     add: (line: Line) => void;
     close: () => void;
+    stock: Availability | undefined;
 }) {
     const dialog = useRef<HTMLDialogElement>(null);
     useEffect(() => {
@@ -24,6 +31,9 @@ export function ItemPicker({
     const [variantId, variant] = useState(variants[0]?.id ?? "");
     const [options, select] = useState<string[]>([]);
     const [error, fail] = useState("");
+    const unavailable =
+        !stock ||
+        unavailableChoice(stock, { itemId: item.id, variantId, options });
     return (
         <dialog
             ref={dialog}
@@ -35,6 +45,7 @@ export function ItemPicker({
                 className="space-y-4"
                 onSubmit={(e) => {
                     e.preventDefault();
+                    if (unavailable) return;
                     try {
                         const choice = { itemId: item.id, variantId, options };
                         add({
@@ -58,8 +69,17 @@ export function ItemPicker({
                         required
                     >
                         {variants.map((v) => (
-                            <option key={v.id} value={v.id}>
+                            <option
+                                key={v.id}
+                                value={v.id}
+                                disabled={
+                                    !!stock && isSoldOut(stock, "VARIANT", v.id)
+                                }
+                            >
                                 {v.name} · {formatPrice(v.price)}
+                                {stock &&
+                                    isSoldOut(stock, "VARIANT", v.id) &&
+                                    " · Hết món"}
                             </option>
                         ))}
                     </select>
@@ -82,6 +102,17 @@ export function ItemPicker({
                                             <input
                                                 type="checkbox"
                                                 checked={options.includes(o.id)}
+                                                disabled={
+                                                    !options.includes(o.id) &&
+                                                    !!stock &&
+                                                    isSoldOut(
+                                                        stock,
+                                                        g.type === "TOPPING"
+                                                            ? "TOPPING"
+                                                            : "OPTION",
+                                                        o.id,
+                                                    )
+                                                }
                                                 onChange={(e) =>
                                                     select(
                                                         e.target.checked
@@ -96,6 +127,15 @@ export function ItemPicker({
                                             />{" "}
                                             {o.name} ·{" "}
                                             {formatPrice(o.extraPrice)}
+                                            {stock &&
+                                                isSoldOut(
+                                                    stock,
+                                                    g.type === "TOPPING"
+                                                        ? "TOPPING"
+                                                        : "OPTION",
+                                                    o.id,
+                                                ) &&
+                                                " · Hết món"}
                                         </label>
                                     ))}
                             </fieldset>
@@ -106,7 +146,12 @@ export function ItemPicker({
                 <button type="button" onClick={close}>
                     Đóng
                 </button>{" "}
-                <button type="submit">Thêm vào giỏ</button>
+                {unavailable && (
+                    <p role="status">Lựa chọn hiện không thể bán.</p>
+                )}
+                <button type="submit" disabled={unavailable}>
+                    Thêm vào giỏ
+                </button>
             </form>
         </dialog>
     );

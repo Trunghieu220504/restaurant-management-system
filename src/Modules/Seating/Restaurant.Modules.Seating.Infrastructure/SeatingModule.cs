@@ -25,6 +25,7 @@ public static class SeatingModule
         services.AddScoped<ISeatingCatalog, SeatingCatalog>();
         services.AddScoped<ISeatingSessions, SeatingSessions>();
         services.AddScoped<ISessionLookup, SeatingSessionLookup>();
+        services.AddScoped<IGuestAccess, GuestAccess>();
 
         return services;
     }

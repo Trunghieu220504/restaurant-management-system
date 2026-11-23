@@ -2,6 +2,10 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Restaurant.Modules.Seating.Application;
+using Restaurant.Modules.Seating.Infrastructure;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
 using Xunit;
@@ -41,7 +45,7 @@ public sealed class SeatingSqlServerTests : IAsyncLifetime
         using var db = new SeatingDbContext(new DbContextOptionsBuilder<SeatingDbContext>()
             .UseSqlServer(ApiFactory.ConnectionString).Options);
         Assert.Equal(6, db.Model.GetEntityTypes().Count());
-        Assert.Equal(2, db.Database.GetMigrations().Count());
+        Assert.Equal(3, db.Database.GetMigrations().Count());
         Assert.All(db.Model.GetEntityTypes().SelectMany(entity => entity.GetForeignKeys()),
             fk => Assert.Equal("seating", fk.PrincipalEntityType.GetSchema()));
         Assert.Contains("WHERE [DongLuc] IS NULL", db.Database.GenerateCreateScript());
@@ -61,6 +65,36 @@ public sealed class SeatingSqlServerTests : IAsyncLifetime
         INSERT INTO seating.PhienSuDung (BanHienTaiId, NgayBanId, MoLuc, NguoiMoId)
         VALUES (1, '22222222-2222-2222-2222-222222222222', SYSUTCDATETIME(), '11111111-1111-1111-1111-111111111111');
         """);
+
+    [SqlServerFact]
+    public async Task Invitation_is_single_use_and_the_token_follows_only_its_open_session()
+    {
+        await SeedTablesAsync();
+        await using var db = CreateContext();
+        await OpenAsync(db);
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
+        services.AddSeatingModule();
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var access = scope.ServiceProvider.GetRequiredService<IGuestAccess>();
+        var invite = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        Assert.Equal("qr.code.invalid", (await access.ExchangeAsync(new("qr-2", invite.JoinCode), default)).Error);
+        async Task<SeatingResult<GuestToken>> Exchange()
+        {
+            await using var request = provider.CreateAsyncScope();
+            return await request.ServiceProvider.GetRequiredService<IGuestAccess>().ExchangeAsync(new("qr-1", invite.JoinCode), default);
+        }
+        var responses = await Task.WhenAll(Exchange(), Exchange());
+        var grant = Assert.Single(responses, r => r.Error is null).Value!;
+        Assert.Contains(responses, r => r.Error == "qr.code.used");
+        Assert.Equal("Table 1", (await access.CheckAsync(grant.Token, default)).Value!.TableName);
+        await db.Database.ExecuteSqlRawAsync("UPDATE seating.PhienSuDung SET BanHienTaiId=2 WHERE Id=1");
+        Assert.Equal("Table 2", (await access.CheckAsync(grant.Token, default)).Value!.TableName);
+        await db.Database.ExecuteSqlRawAsync("UPDATE seating.PhienSuDung SET DongLuc=SYSUTCDATETIME(), NguoiDongId=NguoiMoId WHERE Id=1");
+        Assert.Equal("qr.token.revoked", (await access.CheckAsync(grant.Token, default)).Error);
+    }
 
     [SqlServerFact]
     public async Task Concurrent_opens_allow_exactly_one_active_session()
