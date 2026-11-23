@@ -153,8 +153,8 @@ public sealed class PhuongWeekFourSqlServerTests : IAsyncLifetime
         await sales.SaveChangesAsync();
         var ledger = provider.GetRequiredService<IBillingLedger>();
         var closing = provider.GetRequiredService<ICloseOrder>();
-        const long itemId = 11;
-        const long variantId = 22;
+        var itemId = Guid.NewGuid();
+        var variantId = Guid.NewGuid();
         async Task<(long Invoice, long Portion)> Charge(long amount)
         {
             // Load a fresh aggregate even after a close attempt cleared the tracked order.

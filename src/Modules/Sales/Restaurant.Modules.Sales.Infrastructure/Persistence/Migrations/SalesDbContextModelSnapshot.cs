@@ -31,8 +31,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<long>("BienTheId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("BienTheId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("DotGoiMonId")
                         .HasColumnType("bigint");
@@ -44,8 +44,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                     b.Property<long>("GiaMonChot")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("MonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("MonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TenBienTheChot")
                         .IsRequired()
@@ -270,8 +270,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                     b.Property<long>("ChiTietDonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("TuyChonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("TuyChonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("GiaCongChot")
                         .HasColumnType("bigint");
@@ -282,8 +282,8 @@ namespace Restaurant.Modules.Sales.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(32)");
 
-                    b.Property<long>("NhomTuyChonId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("NhomTuyChonId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TenNhomChot")
                         .IsRequired()

@@ -42,7 +42,7 @@ public sealed class SalesOrderSettlementSqlServerTests : IAsyncLifetime
         await db.Database.EnsureDeletedAsync();
     }
 
-    private static NewPortion Portion(string dish = "Pho") => new(1, 2, dish, "Regular", 60000, Stations.Kitchen, null);
+    private static NewPortion Portion(string dish = "Pho") => new(CatalogId.Of(1), CatalogId.Of(2), dish, "Regular", 60000, Stations.Kitchen, null);
 
     /// <summary>Creates an open dine-in order with one batch per entry (the number is the portion count of that batch).</summary>
     private async Task<long> CreateOrderAsync(string code, params int[] portionsPerBatch)

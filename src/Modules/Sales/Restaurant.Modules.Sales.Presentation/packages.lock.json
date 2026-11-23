@@ -2,13 +2,29 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "restaurant.modules.billing.contracts": {
+        "type": "Project"
+      },
+      "restaurant.modules.catalog.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.sales.application": {
         "type": "Project",
         "dependencies": {
-          "Restaurant.Modules.Sales.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Billing.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Catalog.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Sales.Domain": "[1.0.0, )",
+          "Restaurant.Modules.SalesDay.Contracts": "[1.0.0, )",
+          "Restaurant.Modules.Seating.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.sales.domain": {
+        "type": "Project"
+      },
+      "restaurant.modules.salesday.contracts": {
+        "type": "Project"
+      },
+      "restaurant.modules.seating.contracts": {
         "type": "Project"
       }
     }
