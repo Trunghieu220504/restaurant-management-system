@@ -24,6 +24,11 @@ public sealed class SalesDayDbContext(DbContextOptions<SalesDayDbContext> option
         day.HasIndex(x => x.BusinessDate).IsUnique();
         day.HasIndex(x => x.RequestKey).IsUnique();
         day.HasIndex(x => x.ActiveSlot).IsUnique().HasFilter("[ActiveSlot] IS NOT NULL");
+        var closing = modelBuilder.Entity<Restaurant.Modules.SalesDay.Domain.ClosingEntry>();
+        closing.ToTable("ClosingHistory", Schema);
+        closing.HasKey(x => new { x.DayId, x.RequestKey });
+        closing.HasOne<Restaurant.Modules.SalesDay.Domain.BusinessDay>().WithMany().HasForeignKey(x => x.DayId);
+        closing.Property(x => x.Status).HasMaxLength(16);
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SalesDayDbContext).Assembly);
     }
