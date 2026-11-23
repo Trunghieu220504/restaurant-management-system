@@ -119,7 +119,8 @@ public sealed class SeatingSessions(
         var gate = await EnterDayAsync(dayId.Value, ct);
         if (gate is not null) return SeatingResult<PhienSuDung>.Fail(gate);
 
-        var session = await db.Sessions.SingleAsync(x => x.Id == sessionId, ct);
+        var session = await db.Sessions.FromSqlInterpolated(
+                $"SELECT * FROM seating.PhienSuDung WITH (UPDLOCK) WHERE Id={sessionId}").SingleAsync(ct);
         if (session.DongLuc is not null) return SeatingResult<PhienSuDung>.Fail(SeatingErrors.SessionClosed);
         if (await closureGuard.HasOpenOrdersAsync(sessionId, ct))
             return SeatingResult<PhienSuDung>.Fail(SeatingErrors.SessionHasOpenOrders);
@@ -127,6 +128,8 @@ public sealed class SeatingSessions(
         var now = Now();
         session.DongLuc = now > session.MoLuc ? now : session.MoLuc;
         session.NguoiDongId = actor;
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE seating.MaThamGiaPhien SET ThuHoiLuc={session.DongLuc} WHERE PhienSuDungId={session.Id} AND ThuHoiLuc IS NULL", ct);
         // Closing ends every guest's access in the same transaction (test 3). Earlier revocations keep their time.
         foreach (var grant in await db.Grants.Where(x => x.PhienSuDungId == sessionId && x.ThuHoiLuc == null).ToListAsync(ct))
             grant.ThuHoiLuc = session.DongLuc;

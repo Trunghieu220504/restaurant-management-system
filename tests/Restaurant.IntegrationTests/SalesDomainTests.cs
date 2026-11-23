@@ -508,6 +508,25 @@ public sealed class SalesDomainTests
             (portion.TenMonChot, portion.TenBienTheChot, portion.GiaMonChot, portion.TramChot, portion.GhiChu));
     }
 
+    [Fact]
+    public void Staff_edits_only_a_pending_portion_and_preserves_the_price_snapshot()
+    {
+        var order = OpenOrder();
+        var batch = Add(order, [Portion(), Portion()]);
+        Number(batch);
+        var portion = batch.Portions[0];
+        var version = order.SoLanCapNhat;
+        Assert.True(order.EditPendingNote(1, portion.Id, " No onion ").Succeeded);
+        Assert.Equal("No onion", portion.GhiChu);
+        Assert.Equal(60000, portion.GiaMonChot);
+        Assert.Equal(version + 1, order.SoLanCapNhat);
+        Assert.Equal(SalesErrors.InputInvalid, order.EditPendingNote(1, portion.Id, new string('x', 2001)).Error);
+        Assert.True(order.CancelPortion(1, portion.Id).Succeeded);
+        Assert.False(order.EditPendingNote(1, portion.Id, null).Succeeded);
+        Assert.True(order.ConfirmBatch(1, Staff, T0).Succeeded);
+        Assert.Equal(SalesErrors.BatchNotPending, order.EditPendingNote(1, batch.Portions[1].Id, null).Error);
+    }
+
     // ---- helpers ----
 
     private static SalesResult<DonHang> Order(

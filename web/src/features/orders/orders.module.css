@@ -1,0 +1,425 @@
+.page {
+    --ink: #182d2b;
+    --subtle: #556865;
+    --line: #dce5e2;
+    display: grid;
+    gap: 18px;
+    color: var(--ink);
+    font-size: 14px;
+}
+.page fieldset,
+.workspace > *,
+.fields > *,
+.page label {
+    min-width: 0;
+}
+.header,
+.header nav,
+.header h1,
+.page h2,
+.cartHeader,
+.portion,
+.editForm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.header {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+}
+.header nav,
+.portion,
+.editForm {
+    flex-wrap: wrap;
+}
+.header h1 {
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+.titleIcon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    color: #bd323c;
+    background: #fce8e9;
+}
+.page :where(button, .header a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 13px;
+    min-height: 38px;
+    background: white;
+    color: var(--ink);
+    border: 1px solid #ccd9d5;
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+}
+.header a svg {
+    width: 15px;
+    height: 15px;
+}
+.page :where(button:not(:disabled), .header a):hover {
+    background: #f1f6f4;
+    border-color: #8daaa1;
+}
+.page button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+.page :is(button, a, input, select):focus-visible {
+    outline: 3px solid #278472;
+    outline-offset: 2px;
+}
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(245px, 31%);
+    align-items: start;
+    gap: 16px;
+}
+.panel,
+.cart {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 2px 6px #163d2710;
+}
+.panel {
+    padding: clamp(16px, 1.7vw, 24px);
+}
+.page h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+.panel h2 {
+    margin-bottom: 16px;
+}
+.page h2 svg {
+    width: 19px;
+    height: 19px;
+    color: #287366;
+}
+.page h3,
+.page h4 {
+    font-weight: 650;
+}
+.page label {
+    color: var(--subtle);
+    font-size: 13px;
+    font-weight: 600;
+}
+.page :is(input:not([type="checkbox"]), select) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    margin-top: 5px;
+    padding: 0 11px;
+    border: 1px solid #cfdad7;
+    border-radius: 8px;
+    background: white;
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+}
+.page input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+.destination,
+.filters,
+.fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 12px;
+}
+.destination {
+    background: #f3f7f5;
+    border-radius: 10px;
+    padding: 13px;
+}
+.destination > label {
+    flex: 1 1 110px;
+}
+.fields {
+    flex: 2 1 160px;
+}
+.fields label {
+    flex: 1 1 130px;
+}
+.filters {
+    margin: 18px 0 14px;
+}
+.filters label {
+    flex: 1 1 110px;
+}
+.filters label:last-child {
+    flex: 1.5 1 150px;
+}
+.search {
+    display: block;
+    position: relative;
+}
+.search svg {
+    position: absolute;
+    top: 13px;
+    left: 11px;
+    height: 16px;
+    width: 16px;
+}
+.search input[type="search"] {
+    padding-left: 35px;
+}
+.products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 138px), 1fr));
+    gap: 10px;
+}
+.page .product {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+}
+.productTop {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.dishIcon,
+.addIcon {
+    display: grid;
+    place-items: center;
+}
+.dishIcon {
+    width: 46px;
+    height: 44px;
+    border-radius: 10px;
+    background: #faf0e1;
+    color: #94642f;
+    overflow: hidden;
+}
+.dishIcon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.addIcon {
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: #edf4f1;
+    color: var(--primary);
+}
+.product small,
+.portionInfo small,
+.hint {
+    color: var(--subtle);
+    font-weight: 400;
+    font-size: 12px;
+}
+.product strong {
+    font-size: 15px;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+.price {
+    color: #146558;
+    margin-top: auto;
+    padding-top: 5px;
+    font-variant-numeric: tabular-nums;
+}
+.cart {
+    overflow: hidden;
+}
+.cartHeader {
+    justify-content: space-between;
+    color: white;
+    background: var(--primary);
+    padding: 17px 18px;
+}
+.cartHeader h2 svg {
+    color: inherit;
+}
+.cartHeader > span {
+    font-size: 12px;
+    border-radius: 20px;
+    background: #ffffff22;
+    padding: 3px 10px;
+}
+.cartBody {
+    padding: 16px;
+}
+.emptyCart {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 18px 2px 22px;
+    color: var(--subtle);
+    font-size: 12px;
+}
+.emptyCart svg {
+    color: #77978b;
+    margin-bottom: 4px;
+}
+.emptyCart strong {
+    font-size: 14px;
+    color: var(--ink);
+}
+.cartLine {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 7px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+.cartLine strong {
+    overflow-wrap: anywhere;
+}
+.cartLine label {
+    max-width: 75px;
+}
+.total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px dashed #cad9d1;
+    padding: 14px 0;
+}
+.total strong {
+    font-size: 21px;
+    font-variant-numeric: tabular-nums;
+}
+.page .submit,
+.page dialog button[type="submit"] {
+    color: white;
+    background: var(--primary);
+    border-color: var(--primary);
+}
+.page .submit {
+    width: 100%;
+    height: 43px;
+}
+.page .submit:not(:disabled):hover,
+.page dialog button[type="submit"]:hover {
+    background: #0c4d49;
+}
+.portion {
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    margin-top: 12px;
+}
+.code {
+    color: #216052;
+    background: #e9f4ee;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+.portionInfo {
+    display: grid;
+    flex: 1 1 160px;
+    gap: 2px;
+}
+.page .cancel {
+    color: #a43840;
+}
+.editForm,
+.panel article form {
+    margin-top: 12px;
+    background: #f5f8f7;
+    padding: 12px;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+}
+.panel article {
+    border-color: var(--line);
+}
+.panel article button {
+    margin: 3px;
+}
+.hint {
+    margin: -6px 0 14px;
+}
+.page [role="alert"],
+.page > [role="status"] {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #fff2ef;
+    color: #96352c;
+}
+.page > [role="status"] {
+    background: #e6f5ee;
+    color: #14604a;
+}
+.page dialog {
+    color: var(--ink);
+    width: min(420px, 94vw);
+    border-radius: 16px;
+    max-height: 85dvh;
+    overflow-y: auto;
+}
+.page dialog legend {
+    font-weight: 650;
+    margin-bottom: 6px;
+}
+.page dialog label:has(input[type="checkbox"]) {
+    padding: 8px 0;
+    font-weight: 400;
+}
+@media (max-width: 1050px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 32%);
+    }
+}
+@media (max-width: 800px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 480px) {
+    .header nav {
+        gap: 6px;
+    }
+    .header nav a {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+    .panel,
+    .cartBody {
+        padding: 14px;
+    }
+    .products {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .portionInfo {
+        flex-basis: 60%;
+    }
+    .page {
+        gap: 12px;
+    }
+}
