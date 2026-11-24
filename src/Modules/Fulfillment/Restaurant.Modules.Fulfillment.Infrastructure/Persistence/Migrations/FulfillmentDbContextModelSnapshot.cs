@@ -191,6 +191,33 @@ namespace Restaurant.Modules.Fulfillment.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Restaurant.Modules.Fulfillment.Domain.YeuCauFulfillmentDaXuLy", b =>
+                {
+                    b.Property<string>("Operation")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<Guid>("ActorScope")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("Key")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RequestHash")
+                        .IsRequired()
+                        .HasColumnType("binary(32)");
+
+                    b.Property<long>("TicketId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Operation", "ActorScope", "Key");
+
+                    b.ToTable("YeuCauDaXuLy", "fulfillment");
+                });
             modelBuilder.Entity("Restaurant.Modules.Fulfillment.Infrastructure.Messaging.InboxEntry", b =>
                 {
                     b.Property<string>("Consumer")

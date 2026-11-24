@@ -8,23 +8,28 @@ using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace Restaurant.Modules.Fulfillment.Infrastructure.Persistence.Migrations
-{
-    [DbContext(typeof(FulfillmentDbContext))]
-    [Migration("20261124151428_AddFulfillmentIdempotency")]
-    partial class AddFulfillmentIdempotency
-    {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
-        {
-#pragma warning disable 612, 618
-            modelBuilder
-                .HasDefaultSchema("fulfillment")
-                .HasAnnotation("ProductVersion", "10.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+namespace Restaurant.Modules.Fulfillment.Infrastructure.Persistence.Migrations;
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+[DbContext(typeof(FulfillmentDbContext))]
+[Migration("20261124151428_AddFulfillmentIdempotency")]
+partial class AddFulfillmentIdempotency
+{
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
+    {
+#pragma warning disable 612, 618
+        modelBuilder.HasDefaultSchema("fulfillment").HasAnnotation("ProductVersion", "10.0.8").HasAnnotation("Relational:MaxIdentifierLength", 128);
+        SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+        modelBuilder.Entity("Restaurant.Modules.Fulfillment.Domain.YeuCauFulfillmentDaXuLy", b =>
+        {
+            b.Property<string>("Operation").HasMaxLength(40).IsUnicode(false).HasColumnType("varchar(40)");
+            b.Property<Guid>("ActorScope").HasColumnType("uniqueidentifier");
+            b.Property<Guid>("Key").HasColumnType("uniqueidentifier");
+            b.Property<byte[]>("RequestHash").IsRequired().HasColumnType("binary(32)");
+            b.Property<long>("TicketId").HasColumnType("bigint");
+            b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+            b.HasKey("Operation", "ActorScope", "Key");
+            b.ToTable("YeuCauDaXuLy", "fulfillment");
+        });
 #pragma warning restore 612, 618
-        }
     }
 }
