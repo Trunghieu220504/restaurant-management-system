@@ -1,223 +1,330 @@
 "use client";
-
-import { useState } from "react";
-import { Plus, Search, Pencil, Menu, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const staff = [
-    {
-        id: 1,
-        name: "Chủ nhà hàng (mẫu)",
-        phone: "0900 000 000",
-        role: "Chủ nhà hàng",
-        avatar: null,
-    },
-    {
-        id: 2,
-        name: "Trần Văn An",
-        phone: "+84901234567",
-        role: "Nhân viên phục vụ",
-        avatar: null,
-    },
-    {
-        id: 3,
-        name: "Lê Thị Bình",
-        phone: "+84912345678",
-        role: "Thu ngân",
-        avatar: null,
-    },
-];
-
-const departments = [
-    { id: 1, name: "Bếp", memberCount: 3 },
-    { id: 2, name: "Phục vụ", memberCount: 5 },
-    { id: 3, name: "Thu ngân", memberCount: 2 },
-];
-
-type Tab = "staff" | "departments";
-
-function getInitials(name: string): string {
-    return name
-        .split(" ")
-        .map((n) => n[0])
-        .slice(-2)
-        .join("")
-        .toUpperCase();
-}
-
-export default function StaffPage() {
-    const [activeTab, setActiveTab] = useState<Tab>("staff");
-    const [search, setSearch] = useState("");
-
-    const filteredStaff = staff.filter(
-        (s) =>
-            s.name.toLowerCase().includes(search.toLowerCase()) ||
-            s.phone.includes(search) ||
-            s.role.toLowerCase().includes(search.toLowerCase()),
-    );
-
+import Link from "next/link";
+import { useRef, useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { usePermissions } from "@/components/permission-provider";
+import type { components } from "@/lib/api/generated";
+import { request, ReadState, useRead } from "@/features/management/api";
+import s from "@/features/management/management.module.css";
+type Account = components["schemas"]["AccountDto"];
+type Action = "create" | "roles" | "reset-password" | "activate" | "deactivate";
+type Editor = { action: Action; account?: Account };
+const labels: Record<Action, string> = {
+    create: "Tạo tài khoản",
+    roles: "Đổi vai trò",
+    "reset-password": "Đặt lại mật khẩu",
+    activate: "Mở lại tài khoản",
+    deactivate: "Khóa tài khoản",
+};
+const roles: Record<string, string> = {
+    Staff: "Nhân viên",
+    Kitchen: "Bếp",
+    Bar: "Bar",
+    Manager: "Quản lý",
+    Admin: "Quản trị",
+};
+const root = "/api/identity/accounts";
+function AccountForm({
+    editor,
+    all,
+    onClose,
+    onSaved,
+}: {
+    editor: Editor;
+    all: boolean;
+    onClose: () => void;
+    onSaved: () => void;
+}) {
+    const { action, account } = editor;
+    const [error, setError] = useState(""),
+        [busy, setBusy] = useState(false);
+    const lock = useRef(false);
+    const hasRoles = action === "create" || action === "roles";
     return (
-        <div className="flex flex-col h-full bg-gray-50 min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-                <h1 className="text-lg font-bold text-gray-800">
-                    QL nhân viên
-                </h1>
-                <button className="p-1 rounded hover:bg-gray-100 transition-colors">
-                    <Menu className="w-5 h-5 text-gray-600" />
-                </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex mx-4 mt-3 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
-                <button
-                    onClick={() => setActiveTab("staff")}
-                    className={cn(
-                        "flex-1 py-2 text-sm font-semibold transition-colors rounded-l-lg",
-                        activeTab === "staff"
-                            ? "bg-gray-800 text-white"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-                    )}
-                >
-                    QL Nhân viên
-                </button>
-                <button
-                    onClick={() => setActiveTab("departments")}
-                    className={cn(
-                        "flex-1 py-2 text-sm font-semibold transition-colors rounded-r-lg",
-                        activeTab === "departments"
-                            ? "bg-gray-800 text-white"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-                    )}
-                >
-                    QL Bộ phận
-                </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex flex-col flex-1 px-4 mt-3 gap-3">
-                {activeTab === "staff" && (
-                    <>
-                        {/* Add button */}
-                        <button className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-gray-200 text-gray-500 font-medium text-sm border border-gray-300 hover:bg-gray-300 transition-colors">
-                            <Plus className="w-4 h-4" />
-                            Thêm nhân viên mới
-                        </button>
-
-                        {/* Search */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                aria-label="Tìm nhân viên"
-                                className="min-h-11 w-full rounded-lg border bg-card py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground"
-                            />
-                        </div>
-
-                        {/* Staff list */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            {filteredStaff.length === 0 ? (
-                                <div className="py-10 text-center text-sm text-gray-400">
-                                    Không tìm thấy nhân viên
-                                </div>
-                            ) : (
-                                filteredStaff.map((member, index) => (
-                                    <div
-                                        key={member.id}
-                                        className={cn(
-                                            "flex items-center gap-3 px-4 py-3",
-                                            index !==
-                                                filteredStaff.length - 1 &&
-                                                "border-b border-gray-100",
-                                        )}
-                                    >
-                                        {/* Avatar */}
-                                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
-                                            {member.avatar ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={member.avatar}
-                                                    alt={member.name}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-white text-xs font-bold">
-                                                    {getInitials(member.name)}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-800 truncate">
-                                                {member.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500 truncate">
-                                                {member.phone}
-                                            </p>
-                                            <p className="text-xs text-gray-400 truncate">
-                                                {member.role}
-                                            </p>
-                                        </div>
-
-                                        {/* Edit */}
-                                        <button className="p-1.5 rounded hover:bg-gray-100 transition-colors flex-shrink-0">
-                                            <Pencil className="w-4 h-4 text-gray-400" />
-                                        </button>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </>
+        <form
+            className={s.card}
+            onSubmit={async (e) => {
+                e.preventDefault();
+                if (lock.current) return;
+                const fields = new FormData(e.currentTarget);
+                const chosen = fields.getAll("role");
+                if (hasRoles && !chosen.length) {
+                    setError("Chọn ít nhất một vai trò.");
+                    return;
+                }
+                lock.current = true;
+                setBusy(true);
+                setError("");
+                const payload =
+                    action === "create"
+                        ? {
+                              userName: String(fields.get("name")).trim(),
+                              email: String(fields.get("email")).trim(),
+                              password: fields.get("password"),
+                              roles: chosen,
+                          }
+                        : action === "roles"
+                          ? { roles: chosen }
+                          : action === "reset-password"
+                            ? { newPassword: fields.get("password") }
+                            : undefined;
+                try {
+                    await request(
+                        action === "create"
+                            ? root
+                            : root + "/" + account!.id + "/" + action,
+                        {
+                            method: action === "roles" ? "PUT" : "POST",
+                            headers: payload
+                                ? { "Content-Type": "application/json" }
+                                : undefined,
+                            body: JSON.stringify(payload),
+                        },
+                    );
+                    onSaved();
+                } catch (e) {
+                    setError(
+                        e instanceof Error
+                            ? e.message
+                            : "Không thể lưu thay đổi.",
+                    );
+                } finally {
+                    lock.current = false;
+                    setBusy(false);
+                }
+            }}
+        >
+            <h2>
+                {labels[action]} {account?.userName}
+            </h2>
+            <fieldset disabled={busy} className={s.list}>
+                {action === "create" && (
+                    <div className={s.toolbar}>
+                        <label>
+                            Tên đăng nhập
+                            <input name="name" required autoComplete="off" />
+                        </label>
+                        <label>
+                            Email
+                            <input type="email" name="email" required />
+                        </label>
+                    </div>
                 )}
-
-                {activeTab === "departments" && (
-                    <>
-                        {/* Add department button */}
-                        <button className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-gray-200 text-gray-500 font-medium text-sm border border-gray-300 hover:bg-gray-300 transition-colors">
-                            <Plus className="w-4 h-4" />
-                            Thêm bộ phận mới
+                {(action === "create" || action === "reset-password") && (
+                    <label>
+                        Mật khẩu mới
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            minLength={12}
+                            autoComplete="new-password"
+                        />
+                    </label>
+                )}
+                {hasRoles && (
+                    <fieldset>
+                        <legend>Vai trò</legend>
+                        <div className={s.roles}>
+                            {Object.entries(roles)
+                                .filter(
+                                    ([key]) =>
+                                        all ||
+                                        ["Staff", "Kitchen", "Bar"].includes(
+                                            key,
+                                        ),
+                                )
+                                .map(([key, name]) => (
+                                    <label key={key}>
+                                        <input
+                                            type="checkbox"
+                                            name="role"
+                                            value={key}
+                                            defaultChecked={(
+                                                account?.roles ?? ["Staff"]
+                                            ).includes(key)}
+                                        />
+                                        {name}
+                                    </label>
+                                ))}
+                        </div>
+                    </fieldset>
+                )}
+                {action === "deactivate" && (
+                    <p>
+                        Tài khoản này sẽ mất quyền đăng nhập khi bạn xác nhận.
+                    </p>
+                )}
+                {error && <p role="alert">{error}</p>}
+                <div className={s.actions}>
+                    <button type="submit">
+                        {busy ? "Đang lưu…" : "Xác nhận"}
+                    </button>
+                    <button type="button" onClick={onClose}>
+                        Hủy
+                    </button>
+                </div>
+            </fieldset>
+        </form>
+    );
+}
+export default function Staff() {
+    const { user } = useAuth();
+    const { can } = usePermissions();
+    const [editor, setEditor] = useState<Editor | null>(null),
+        [notice, setNotice] = useState(""),
+        [search, setSearch] = useState(""),
+        [filter, setFilter] = useState(""),
+        [offset, setOffset] = useState(0);
+    const result = useRead<components["schemas"]["AccountPage"]>(
+        root +
+            "?" +
+            new URLSearchParams({
+                offset: String(offset),
+                limit: "20",
+                search: filter,
+            }),
+    );
+    const data = result.data,
+        all = can("identity.accounts.manage");
+    function open(next: Editor) {
+        setNotice("");
+        setEditor(next);
+    }
+    return (
+        <div className={s.page}>
+            <header>
+                <h1>Tài khoản nhân viên</h1>
+                <Link href="/more">Về mục Thêm</Link>
+            </header>
+            {notice && <p role="status">{notice}</p>}
+            {editor ? (
+                <AccountForm
+                    key={(editor.account?.id ?? "new") + editor.action}
+                    editor={editor}
+                    all={all}
+                    onClose={() => setEditor(null)}
+                    onSaved={() => {
+                        setNotice("Đã lưu thay đổi tài khoản.");
+                        setEditor(null);
+                        if (editor.action === "create") {
+                            setOffset(0);
+                            setFilter("");
+                            setSearch("");
+                        }
+                        result.reload();
+                    }}
+                />
+            ) : (
+                <section className={s.card}>
+                    <div className={s.actions}>
+                        <form
+                            className={s.toolbar}
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                setOffset(0);
+                                setFilter(search.trim());
+                            }}
+                        >
+                            <label>
+                                Tìm tài khoản
+                                <input
+                                    type="search"
+                                    placeholder="Tên hoặc email"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </label>
+                            <button type="submit">Tìm</button>
+                        </form>
+                        <button
+                            className={s.primary}
+                            onClick={() => open({ action: "create" })}
+                        >
+                            Tạo tài khoản
                         </button>
-
-                        {/* Department list */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            {departments.map((dept, index) => (
-                                <div
-                                    key={dept.id}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3",
-                                        index !== departments.length - 1 &&
-                                            "border-b border-gray-100",
-                                    )}
-                                >
-                                    {/* Icon */}
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                        <Users className="w-5 h-5 text-gray-500" />
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-gray-800">
-                                            {dept.name}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            {dept.memberCount} nhân viên
-                                        </p>
-                                    </div>
-
-                                    {/* Edit */}
-                                    <button className="p-1.5 rounded hover:bg-gray-100 transition-colors flex-shrink-0">
-                                        <Pencil className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <ReadState {...result} />
+                    {data && (
+                        <>
+                            <h2>Danh sách tài khoản ({data.total})</h2>
+                            {!data.items.length && (
+                                <p>Không có tài khoản phù hợp.</p>
+                            )}
+                            <ul className={s.list}>
+                                {data.items.map((a) => (
+                                    <li className={s.row} key={a.id}>
+                                        <div>
+                                            <strong>{a.userName}</strong>
+                                            <small>
+                                                {a.email} ·{" "}
+                                                {a.roles
+                                                    .map((r) => roles[r] ?? r)
+                                                    .join(", ")}
+                                            </small>
+                                            <span>
+                                                {!a.active
+                                                    ? "Đã khóa"
+                                                    : a.lockedOut
+                                                      ? "Tạm khóa đăng nhập"
+                                                      : "Đang hoạt động"}
+                                            </span>
+                                        </div>
+                                        {a.id !== user?.id && (
+                                            <div className={s.actions}>
+                                                {(
+                                                    [
+                                                        "roles",
+                                                        a.active
+                                                            ? "deactivate"
+                                                            : "activate",
+                                                        "reset-password",
+                                                    ] as Action[]
+                                                ).map((action) => (
+                                                    <button
+                                                        key={action}
+                                                        onClick={() =>
+                                                            open({
+                                                                action,
+                                                                account: a,
+                                                            })
+                                                        }
+                                                    >
+                                                        {labels[action]}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                            {(offset > 0 ||
+                                offset + 20 < Number(data.total)) && (
+                                <div className={s.actions}>
+                                    <button
+                                        disabled={!offset}
+                                        onClick={() =>
+                                            setOffset((n) =>
+                                                Math.max(0, n - 20),
+                                            )
+                                        }
+                                    >
+                                        Trang trước
+                                    </button>
+                                    <button
+                                        disabled={
+                                            offset + 20 >= Number(data.total)
+                                        }
+                                        onClick={() => setOffset((n) => n + 20)}
+                                    >
+                                        Trang sau
                                     </button>
                                 </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+                            )}
+                        </>
+                    )}
+                </section>
+            )}
         </div>
     );
 }
