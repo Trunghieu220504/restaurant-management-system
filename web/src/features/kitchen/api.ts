@@ -19,7 +19,10 @@ export type FulfillmentTicket = {
 };
 
 export class FulfillmentApiError extends Error {
-    constructor(readonly status: number, readonly code: string) {
+    constructor(
+        readonly status: number,
+        readonly code: string,
+    ) {
         super(code);
     }
 }
@@ -60,7 +63,10 @@ export function createFulfillmentApi(request: typeof authFetch = authFetch) {
             action: "start" | "ready" | "deliver" | "cancel",
         ) {
             return response<FulfillmentTicket>(
-                "/api/fulfillment/tickets/" + numberId(ticket.id) + "/" + action,
+                "/api/fulfillment/tickets/" +
+                    numberId(ticket.id) +
+                    "/" +
+                    action,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
