@@ -39,7 +39,14 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     }
 
     if (!isAuthenticated) {
-        return null;
+        return (
+            <p role="status" className="p-6">
+                Đang chuyển đến trang đăng nhập…{" "}
+                <a className="underline" href="/login">
+                    Đăng nhập
+                </a>
+            </p>
+        );
     }
 
     return <>{children}</>;
