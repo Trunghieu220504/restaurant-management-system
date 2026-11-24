@@ -8,6 +8,12 @@ if (args.Contains("--bootstrap-admin", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--seed-demo", StringComparer.Ordinal) || args.Contains("--reset-demo", StringComparer.Ordinal))
+{
+    Environment.ExitCode = await DemoSeedCommand.RunAsync(args);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
