@@ -131,7 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         [router],
     );
 
-    const permissions = user?.permissions || [];
+    const permissions = (user?.permissions ?? []).filter(
+        (permission) =>
+            permission !== "reporting.read" || user?.roles.includes("Manager"),
+    );
     const salesSession = useMemo(
         () =>
             user

@@ -43,6 +43,10 @@ public static class ModuleRegistration
         services.AddSalesModule();
         services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
+        services.AddSignalR();
+        services.AddSingleton<OperationsConnections>();
+        services.AddScoped<Restaurant.Modules.Fulfillment.Application.IOperationsSnapshot, OperationsSnapshotReader>();
+        services.AddScoped<Restaurant.Shared.Contracts.IIntegrationEventHandler, TicketChangedHandler>();
         services.AddBillingModule();
         services.AddScoped<Restaurant.Modules.Billing.Application.ICloseOrder, OrderClosing>();
         services.AddInventoryModule();
@@ -80,6 +84,7 @@ public static class ModuleRegistration
         endpoints.MapCatalogEndpoints();
         endpoints.MapSalesEndpoints();
         endpoints.MapFulfillmentEndpoints();
+        endpoints.MapHub<OperationsHub>("/hubs/operations", options => options.CloseOnAuthenticationExpiration = true);
         endpoints.MapBillingEndpoints();
         endpoints.MapInventoryEndpoints();
         endpoints.MapSalesDayEndpoints();

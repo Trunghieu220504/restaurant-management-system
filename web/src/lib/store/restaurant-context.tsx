@@ -436,6 +436,8 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
                 payments: [],
                 waivedAmount: 0,
                 createdAt: new Date().toLocaleTimeString("vi-VN", {
+                    timeZone: "Asia/Ho_Chi_Minh",
+                    hourCycle: "h23",
                     hour: "2-digit",
                     minute: "2-digit",
                 }),
@@ -555,6 +557,8 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
                 changeAmount:
                     cashGiven && cashGiven > amount ? cashGiven - amount : 0,
                 paidAt: new Date().toLocaleTimeString("vi-VN", {
+                    timeZone: "Asia/Ho_Chi_Minh",
+                    hourCycle: "h23",
                     hour: "2-digit",
                     minute: "2-digit",
                 }),
@@ -644,6 +648,8 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
                               ...o,
                               status: "DA_DONG",
                               closedAt: new Date().toLocaleTimeString("vi-VN", {
+                                  timeZone: "Asia/Ho_Chi_Minh",
+                                  hourCycle: "h23",
                                   hour: "2-digit",
                                   minute: "2-digit",
                               }),

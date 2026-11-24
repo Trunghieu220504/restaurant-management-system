@@ -30,7 +30,7 @@ export default function MorePage() {
             items: [
                 {
                     label: "Báo cáo kinh doanh (KD)",
-                    desc: "Biểu đồ cột doanh thu ròng, tổng thu ngày, bảng chi tiết",
+                    desc: "Doanh thu và dòng tiền theo ngày đã chốt",
                     href: "/reports",
                     icon: BarChart2,
                     color: "bg-rose-50 text-rose-600",

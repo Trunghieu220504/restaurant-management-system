@@ -33,6 +33,7 @@ internal sealed class BatchConfirmedHandler(
             return;
         }
 
+        var tickets = new List<PhieuCheBien>();
         foreach (var portion in envelope.Payload.Portions)
         {
             var result = PhieuCheBien.CreateInitial(portion.PortionId, portion.Station, envelope.OccurredAt.UtcDateTime);
@@ -40,8 +41,11 @@ internal sealed class BatchConfirmedHandler(
                 throw new InvalidOperationException($"Invalid confirmed portion {portion.PortionId}: {result.Error}.");
 
             db.Tickets.Add(result.Value!);
+            tickets.Add(result.Value!);
         }
 
+        await db.SaveChangesAsync(cancellationToken);
+        foreach (var ticket in tickets) TicketEvents.Stage(db, ticket, clock.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }

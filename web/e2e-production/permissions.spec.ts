@@ -34,6 +34,7 @@ test("granted menu/report permissions allow routes; revocation hides menu and bl
     page,
 }) => {
     const state = await mockIdentity(page, {
+        roles: ["Manager"],
         permissions: ["catalog.availability.manage", "reporting.read"],
     });
     await page.goto("/more");
@@ -70,6 +71,7 @@ test("MVP navigation omits retired prototype pages and preserves mobile access",
 }) => {
     const retiredRoutes = ["/customers", "/promotions", "/stores", "/settings"];
     await mockIdentity(page, {
+        roles: ["Manager"],
         permissions: [
             "catalog.menu.manage",
             "fulfillment.kitchen.process",

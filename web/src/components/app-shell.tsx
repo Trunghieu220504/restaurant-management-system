@@ -1,5 +1,6 @@
 "use client";
 
+import { displayDate } from "@/lib/vietnam-date";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -23,7 +24,7 @@ import {
     guestQrPreviewPermissions,
     hasAnyPermission,
 } from "@/lib/auth/route-permissions";
-import { useRestaurant } from "@/lib/store/restaurant-context";
+import { authFetch } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const { can } = usePermissions();
     const { user, logout } = useAuth();
-    const { salesDay } = useRestaurant();
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [liveSalesDay, setLiveSalesDay] = useState<{
         status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT";
@@ -57,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         let active = true;
-        fetch("/api/salesday/current", {
+        authFetch("/api/salesday/current", {
             credentials: "include",
             cache: "no-store",
         })
@@ -89,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    const headerSalesDay = liveSalesDay ?? salesDay;
+    const headerSalesDay = liveSalesDay;
 
     const visibleTabs = primaryTabs.filter((tab) => canAccess(tab.href, can));
     const showKitchen = canAccess("/kitchen", can);
@@ -262,7 +263,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             href="/sales-day"
                             className={cn(
                                 "hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors",
-                                headerSalesDay.status === "DANG_BAN"
+                                headerSalesDay?.status === "DANG_BAN"
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                                     : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
                             )}
@@ -270,15 +271,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                             <span
                                 className={cn(
                                     "size-2 rounded-full",
-                                    headerSalesDay.status === "DANG_BAN"
+                                    headerSalesDay?.status === "DANG_BAN"
                                         ? "bg-emerald-500 animate-pulse"
                                         : "bg-amber-500",
                                 )}
                             />
                             <span>
-                                {headerSalesDay.status === "DANG_BAN"
-                                    ? `Đang bán (${headerSalesDay.businessDate})`
-                                    : "Chưa mở ngày bán"}
+                                {headerSalesDay?.status === "DANG_BAN"
+                                    ? `Đang bán (${displayDate(headerSalesDay.businessDate)})`
+                                    : headerSalesDay?.status === "DA_CHOT"
+                                      ? "Đã chốt ngày"
+                                      : headerSalesDay?.status === "CHO_CHOT"
+                                        ? "Chờ chốt ngày"
+                                        : "Ngày bán"}
                             </span>
                         </Link>
                     </div>

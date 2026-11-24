@@ -85,8 +85,12 @@ test("approved open-day write followed by real menu read", async ({
     expect(preflight.status()).toBe(200);
     expect(preflight.headers()["content-type"]).toContain("application/json");
     expect(await preflight.json()).not.toBeNull();
-    await expect(page.getByLabel("Ngày kinh doanh")).toBeVisible();
-    await page.getByLabel("Ngày kinh doanh").fill(date!);
+    await expect(
+        page.getByLabel("Ngày kinh doanh", { exact: true }),
+    ).toBeVisible();
+    await page
+        .getByLabel("Ngày kinh doanh", { exact: true })
+        .fill(date!.split("-").reverse().join("/"));
     await page.getByLabel("Tiền mặt đầu ngày").fill(String(cash));
     const opened = page.waitForResponse(
         (r) =>
