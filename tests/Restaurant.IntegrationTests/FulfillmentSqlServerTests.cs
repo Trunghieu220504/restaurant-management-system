@@ -91,8 +91,8 @@ public sealed class FulfillmentSqlServerTests : IAsyncLifetime
     {
         using var db = new FulfillmentDbContext(new DbContextOptionsBuilder<FulfillmentDbContext>()
             .UseSqlServer(ApiFactory.ConnectionString).Options);
-        Assert.Equal(4, db.Model.GetEntityTypes().Count());
-        Assert.Single(db.Database.GetMigrations());
+        Assert.Equal(5, db.Model.GetEntityTypes().Count());
+        Assert.Equal(2, db.Database.GetMigrations().Count());
         Assert.All(db.Model.GetEntityTypes().SelectMany(entity => entity.GetForeignKeys()), fk =>
         {
             Assert.Equal("fulfillment", fk.PrincipalEntityType.GetSchema());

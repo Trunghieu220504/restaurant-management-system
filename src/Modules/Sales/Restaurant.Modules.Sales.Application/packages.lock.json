@@ -8,6 +8,9 @@
       "restaurant.modules.catalog.contracts": {
         "type": "Project"
       },
+      "restaurant.modules.sales.contracts": {
+        "type": "Project"
+      },
       "restaurant.modules.sales.domain": {
         "type": "Project"
       },

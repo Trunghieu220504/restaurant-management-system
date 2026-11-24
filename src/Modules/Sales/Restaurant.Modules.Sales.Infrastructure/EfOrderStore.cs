@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.Sales.Application;
 using Restaurant.Modules.Sales.Domain;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
+using Restaurant.Modules.Sales.Contracts;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Sales.Infrastructure;
 
@@ -43,6 +45,24 @@ internal sealed class EfOrderStore(SalesDbContext db) : IOrderStore
         }
 
         public void Add(DonHang order) => db.Orders.Add(order);
+
+        public Task StageBatchConfirmedAsync(BatchConfirmed message, long aggregateId, int aggregateVersion, CancellationToken ct)
+        {
+            var envelope = new IntegrationEvent<BatchConfirmed>(Guid.NewGuid(), DateTimeOffset.UtcNow,
+                "sales.batch_confirmed", 1, message);
+            db.Set<Messaging.OutboxEntry>().Add(new Messaging.OutboxEntry
+            {
+                Id = envelope.EventId,
+                AggregateId = aggregateId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                AggregateVersion = aggregateVersion,
+                Type = envelope.Type,
+                SchemaVersion = envelope.Version,
+                Payload = IntegrationEventJson.SerializePayload(envelope.Payload),
+                OccurredAt = envelope.OccurredAt.UtcDateTime,
+                NextAttemptAt = envelope.OccurredAt.UtcDateTime
+            });
+            return Task.CompletedTask;
+        }
 
         public async Task SaveAsync(CancellationToken ct)
         {

@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
+using Restaurant.Modules.Fulfillment.Application;
 
 namespace Restaurant.Modules.Fulfillment.Infrastructure;
 
@@ -15,6 +17,9 @@ public static class FulfillmentModule
             ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
             FulfillmentPersistence.Configure(options, connectionString);
         });
+
+        services.AddScoped<IIntegrationEventHandler, Messaging.BatchConfirmedHandler>();
+        services.AddScoped<IFulfillmentService, FulfillmentService>();
 
         return services;
     }
