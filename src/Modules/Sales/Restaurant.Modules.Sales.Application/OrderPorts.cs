@@ -3,6 +3,13 @@ using Restaurant.Modules.Sales.Domain;
 namespace Restaurant.Modules.Sales.Application;
 
 /// <summary>Opens one unit of work for a Sales write. Infrastructure implements it with the module's DbContext.</summary>
+
+public interface IOrderCommands
+{
+    Task<ServiceResult<OrderView>> CreateOrderAsync(CreateOrderCommand command, CancellationToken ct);
+    Task<ServiceResult<BatchView>> AddBatchAsync(AddBatchCommand command, CancellationToken ct);
+    Task<ServiceResult<BatchView>> CancelBatchAsync(CancelBatchCommand command, CancellationToken ct);
+}
 public interface IOrderStore
 {
     Task<IOrderTransaction> BeginAsync(CancellationToken ct);
@@ -45,7 +52,7 @@ public enum StoreConflict
     ConcurrentChange
 }
 
-public sealed class StoreConflictException(StoreConflict reason) : Exception($"Sales store conflict: {reason}.")
+public sealed class StoreConflictException(StoreConflict reason, Exception? inner = null) : Exception($"Sales store conflict: {reason}.", inner)
 {
     public StoreConflict Reason { get; } = reason;
 }

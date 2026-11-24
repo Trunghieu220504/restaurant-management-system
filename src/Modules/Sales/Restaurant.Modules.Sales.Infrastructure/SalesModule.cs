@@ -1,3 +1,4 @@
+using Restaurant.Modules.Sales.Application;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurant.Modules.Sales.Contracts;
@@ -20,6 +21,9 @@ public static class SalesModule
         });
 
         services.AddScoped<IOrderSettlement, SalesOrderSettlement>();
+        services.AddScoped<IOrderStore, EfOrderStore>();
+        services.AddScoped<OrderService>();
+        services.AddScoped<IOrderCommands>(provider => provider.GetRequiredService<OrderService>());
 
         // Stages Sales events in the same SaveChanges as the business change. When a second module also needs an
         // IOutboxWriter, give each its own interface: a plain IOutboxWriter registration can only resolve to one writer.

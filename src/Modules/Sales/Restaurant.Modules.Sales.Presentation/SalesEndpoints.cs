@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc;
 using Restaurant.Modules.Sales.Application;
+using Restaurant.Modules.Sales.Domain;
 
 namespace Restaurant.Modules.Sales.Presentation;
 
@@ -13,6 +15,29 @@ public static class SalesEndpoints
         var group = endpoints.MapGroup("/api/sales")
             .WithTags("Sales")
             .RequireAuthorization();
+        var orders = group.MapGroup("/orders").RequireAuthorization(p => p.RequireClaim("permission", "sales.orders.manage"));
+        orders.MapPost("/", async (CreateOrderCommand request, HttpContext http, [FromServices] IOrderCommands service, CancellationToken ct) =>
+        {
+            return TryActor(http, out var actor)
+                ? Reply(await service.CreateOrderAsync(request with { Actor = actor }, ct), 201, value => $"/api/sales/orders/{value.Id}")
+                : Results.Unauthorized();
+        }).WithName("SalesCreateOrder").Produces<OrderView>(201).ProducesProblem(400).ProducesProblem(409);
+        orders.MapPost("/{orderId:long}/batches", async (long orderId, AddBatchCommand request, HttpContext http,
+            [FromHeader(Name = "Idempotency-Key")] string? requestKey, [FromServices] IOrderCommands service, CancellationToken ct) =>
+        {
+            if (!TryActor(http, out var actor)) return Results.Unauthorized();
+            if (!Guid.TryParse(requestKey, out var key) || key == Guid.Empty)
+                return Results.Problem(statusCode: 400, title: "sales.idempotency.required",
+                    extensions: new Dictionary<string, object?> { ["code"] = "sales.idempotency.required" });
+            var source = request.Source == BatchSource.Guest
+                ? request with { OrderId = orderId, RequestKey = key }
+                : request with { OrderId = orderId, StaffId = actor, GuestGrantId = null, RequestKey = key };
+            return Reply(await service.AddBatchAsync(source, ct), 201, value => $"/api/sales/orders/{value.OrderId}/batches/{value.Number}");
+        }).WithName("SalesAddBatch").WithDescription("Requires a UUID Idempotency-Key header; repeated requests replay the original batch.")
+            .Produces<BatchView>(201).Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        orders.MapPost("/{orderId:long}/batches/{batchNumber:int}/cancel", async (long orderId, int batchNumber, [FromServices] IOrderCommands service, CancellationToken ct) =>
+            Reply(await service.CancelBatchAsync(new CancelBatchCommand(orderId, batchNumber), ct), 200))
+            .WithName("SalesCancelBatch").Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         var portions = group.MapGroup("/portions").RequireAuthorization(p => p.RequireClaim("permission", "sales.orders.manage"));
         portions.MapGet("/", async (IStaffPortions service, CancellationToken ct) => Results.Ok(await service.ListAsync(ct)))
             .WithName("SalesStaffPortions").Produces<IReadOnlyList<StaffPortion>>();
@@ -21,6 +46,23 @@ public static class SalesEndpoints
         portions.MapPost("/{id:long}/cancel", (long id, PortionChange input, HttpContext http, IStaffPortions service, CancellationToken ct) =>
             Change(id, input, true, http, service, ct)).WithName("SalesCancelStaffPortion").Produces(204).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         return group;
+    }
+
+    private static bool TryActor(HttpContext http, out Guid actor) =>
+        Guid.TryParse(http.User.FindFirst("sub")?.Value, out actor) && actor != Guid.Empty;
+
+    private static IResult Reply<T>(ServiceResult<T> result, int successStatus, Func<T, string>? location = null) where T : class
+    {
+        if (result.Succeeded)
+            return successStatus == 201 && !result.Replayed && location is not null ? Results.Created(location(result.Value!), result.Value) : Results.Ok(result.Value);
+        var status = result.Error switch
+        {
+            SalesErrors.OrderNotFound or SalesErrors.BatchNotFound => 404,
+            SalesErrors.OrderNotOpen or SalesErrors.BatchNotPending or SalesErrors.OrderSessionHasOpenOrder or SalesErrors.OrderChanged => 409,
+            _ => 400
+        };
+        return Results.Problem(statusCode: status, title: result.Error,
+            extensions: new Dictionary<string, object?> { ["code"] = result.Error, ["lineErrors"] = result.LineErrors });
     }
 
     private static async Task<IResult> Change(long id, PortionChange input, bool cancel, HttpContext http, IStaffPortions service, CancellationToken ct)
