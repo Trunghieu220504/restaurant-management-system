@@ -35,7 +35,13 @@ class LimitError extends Error {
     }
 }
 
-export function GuestAccessStatus({ tableCode }: { tableCode: string }) {
+export function GuestAccessStatus({
+    tableCode,
+    onToken,
+}: {
+    tableCode: string;
+    onToken: (token: string | null) => void;
+}) {
     const [message, setMessage] = useState("Thực đơn công khai");
     const join = useRef<string | null>(null);
     const exchange = useRef<Promise<{
@@ -62,11 +68,13 @@ export function GuestAccessStatus({ tableCode }: { tableCode: string }) {
                     headers: { Authorization: "Guest " + token },
                 });
                 if (active) {
+                    onToken(state.canSubmitOrders === true ? token : null);
                     setMessage("Đã vào phiên · " + state.tableName);
                     timer = setTimeout(check, 20000);
                 }
             } catch (e) {
                 if (active) {
+                    onToken(null);
                     setMessage(
                         e instanceof Error
                             ? e.message
@@ -99,6 +107,7 @@ export function GuestAccessStatus({ tableCode }: { tableCode: string }) {
                     active = false;
                     clearTimeout(timer);
                     token = "";
+                    onToken(null);
                     setMessage(errors["qr.token.expired"]);
                 }, ms);
                 await check();
@@ -127,7 +136,7 @@ export function GuestAccessStatus({ tableCode }: { tableCode: string }) {
             clearTimeout(timer);
             clearTimeout(expiryTimer);
         };
-    }, [tableCode]);
+    }, [tableCode, onToken]);
     return (
         <p role="status" className="text-xs">
             {message}
