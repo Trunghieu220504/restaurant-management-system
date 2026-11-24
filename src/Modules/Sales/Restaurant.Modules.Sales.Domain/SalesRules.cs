@@ -71,6 +71,7 @@ public static class SalesErrors
     public const string BatchGuestNeedsSession = "sales.batch.guest_needs_session";
     public const string BatchLineInvalid = "sales.batch.line_invalid";
     public const string PricingInconsistent = "sales.pricing.inconsistent";
+    public const string PricingChanged = "sales.pricing.changed";
     public const string PortionNotFound = "sales.portion.not_found";
     public const string PortionAlreadyCancelled = "sales.portion.already_cancelled";
 }

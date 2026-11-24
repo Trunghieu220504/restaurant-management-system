@@ -9,6 +9,8 @@ public interface IOrderCommands
     Task<ServiceResult<OrderView>> CreateOrderAsync(CreateOrderCommand command, CancellationToken ct);
     Task<ServiceResult<BatchView>> AddBatchAsync(AddBatchCommand command, CancellationToken ct);
     Task<ServiceResult<BatchView>> CancelBatchAsync(CancelBatchCommand command, CancellationToken ct);
+    Task<ServiceResult<BatchView>> ConfirmBatchAsync(ConfirmBatchCommand command, CancellationToken ct);
+    Task<ServiceResult<BatchView>> RejectBatchAsync(RejectBatchCommand command, CancellationToken ct);
 }
 public interface IOrderStore
 {

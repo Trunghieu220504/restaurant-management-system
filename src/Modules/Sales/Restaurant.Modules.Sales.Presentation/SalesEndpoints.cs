@@ -35,6 +35,20 @@ public static class SalesEndpoints
             return Reply(await service.AddBatchAsync(source, ct), 201, value => $"/api/sales/orders/{value.OrderId}/batches/{value.Number}");
         }).WithName("SalesAddBatch").WithDescription("Requires a UUID Idempotency-Key header; repeated requests replay the original batch.")
             .Produces<BatchView>(201).Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        orders.MapPost("/{orderId:long}/batches/{batchNumber:int}/confirm", async (long orderId, int batchNumber, HttpContext http,
+            [FromServices] IOrderCommands service, CancellationToken ct) =>
+        {
+            if (!TryActor(http, out var actor)) return Results.Unauthorized();
+            return Reply(await service.ConfirmBatchAsync(new ConfirmBatchCommand(orderId, batchNumber, actor), ct), 200);
+        }).RequireAuthorization(p => p.RequireClaim("permission", "sales.batches.confirm"))
+            .WithName("SalesConfirmBatch").Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        orders.MapPost("/{orderId:long}/batches/{batchNumber:int}/reject", async (long orderId, int batchNumber, RejectBatchRequest request,
+            HttpContext http, [FromServices] IOrderCommands service, CancellationToken ct) =>
+        {
+            if (!TryActor(http, out var actor)) return Results.Unauthorized();
+            return Reply(await service.RejectBatchAsync(new RejectBatchCommand(orderId, batchNumber, actor, request.Reason), ct), 200);
+        }).RequireAuthorization(p => p.RequireClaim("permission", "sales.batches.confirm"))
+            .WithName("SalesRejectBatch").Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         orders.MapPost("/{orderId:long}/batches/{batchNumber:int}/cancel", async (long orderId, int batchNumber, [FromServices] IOrderCommands service, CancellationToken ct) =>
             Reply(await service.CancelBatchAsync(new CancelBatchCommand(orderId, batchNumber), ct), 200))
             .WithName("SalesCancelBatch").Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
@@ -50,6 +64,8 @@ public static class SalesEndpoints
 
     private static bool TryActor(HttpContext http, out Guid actor) =>
         Guid.TryParse(http.User.FindFirst("sub")?.Value, out actor) && actor != Guid.Empty;
+
+    private sealed record RejectBatchRequest(string? Reason);
 
     private static IResult Reply<T>(ServiceResult<T> result, int successStatus, Func<T, string>? location = null) where T : class
     {
