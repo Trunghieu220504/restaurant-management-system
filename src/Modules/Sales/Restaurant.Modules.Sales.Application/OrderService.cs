@@ -11,7 +11,7 @@ namespace Restaurant.Modules.Sales.Application;
 /// through their Contracts, so each of them can be replaced by a fake in tests.
 /// </summary>
 public sealed class OrderService(
-    IOrderStore store, ISessionLookup sessions, ISalesDayGate dayGate, IMenuPricing menu, TimeProvider clock)
+    IOrderStore store, ISessionLookup sessions, ISalesDayGate dayGate, IMenuPricing menu, TimeProvider clock) : IOrderCommands
 {
     public async Task<ServiceResult<OrderView>> CreateOrderAsync(CreateOrderCommand command, CancellationToken ct)
     {
