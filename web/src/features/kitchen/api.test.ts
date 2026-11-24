@@ -18,9 +18,11 @@ const ticket: FulfillmentTicket = {
 
 describe("fulfillment api", () => {
     it("loads a station queue", async () => {
-        const request = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify([ticket]), { status: 200 }),
-        );
+        const request = vi
+            .fn()
+            .mockResolvedValue(
+                new Response(JSON.stringify([ticket]), { status: 200 }),
+            );
         const api = createFulfillmentApi(request);
 
         await expect(api.queue("BEP")).resolves.toEqual([ticket]);

@@ -77,9 +77,7 @@ export function KitchenLive({
                 setTickets(
                     result
                         .flat()
-                        .sort((a, b) =>
-                            a.createdAt.localeCompare(b.createdAt),
-                        ),
+                        .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
                 );
             } catch (cause) {
                 if (
@@ -90,7 +88,7 @@ export function KitchenLive({
                 setError(
                     cause instanceof FulfillmentApiError
                         ? (errorMessages[cause.code] ??
-                          "Không tải được hàng đợi bếp/bar.")
+                              "Không tải được hàng đợi bếp/bar.")
                         : "Không kết nối được máy chủ.",
                 );
             } finally {
@@ -214,7 +212,8 @@ export function KitchenLive({
                                                         Phiếu #{id}
                                                     </p>
                                                     <span className="text-xs text-muted-foreground">
-                                                        {ticket.station === "BEP"
+                                                        {ticket.station ===
+                                                        "BEP"
                                                             ? "Bếp"
                                                             : "Bar"}
                                                     </span>
