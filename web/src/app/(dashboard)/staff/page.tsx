@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { usePermissions } from "@/components/permission-provider";
@@ -42,7 +43,7 @@ function AccountForm({
     const hasRoles = action === "create" || action === "roles";
     return (
         <form
-            className={s.card}
+            className={`${s.card} ${s.accountEditor}`}
             onSubmit={async (e) => {
                 e.preventDefault();
                 if (lock.current) return;
@@ -97,9 +98,9 @@ function AccountForm({
             <h2>
                 {labels[action]} {account?.userName}
             </h2>
-            <fieldset disabled={busy} className={s.list}>
+            <fieldset disabled={busy} className={s.editorFields}>
                 {action === "create" && (
-                    <div className={s.toolbar}>
+                    <div className={s.accountDetails}>
                         <label>
                             Tên đăng nhập
                             <input name="name" required autoComplete="off" />
@@ -111,16 +112,19 @@ function AccountForm({
                     </div>
                 )}
                 {(action === "create" || action === "reset-password") && (
-                    <label>
-                        Mật khẩu mới
+                    <div className={s.passwordField}>
+                        <label htmlFor="account-password">Mật khẩu mới</label>
                         <input
+                            id="account-password"
                             type="password"
                             name="password"
                             required
                             minLength={12}
                             autoComplete="new-password"
+                            aria-describedby="password-length"
                         />
-                    </label>
+                        <small id="password-length">Ít nhất 12 ký tự</small>
+                    </div>
                 )}
                 {hasRoles && (
                     <fieldset>
@@ -156,7 +160,7 @@ function AccountForm({
                     </p>
                 )}
                 {error && <p role="alert">{error}</p>}
-                <div className={s.actions}>
+                <div className={s.editorActions}>
                     <button type="submit">
                         {busy ? "Đang lưu…" : "Xác nhận"}
                     </button>
@@ -217,9 +221,9 @@ export default function Staff() {
                 />
             ) : (
                 <section className={s.card}>
-                    <div className={s.actions}>
+                    <div className={s.accountToolbar}>
                         <form
-                            className={s.toolbar}
+                            className={s.accountSearch}
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 setOffset(0);
@@ -241,6 +245,7 @@ export default function Staff() {
                             className={s.primary}
                             onClick={() => open({ action: "create" })}
                         >
+                            <Plus size={18} aria-hidden="true" />
                             Tạo tài khoản
                         </button>
                     </div>

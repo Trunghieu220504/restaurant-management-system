@@ -110,6 +110,95 @@
     align-items: center;
     gap: 0.35rem;
 }
+.accountToolbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    border-bottom: 1px solid #dce5e1;
+    padding-bottom: 1rem;
+}
+.accountSearch {
+    flex: 1 1 18rem;
+    max-width: 30rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.5rem;
+}
+.accountToolbar input,
+.accountToolbar button,
+.accountEditor input:not([type="checkbox"]),
+.editorActions button {
+    min-height: 2.75rem;
+}
+.accountSearch button[type="submit"] {
+    color: #174f48;
+    background: #f1f7f5;
+    border-color: #afc6be;
+}
+.accountToolbar .primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+.accountEditor {
+    width: 100%;
+    max-width: 44rem;
+    gap: 1.25rem;
+}
+.editorFields,
+.accountDetails {
+    display: grid;
+    gap: 1rem;
+}
+.accountDetails {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.editorFields small {
+    color: #4f655c;
+    font-weight: 400;
+}
+.passwordField {
+    display: grid;
+    gap: 0.25rem;
+}
+.editorFields .roles {
+    margin-top: 0.5rem;
+}
+.roles label {
+    min-height: 2.75rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid #c8d6d0;
+    border-radius: 0.55rem;
+    cursor: pointer;
+}
+.roles label:has(:checked) {
+    color: #174f48;
+    background: #edf6f2;
+    border-color: #6a988c;
+}
+.roles input {
+    accent-color: #115e59;
+}
+.editorActions {
+    display: flex;
+    gap: 0.6rem;
+    border-top: 1px solid #dce5e1;
+    padding-top: 1rem;
+}
+@media (max-width: 600px) {
+    .accountSearch,
+    .accountToolbar .primary {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+    .accountDetails {
+        grid-template-columns: 1fr;
+    }
+}
 .list {
     display: grid;
     gap: 0.65rem;
