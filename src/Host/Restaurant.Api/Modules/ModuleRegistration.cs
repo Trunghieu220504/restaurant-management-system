@@ -46,6 +46,7 @@ public static class ModuleRegistration
         services.AddBillingModule();
         services.AddScoped<Restaurant.Modules.Billing.Application.ICloseOrder, OrderClosing>();
         services.AddInventoryModule();
+        services.AddScoped<Restaurant.Modules.Inventory.Application.IInventoryAudit, InventoryAudit>();
         services.AddScoped<Restaurant.Modules.Inventory.Application.IInventoryDayGate, BusinessDayDirectory>();
         services.AddSalesDayModule();
         services.AddScoped<Restaurant.Modules.SalesDay.Application.IOpeningInventory, OpeningInventory>();
@@ -66,6 +67,7 @@ public static class ModuleRegistration
         services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, BusinessDayDirectory>();
         services.AddAuditModule();
         services.AddReportingModule();
+        services.AddScoped<Restaurant.Modules.Reporting.Application.IBusinessReports, BusinessReports>();
         services.AddHostedService<OutboxDispatcherService>();
         services.AddHealthChecks().AddCheck<SqlServerHealthCheck>("sqlserver", tags: ["ready"]);
         return services;

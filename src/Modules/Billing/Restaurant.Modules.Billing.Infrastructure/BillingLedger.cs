@@ -9,7 +9,7 @@ using Restaurant.Modules.Billing.Infrastructure.Persistence;
 
 namespace Restaurant.Modules.Billing.Infrastructure;
 
-public sealed class BillingLedger(BillingDbContext db, IBillingDayGate days, IConfiguration configuration) : IBillingLedger
+public sealed partial class BillingLedger(BillingDbContext db, IBillingDayGate days, IConfiguration configuration) : IBillingLedger
 {
     private const long MaxMoney = 999999999999999999L;
     private const string Invalid = "billing.input.invalid";
@@ -107,7 +107,7 @@ public sealed class BillingLedger(BillingDbContext db, IBillingDayGate days, ICo
         BillingStore.AddDocumentAsync(db, invoice, payment, actor, dayId, configuration["Billing:StoreName"], configuration["Billing:StoreAddress"], ct);
 
     private async Task<MoneyResult> WriteAsync(long invoiceId, Guid dayId, Guid actor, Guid key, object payload,
-        Func<HoaDon, InvoiceView, Task<MoneyResult>> change, CancellationToken ct)
+        Func<HoaDon, InvoiceView, Task<MoneyResult>> change, CancellationToken ct, bool allowClosed = false)
     {
         if (invoiceId <= 0 || dayId == Guid.Empty || actor == Guid.Empty || key == Guid.Empty) return new(null, Invalid);
         var fingerprint = BillingStore.Fingerprint(new { invoiceId, dayId, actor, payload });
@@ -128,7 +128,7 @@ public sealed class BillingLedger(BillingDbContext db, IBillingDayGate days, ICo
             if (replay is not null) return replay;
             var invoice = await BillingStore.LockInvoiceAsync(db, invoiceId, ct);
             if (invoice is null) return new(null, "billing.invoice.not_found");
-            if (invoice.DongLuc is not null) return new(null, "billing.invoice.closed");
+            if (!allowClosed && invoice.DongLuc is not null) return new(null, "billing.invoice.closed");
             var result = await change(invoice, await BillingStore.ReadAsync(db, invoice, ct));
             if (result.Error is not null) return result;
             db.Add(new BillingRequest { Key = key, Fingerprint = fingerprint, InvoiceId = invoice.Id, ResourceId = result.ResourceId!.Value });

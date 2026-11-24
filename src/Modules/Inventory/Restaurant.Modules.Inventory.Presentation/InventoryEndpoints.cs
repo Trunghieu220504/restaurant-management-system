@@ -56,7 +56,22 @@ public static class InventoryEndpoints
             Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)
                 ? Reply(await service.SaveAsync(day, ingredient, null, input.Version, true, actor, ct)) : Results.Unauthorized())
             .RequireAuthorization(p => p.RequireClaim("permission", "inventory.counts.approve")).Produces<StockResult>();
+        var corrections = group.MapGroup("").RequireAuthorization(p => p.RequireRole("Manager").RequireClaim("permission", "inventory.adjustments.approve"));
+        corrections.MapPost("/adjustments", (StockAdjustment input, HttpContext http, [FromHeader(Name = "Idempotency-Key")] string? requestKey,
+            IInventoryCorrections service, CancellationToken ct) => Correct(http, requestKey, (actor, key) => service.AdjustAsync(input, actor, key, ct)))
+            .Produces<StockResult>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
+        corrections.MapPost("/purchases/{id:long}/corrections", (long id, PurchaseCorrection input, HttpContext http,
+            [FromHeader(Name = "Idempotency-Key")] string? requestKey, IInventoryCorrections service, CancellationToken ct) =>
+            Correct(http, requestKey, (actor, key) => service.CorrectAsync(id, input, actor, key, ct)))
+            .Produces<StockResult>().ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         return group;
+    }
+
+    private static async Task<IResult> Correct(HttpContext http, string? requestKey, Func<Guid, Guid, Task<StockResult>> change)
+    {
+        if (!Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)) return Results.Unauthorized();
+        if (!Guid.TryParse(requestKey, out var key) || key == Guid.Empty) return Reply(new(null, "inventory.idempotency.required"));
+        return Reply(await change(actor, key));
     }
 
     private static IResult Reply(StockResult result) => result.Error is null ? Results.Ok(result) :
