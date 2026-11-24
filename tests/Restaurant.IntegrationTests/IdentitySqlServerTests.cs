@@ -155,6 +155,20 @@ public sealed class IdentitySqlServerTests : IAsyncLifetime
         Assert.Empty(await db.Set<AdminBootstrap>().ToArrayAsync());
     }
 
+    [SqlServerFact]
+    public async Task Database_rejects_duplicate_user_role_assignments()
+    {
+        await BootstrapAsync(Input("unique-role"));
+        await using var scope = provider!.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var error = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlRawAsync("""
+            INSERT INTO [identity].[AspNetUserRoles] (UserId,RoleId)
+            SELECT UserId,RoleId FROM [identity].[AspNetUserRoles];
+            """));
+        Assert.Contains(error.Number, new[] { 2601, 2627 });
+        Assert.Equal(1, await db.UserRoles.CountAsync());
+    }
+
     private ServiceProvider CreateProvider(IInterceptor? interceptor = null)
     {
         var services = new ServiceCollection();

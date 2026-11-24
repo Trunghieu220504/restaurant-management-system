@@ -32,7 +32,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
         if (!databaseName.StartsWith("RestaurantSeatingLookupTest_", StringComparison.Ordinal) ||
             new SqlConnectionStringBuilder(connectionString).InitialCatalog != databaseName)
             throw new InvalidOperationException("Unsafe test database cleanup target.");
-        SqlConnection.ClearAllPools();
+        SqlTestDatabase.ClearPool(connectionString);
         await using var db = NewContext();
         await db.Database.EnsureDeletedAsync();
     }

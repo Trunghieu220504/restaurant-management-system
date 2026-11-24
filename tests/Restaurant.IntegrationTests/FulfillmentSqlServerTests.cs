@@ -37,7 +37,7 @@ public sealed class FulfillmentSqlServerTests : IAsyncLifetime
         if (new SqlConnectionStringBuilder(connectionString).InitialCatalog != databaseName ||
             !databaseName.StartsWith("RestaurantFulfillmentTest_", StringComparison.Ordinal))
             throw new InvalidOperationException("Unsafe test database cleanup target.");
-        SqlConnection.ClearAllPools();
+        SqlTestDatabase.ClearPool(connectionString);
         await using var db = CreateContext();
         await db.Database.EnsureDeletedAsync();
     }

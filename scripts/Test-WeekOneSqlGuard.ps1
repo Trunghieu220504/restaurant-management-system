@@ -1,5 +1,7 @@
 $ErrorActionPreference='Stop'
 $cases = @(
+    @{Connection='Server=lpc:localhost\MSSQLSERVER01;Integrated Security=True';Allowed=$true},
+    @{Connection='Server=lpc:remote.example.invalid;Integrated Security=True';Allowed=$false},
     @{Connection='Server=localhost\MSSQLSERVER01;Integrated Security=True;Command Timeout=120';Allowed=$true},
     @{Connection='Server=127.0.0.1,1433;Database=master;Integrated Security=True';Allowed=$true},
     @{Connection='Server=staging.quanlynh.id.vn;Database=master';Allowed=$false},
@@ -14,4 +16,4 @@ foreach ($case in $cases) {
     try { & (Join-Path $PSScriptRoot 'Assert-WeekOneLocalSql.ps1') -ConnectionString $case.Connection } catch { $accepted=$false }
     if ($accepted -ne $case.Allowed) { throw 'SQL connection guard acceptance mismatch.' }
 }
-Write-Host 'SQL connection guard: 8/8 PASS (no connections were opened).'
+Write-Host 'SQL connection guard: 10/10 PASS (no connections were opened).'

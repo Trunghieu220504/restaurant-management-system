@@ -14,4 +14,5 @@ foreach ($entry in $registry.PSObject.Properties | Where-Object { $_.Name -notli
 $selected = $candidates | Sort-Object Rank,Name | Select-Object -First 1
 if (-not $selected) { throw 'No running local SQL Server 2022+ instance. Set IDENTITY_TEST_SQLSERVER for a loopback test instance.' }
 $server = if ($selected.Name -eq 'MSSQLSERVER') { 'localhost' } else { 'localhost\' + $selected.Name }
-"Server=$server;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5;Command Timeout=120"
+# Shared memory avoids SQL Browser/TCP discovery for a verified local Windows service.
+"Server=lpc:$server;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5;Command Timeout=120"
