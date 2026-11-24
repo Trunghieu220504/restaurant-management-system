@@ -16,7 +16,7 @@ public sealed class OutboxDispatcherService(
     ILogger<OutboxDispatcherService> logger) : BackgroundService
 {
     /// <summary>Schemas that have an Outbox table. Add a module here when its migration creates the table.</summary>
-    private static readonly string[] Schemas = ["sales", "salesday"];
+    private static readonly string[] Schemas = ["sales", "salesday", "fulfillment"];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

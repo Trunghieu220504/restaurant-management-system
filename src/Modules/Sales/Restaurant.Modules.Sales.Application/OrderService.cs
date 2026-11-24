@@ -1,5 +1,6 @@
 using Restaurant.Modules.Catalog.Contracts;
 using Restaurant.Modules.Sales.Domain;
+using Restaurant.Modules.Sales.Contracts;
 using Restaurant.Modules.SalesDay.Contracts;
 using Restaurant.Modules.Seating.Contracts;
 
@@ -159,6 +160,10 @@ public sealed class OrderService(
 
         var confirmed = order.ConfirmBatch(command.BatchNumber, command.Actor, clock.GetUtcNow().UtcDateTime);
         if (!confirmed.Succeeded) return Fail<BatchView>(confirmed.Error!);
+        await tx.StageBatchConfirmedAsync(new BatchConfirmed(order.Id, batch.Id, batch.SoDot,
+            [.. batch.Portions.Where(x => x.TrangThai == PortionStatus.Confirmed)
+                .Select(x => new ConfirmedPortion(x.Id, x.TramChot))]),
+            batch.Id, order.SoLanCapNhat, ct);
         return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
     }
 

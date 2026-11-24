@@ -5,5 +5,6 @@
     <ProjectReference Include="../../Seating/Restaurant.Modules.Seating.Contracts/Restaurant.Modules.Seating.Contracts.csproj" />
     <ProjectReference Include="../../SalesDay/Restaurant.Modules.SalesDay.Contracts/Restaurant.Modules.SalesDay.Contracts.csproj" />
     <ProjectReference Include="../../Billing/Restaurant.Modules.Billing.Contracts/Restaurant.Modules.Billing.Contracts.csproj" />
+    <ProjectReference Include="../Restaurant.Modules.Sales.Contracts/Restaurant.Modules.Sales.Contracts.csproj" />
   </ItemGroup>
 </Project>

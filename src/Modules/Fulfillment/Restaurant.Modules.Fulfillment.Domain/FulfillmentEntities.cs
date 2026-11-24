@@ -44,6 +44,58 @@ public sealed class PhieuCheBien
             TaoLuc = now
         });
     }
+
+    public FulfillmentResult<PhieuCheBien> Start(Guid actor, DateTime now) =>
+        Transition(TicketStatus.InProgress, actor, now);
+
+    public FulfillmentResult<PhieuCheBien> MarkReady(Guid actor, DateTime now) =>
+        Transition(TicketStatus.Ready, actor, now);
+
+    public FulfillmentResult<PhieuCheBien> Deliver(Guid actor, DateTime now) =>
+        Transition(TicketStatus.Served, actor, now);
+
+    public FulfillmentResult<PhieuCheBien> Cancel(Guid actor, DateTime now) =>
+        Transition(TicketStatus.Cancelled, actor, now);
+
+    private FulfillmentResult<PhieuCheBien> Transition(string target, Guid actor, DateTime now)
+    {
+        if (actor == Guid.Empty || now.Kind != DateTimeKind.Utc)
+            return FulfillmentResult<PhieuCheBien>.Fail(FulfillmentErrors.InputInvalid);
+
+        var allowed = (TrangThai, target) switch
+        {
+            (TicketStatus.New, TicketStatus.InProgress) => true,
+            (TicketStatus.InProgress, TicketStatus.Ready) => true,
+            (TicketStatus.Ready, TicketStatus.Served) => true,
+            (TicketStatus.New, TicketStatus.Cancelled) => true,
+            (TicketStatus.InProgress, TicketStatus.Cancelled) => true,
+            (TicketStatus.Ready, TicketStatus.Cancelled) => true,
+            _ => false
+        };
+        if (!allowed)
+            return FulfillmentResult<PhieuCheBien>.Fail(
+                TrangThai is TicketStatus.Served or TicketStatus.Cancelled
+                    ? FulfillmentErrors.AlreadyProcessed
+                    : FulfillmentErrors.InvalidTransition);
+
+        TrangThai = target;
+        switch (target)
+        {
+            case TicketStatus.InProgress:
+                NguoiBatDauId = actor;
+                BatDauLuc = now;
+                break;
+            case TicketStatus.Ready:
+                NguoiHoanThanhId = actor;
+                HoanThanhLuc = now;
+                break;
+            case TicketStatus.Served:
+                NguoiGiaoId = actor;
+                GiaoLuc = now;
+                break;
+        }
+        return FulfillmentResult<PhieuCheBien>.Ok(this);
+    }
 }
 
 /// <summary>A reported problem with one ticket (spoiled, wrong dish, ...). Approval and its effects arrive with HIE-4.x.</summary>
@@ -84,4 +136,15 @@ public sealed class SuCoMon
             KhoaYeuCau = requestKey
         });
     }
+}
+
+/// <summary>Durable record of a completed ticket command for safe retries.</summary>
+public sealed class YeuCauFulfillmentDaXuLy
+{
+    public string Operation { get; set; } = "";
+    public Guid ActorScope { get; set; }
+    public Guid Key { get; set; }
+    public byte[] RequestHash { get; set; } = [];
+    public long TicketId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
