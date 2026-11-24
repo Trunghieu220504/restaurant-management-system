@@ -61,6 +61,15 @@ public static class AuthenticationConfiguration
                 options.MapInboundClaims = false;
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        if (context.Request.Path == "/hubs/operations" &&
+                            context.Request.Query.TryGetValue("access_token", out var token) && token.Count == 1 &&
+                            (context.HttpContext.WebSockets.IsWebSocketRequest ||
+                             context.Request.Headers.Accept.ToString().Contains("text/event-stream", StringComparison.OrdinalIgnoreCase)))
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = async context =>
                     {
                         var principal = context.Principal!;
