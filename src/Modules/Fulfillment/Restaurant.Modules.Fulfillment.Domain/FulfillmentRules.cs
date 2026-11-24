@@ -40,6 +40,13 @@ public static class Stations
 public static class FulfillmentErrors
 {
     public const string InputInvalid = "fulfillment.input.invalid";
+    public const string TicketNotFound = "fulfillment.ticket.not_found";
+    public const string StationForbidden = "fulfillment.ticket.station_forbidden";
+    public const string InvalidTransition = "fulfillment.ticket.invalid_transition";
+    public const string AlreadyProcessed = "fulfillment.ticket.already_processed";
+    public const string ConcurrencyConflict = "fulfillment.ticket.concurrency_conflict";
+    public const string IdempotencyRequired = "fulfillment.idempotency.required";
+    public const string IdempotencyConflict = "fulfillment.idempotency.conflict";
 }
 
 public sealed class FulfillmentResult<T> where T : class
