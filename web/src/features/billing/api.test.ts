@@ -3,9 +3,11 @@ import { createBillingApi } from "./api";
 
 describe("billing api", () => {
     it("loads an invoice", async () => {
-        const request = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({ id: 7 }), { status: 200 }),
-        );
+        const request = vi
+            .fn()
+            .mockResolvedValue(
+                new Response(JSON.stringify({ id: 7 }), { status: 200 }),
+            );
         const api = createBillingApi(request);
 
         await expect(api.invoice(7)).resolves.toEqual({ id: 7 });
@@ -25,11 +27,18 @@ describe("billing api", () => {
 
         await api.collect(
             7,
-            { businessDayId: "day", method: "TIEN_MAT", amount: 100000, tendered: 120000 },
+            {
+                businessDayId: "day",
+                method: "TIEN_MAT",
+                amount: 100000,
+                tendered: 120000,
+            },
             "request-key",
         );
         const [, init] = request.mock.calls[0] as [string, RequestInit];
-        expect(init.headers).toMatchObject({ "Idempotency-Key": "request-key" });
+        expect(init.headers).toMatchObject({
+            "Idempotency-Key": "request-key",
+        });
         expect(JSON.parse(String(init.body))).toMatchObject({
             method: "TIEN_MAT",
             amount: 100000,
@@ -39,14 +48,24 @@ describe("billing api", () => {
 
     it("surfaces backend billing errors", async () => {
         const request = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({ code: "billing.payment.exceeds_due" }), {
-                status: 409,
-            }),
+            new Response(
+                JSON.stringify({ code: "billing.payment.exceeds_due" }),
+                {
+                    status: 409,
+                },
+            ),
         );
         const api = createBillingApi(request);
 
         await expect(
-            api.collect(7, { businessDayId: "day", method: "TIEN_MAT", amount: 1 }, "key"),
-        ).rejects.toMatchObject({ status: 409, code: "billing.payment.exceeds_due" });
+            api.collect(
+                7,
+                { businessDayId: "day", method: "TIEN_MAT", amount: 1 },
+                "key",
+            ),
+        ).rejects.toMatchObject({
+            status: 409,
+            code: "billing.payment.exceeds_due",
+        });
     });
 });

@@ -12,7 +12,10 @@ export type BillingPaymentInput = {
 };
 
 export class BillingApiError extends Error {
-    constructor(readonly status: number, readonly code: string) {
+    constructor(
+        readonly status: number,
+        readonly code: string,
+    ) {
         super(code);
     }
 }
@@ -65,7 +68,11 @@ export function createBillingApi(request: typeof authFetch = authFetch) {
                 "/api/billing/orders/" + id(orderId) + "/invoice",
             );
         },
-        collect(invoiceId: number | string, input: BillingPaymentInput, key: string) {
+        collect(
+            invoiceId: number | string,
+            input: BillingPaymentInput,
+            key: string,
+        ) {
             return json<Schema["MoneyResult"]>(
                 request,
                 "/api/billing/invoices/" + id(invoiceId) + "/payments",
@@ -98,7 +105,9 @@ export function createBillingApi(request: typeof authFetch = authFetch) {
                 {
                     method: "POST",
                     headers: commandHeaders(key),
-                    body: JSON.stringify({ businessDayId } satisfies Schema["TransferDecision"]),
+                    body: JSON.stringify({
+                        businessDayId,
+                    } satisfies Schema["TransferDecision"]),
                 },
             );
         },
@@ -113,7 +122,9 @@ export function createBillingApi(request: typeof authFetch = authFetch) {
                 {
                     method: "POST",
                     headers: commandHeaders(key),
-                    body: JSON.stringify(input satisfies Schema["WaiveBalance"]),
+                    body: JSON.stringify(
+                        input satisfies Schema["WaiveBalance"],
+                    ),
                 },
             );
         },
