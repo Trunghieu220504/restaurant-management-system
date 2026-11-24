@@ -9,5 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="../Restaurant.Modules.Fulfillment.Domain/Restaurant.Modules.Fulfillment.Domain.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Fulfillment.Application/Restaurant.Modules.Fulfillment.Application.csproj" />
+    <ProjectReference Include="../../Sales/Restaurant.Modules.Sales.Contracts/Restaurant.Modules.Sales.Contracts.csproj" />
+    <ProjectReference Include="../../../Shared/Restaurant.Shared.SqlServer/Restaurant.Shared.SqlServer.csproj" />
+    <ProjectReference Include="../../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
   </ItemGroup>
 </Project>

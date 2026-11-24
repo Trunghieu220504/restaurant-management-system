@@ -1,5 +1,6 @@
 using Restaurant.Modules.Sales.Application;
 using Restaurant.Modules.Sales.Domain;
+using Restaurant.Modules.Sales.Contracts;
 
 namespace Restaurant.IntegrationTests.SalesFakes;
 
@@ -86,6 +87,9 @@ public sealed class InMemoryOrderStore : IOrderStore
             Task.FromResult($"DH-{++store.lastCode:D4}");
 
         public void Add(DonHang order) => pending.Add(order);
+
+        public Task StageBatchConfirmedAsync(BatchConfirmed message, long aggregateId, int aggregateVersion, CancellationToken ct) =>
+            Task.CompletedTask;
 
         public Task SaveAsync(CancellationToken ct)
         {

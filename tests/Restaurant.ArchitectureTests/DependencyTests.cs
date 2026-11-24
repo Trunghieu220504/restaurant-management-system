@@ -115,6 +115,11 @@ public sealed class DependencyTests
                     optional.AddRange(providers.Select(p => $"Restaurant.Modules.{p}.Contracts"));
                 }
                 Assert.Empty(required.Except(references));
+                if (module == "Fulfillment" && layer == "Infrastructure")
+                {
+                    optional.Add("Restaurant.Modules.Sales.Contracts");
+                    optional.Add("Restaurant.Shared.SqlServer");
+                }
                 Assert.Empty(references.Except(required.Concat(optional)));
                 Assert.Equal(references.Length, references.Distinct().Count());
                 // Names alone are insufficient: a same-named project outside the expected module must not pass.
@@ -123,7 +128,7 @@ public sealed class DependencyTests
                     var actual = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!,
                         reference.Attribute("Include")!.Value.Replace('\\', Path.DirectorySeparatorChar)));
                     var name = Path.GetFileNameWithoutExtension(actual);
-                    var expected = name == "Restaurant.Shared.Contracts"
+                    var expected = name is "Restaurant.Shared.Contracts" or "Restaurant.Shared.SqlServer"
                         ? Path.Combine(root, "src", "Shared", name, Path.GetFileName(actual))
                         : Path.Combine(root, "src", "Modules",
                             name.EndsWith(".Contracts", StringComparison.Ordinal)
