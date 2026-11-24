@@ -410,6 +410,48 @@ public sealed class SalesOrderServiceTests
         Assert.Empty(Assert.Single(store.Orders).Dots);
     }
 
+    [Fact]
+    public async Task Confirming_a_pending_batch_reprices_it_and_confirms_all_pending_portions()
+    {
+        var order = await OpenOrderAsync();
+        var added = await service.AddBatchAsync(Add(order, Line(Pho, PhoRegular)), default);
+
+        var result = await service.ConfirmBatchAsync(new ConfirmBatchCommand(order, added.Value!.Number, Staff), default);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(BatchStatus.Confirmed, result.Value!.Status);
+        Assert.Equal(PortionStatus.Confirmed, Assert.Single(result.Value.Portions).Status);
+    }
+
+    [Fact]
+    public async Task Confirmation_is_refused_when_the_catalog_price_changed()
+    {
+        var order = await OpenOrderAsync();
+        var added = await service.AddBatchAsync(Add(order, Line(Pho, PhoRegular)), default);
+        var changed = new FakeMenuPricing().AddDish(Pho, "Pho", Stations.Kitchen).AddVariant(Pho, PhoRegular, "Regular", 65000);
+        var repriced = new OrderService(store, sessions, gate, changed, new FixedClock(Now));
+
+        var result = await repriced.ConfirmBatchAsync(new ConfirmBatchCommand(order, added.Value!.Number, Staff), default);
+
+        Assert.Equal(SalesErrors.PricingChanged, result.Error);
+        Assert.Equal(BatchStatus.Pending, Assert.Single(Assert.Single(store.Orders).Dots).TrangThai);
+    }
+
+    [Fact]
+    public async Task Rejecting_a_batch_requires_a_reason_and_cancels_its_pending_portions()
+    {
+        var order = await OpenOrderAsync();
+        var added = await service.AddBatchAsync(Add(order, Line(Pho, PhoRegular)), default);
+
+        Assert.Equal(SalesErrors.InputInvalid,
+            (await service.RejectBatchAsync(new RejectBatchCommand(order, added.Value!.Number, Staff, " "), default)).Error);
+        var result = await service.RejectBatchAsync(new RejectBatchCommand(order, added.Value.Number, Staff, "out of stock"), default);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(BatchStatus.Rejected, result.Value!.Status);
+        Assert.Equal(PortionStatus.Cancelled, Assert.Single(result.Value.Portions).Status);
+    }
+
     // ---- cancel batch ----
 
     [Fact]

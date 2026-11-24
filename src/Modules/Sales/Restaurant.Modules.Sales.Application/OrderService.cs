@@ -105,6 +105,10 @@ public sealed class OrderService(
         priced.MenuItemId == requested.MenuItemId && priced.VariantId == requested.VariantId &&
         priced.Options.Select(o => o.OptionId).Order().SequenceEqual((requested.OptionIds ?? []).Order());
 
+    private static bool Answers(ChiTietDon portion, PricedMenuLine? priced) =>
+        priced is not null && priced.MenuItemId == portion.MonId && priced.VariantId == portion.BienTheId &&
+        priced.Options.Select(x => x.OptionId).Order().SequenceEqual(portion.Options.Select(x => x.TuyChonId).Order());
+
     /// <summary>Withdraws a batch that has not been decided yet (confirmed batches are reduced portion by portion).</summary>
     public async Task<ServiceResult<BatchView>> CancelBatchAsync(CancelBatchCommand command, CancellationToken ct)
     {
@@ -121,6 +125,56 @@ public sealed class OrderService(
         var cancelled = order.CancelBatch(command.BatchNumber);
         if (!cancelled.Succeeded) return Fail<BatchView>(cancelled.Error!);
 
+        var batch = order.Dots.Single(x => x.SoDot == command.BatchNumber);
+        return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
+    }
+
+    public async Task<ServiceResult<BatchView>> ConfirmBatchAsync(ConfirmBatchCommand command, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.OrderId <= 0 || command.BatchNumber <= 0 || command.Actor == Guid.Empty)
+            return Fail<BatchView>(SalesErrors.InputInvalid);
+
+        await using var tx = await store.BeginAsync(ct);
+        var gated = await GateOrderDayAsync(tx, command.OrderId, ct);
+        if (gated is not null) return Fail<BatchView>(gated);
+        var order = await tx.LockOrderAsync(command.OrderId, ct);
+        if (order is null) return Fail<BatchView>(SalesErrors.OrderNotFound);
+        var batch = order.Dots.SingleOrDefault(x => x.SoDot == command.BatchNumber);
+        if (batch is null) return Fail<BatchView>(SalesErrors.BatchNotFound);
+        if (batch.TrangThai != BatchStatus.Pending) return Fail<BatchView>(SalesErrors.BatchNotPending);
+
+        var priced = await menu.PriceAsync(new MenuPricingRequest(order.NgayBanId,
+            [.. batch.Portions.Select((portion, index) => new MenuLineSelection(index + 1, portion.MonId, portion.BienTheId,
+                [.. portion.Options.Select(option => option.TuyChonId)]))]), ct);
+        if (!priced.IsValid)
+            return Fail<BatchView>(SalesErrors.BatchLineInvalid, [.. priced.Errors.Select(e => new LineError(e.LineNo, e.Code))]);
+        var byLine = priced.Lines.GroupBy(x => x.LineNo).ToDictionary(x => x.Key, x => x.First());
+        if (priced.Lines.Count != batch.Portions.Count || batch.Portions.Select((portion, index) =>
+                byLine.TryGetValue(index + 1, out var answer) && Answers(portion, answer)).Any(valid => !valid))
+            return Fail<BatchView>(SalesErrors.PricingInconsistent);
+        if (batch.Portions.Select((portion, index) => portion.GiaMonChot + portion.Options.Sum(x => x.GiaCongChot))
+            .Zip(priced.Lines.OrderBy(x => x.LineNo), (stored, current) => stored == current.UnitPrice).Any(equal => !equal))
+            return Fail<BatchView>(SalesErrors.PricingChanged);
+
+        var confirmed = order.ConfirmBatch(command.BatchNumber, command.Actor, clock.GetUtcNow().UtcDateTime);
+        if (!confirmed.Succeeded) return Fail<BatchView>(confirmed.Error!);
+        return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
+    }
+
+    public async Task<ServiceResult<BatchView>> RejectBatchAsync(RejectBatchCommand command, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.OrderId <= 0 || command.BatchNumber <= 0 || command.Actor == Guid.Empty)
+            return Fail<BatchView>(SalesErrors.InputInvalid);
+
+        await using var tx = await store.BeginAsync(ct);
+        var gated = await GateOrderDayAsync(tx, command.OrderId, ct);
+        if (gated is not null) return Fail<BatchView>(gated);
+        var order = await tx.LockOrderAsync(command.OrderId, ct);
+        if (order is null) return Fail<BatchView>(SalesErrors.OrderNotFound);
+        var rejected = order.RejectBatch(command.BatchNumber, command.Actor, command.Reason, clock.GetUtcNow().UtcDateTime);
+        if (!rejected.Succeeded) return Fail<BatchView>(rejected.Error!);
         var batch = order.Dots.Single(x => x.SoDot == command.BatchNumber);
         return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
     }
