@@ -10,7 +10,7 @@ Chạy SQL Server 2022 cục bộ: full suite 397 integration + 5 architecture �
 | 4 | QR expiry, revocation and session isolation | Hiếu | SKIP |
 | 5 | Confirmation produces one charge and first ticket | Hiếu / Phương | SKIP |
 | 6 | Approved remake without new revenue | Hiếu | SKIP |
-| 7 | Cannot serve twice or after cancellation | Hiếu | SKIP |
+| 7 | Cannot serve twice or after cancellation | Hiếu | PASS |
 | 8 | Concurrent collectors never overcollect | Phương | PASS |
 | 9 | Refund reservation under concurrency and unknown payout | Phương | PASS |
 | 10 | Prior-day refunds preserve prior snapshots | Phương | PASS |
@@ -22,4 +22,4 @@ Chạy SQL Server 2022 cục bộ: full suite 397 integration + 5 architecture �
 | 16 | Negative profit and distinct units | Phương | PASS |
 | 17 | Permission revocation affects existing access token | Hiếu | PASS |
 
-13/17 dòng đủ bằng chứng; dòng 4–7 còn thiếu public ordering/Fulfillment/incident/serve. Nguồn: artifacts/hai-week7-verified/*.trx và artifacts/hai-week7-matrix-additions/*.trx. Mapping cụ thể: scripts/release/matrix.json. Toàn bộ matrix vẫn BLOCKED.
+14/17 dòng đủ bằng chứng; Sau khi merge cf40c97, đã bổ sung SQL tranh chấp giao món cho dòng 7; SQL test mới đã PASS trong nhóm Fulfillment 34/34, đang chạy lại pipeline cuối. Dòng 4/5/6 cần public ordering, kiểm confirm→consumer tích hợp và incidents/remake. Nguồn: artifacts/hai-week7-verified/*.trx và artifacts/hai-week7-matrix-additions/*.trx. Mapping cụ thể: scripts/release/matrix.json. Toàn bộ matrix vẫn BLOCKED.

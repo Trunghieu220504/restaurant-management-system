@@ -37,14 +37,25 @@ public static class FulfillmentEndpoints
             if (!Guid.TryParse(http.User.FindFirst("sub")?.Value, out var actor)) return Results.Unauthorized();
             if (body.RequestKey == Guid.Empty) return Problem(FulfillmentErrors.IdempotencyRequired);
             if (!Stations.All.Contains(body.Station)) return Results.Problem(statusCode: 400, title: FulfillmentErrors.InputInvalid);
-            if (!CanUseStation(http, body.Station)) return Results.Forbid();
+            if (!CanCommand(http, body.Station, action)) return Results.Forbid();
             var result = await command(service, id, body, actor, ct);
             return result.Succeeded ? Results.Ok(result.Value) : Problem(result.Error!);
         }).WithName($"Fulfillment{action}").Produces<TicketView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
     }
 
     private static bool CanUseStation(HttpContext http, string station) =>
-        station == Stations.Kitchen && http.User.IsInRole("Kitchen") || station == Stations.Bar && http.User.IsInRole("Bar");
+        http.User.HasClaim("permission", "fulfillment.portions.serve") || CanProcess(http, station);
+
+    private static bool CanProcess(HttpContext http, string station) =>
+        http.User.HasClaim("permission", station == Stations.Kitchen
+            ? "fulfillment.kitchen.process" : "fulfillment.bar.process");
+
+    private static bool CanCommand(HttpContext http, string station, string action) => action switch
+    {
+        "deliver" => http.User.HasClaim("permission", "fulfillment.portions.serve"),
+        "cancel" => http.User.HasClaim("permission", "fulfillment.incidents.approve"),
+        _ => CanProcess(http, station)
+    };
 
     private static IResult Problem(string error)
     {

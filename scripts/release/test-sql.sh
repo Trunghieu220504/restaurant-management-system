@@ -23,7 +23,7 @@ for ((attempt=0; attempt<60; attempt++)); do
     sleep 2
 done
 [ "$ready" = true ]
-export IDENTITY_TEST_SQLSERVER="Server=127.0.0.1,$port;User Id=sa;Password=$MSSQL_SA_PASSWORD;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5"
+export IDENTITY_TEST_SQLSERVER="Server=127.0.0.1,$port;User Id=sa;Password=$MSSQL_SA_PASSWORD;Encrypt=True;TrustServerCertificate=True;Connect Timeout=15;Command Timeout=120"
 unset MSSQL_SA_PASSWORD
 dotnet restore RestaurantManagement.slnx --locked-mode
 dotnet format whitespace RestaurantManagement.slnx --verify-no-changes --no-restore

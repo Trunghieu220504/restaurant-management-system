@@ -52,7 +52,7 @@
         "tests":  [
                       "Restaurant.IntegrationTests.PhuongWeekThreeSqlServerTests.Confirm_joins_sales_transaction_replays_once_and_adds_new_portions"
                   ],
-        "gap":  "Fulfillment consumer not integrated on develop."
+        "gap":  "Consumer and state API merged in cf40c97; need integrated Sales confirmation -\u003e charge + outbox -\u003e consumer replay SQL test."
     },
     {
         "id":  6,
@@ -62,17 +62,17 @@
         "tests":  [
 
                   ],
-        "gap":  "Fulfillment command API not implemented on develop."
+        "gap":  "Incident approval/remake API is still absent on cf40c97."
     },
     {
         "id":  7,
         "criterion":  "Cannot serve twice or after cancellation",
         "owner":  "Hiếu",
-        "coverageComplete":  false,
+        "coverageComplete":  true,
         "tests":  [
-
+                      "Restaurant.IntegrationTests.FulfillmentSqlServerTests.Concurrent_delivery_is_recorded_once_and_cancelled_tickets_cannot_be_served"
                   ],
-        "gap":  "Fulfillment command API not implemented on develop."
+        "gap":  ""
     },
     {
         "id":  8,

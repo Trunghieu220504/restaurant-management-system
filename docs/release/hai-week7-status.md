@@ -1,6 +1,6 @@
 # Tình trạng nhiệm vụ Hải đến tuần 7 — 24/11/2026
 
-Đã đọc PDF `công việc chi tiết.pdf` trước rồi đối chiếu `tom-tat-cong-viec-hai.md`. Bản tóm tắt cũ chỉ phản ánh kiểm tra ban đầu; `develop` mới nhất khi bắt đầu là `b3acf64` (PR #101). Nhánh triển khai: `feature/hai-week7-delivery-20261124`. Tác giả/committer yêu cầu: Hai249.
+Đã đọc PDF `công việc chi tiết.pdf` trước rồi đối chiếu `tom-tat-cong-viec-hai.md`. Bản tóm tắt cũ chỉ phản ánh kiểm tra ban đầu; `develop` mới nhất khi bắt đầu là `b3acf64` (PR #101). Đã fetch lại và tích hợp `cf40c97` gồm PR #103/#104 của Hiếu (consumer và state API Fulfillment). Nhánh triển khai: `feature/hai-week7-delivery-20261124`. Tác giả/committer yêu cầu: Hai249.
 
 **Chưa thể ghi toàn bộ tuần 7 Done.** Tuần 7 trong PDF là 21–25/12/2026. Có thể chuẩn bị công cụ ngay, nhưng UAT với chủ repo, tập huấn thiết bị thật, production, R2 và các API phụ thuộc cần bằng chứng thực tế.
 
@@ -18,9 +18,9 @@
 | HAI-3.1 | Audit Contracts/InitialAudit/API/query/tests đã có trên develop | Chưa deploy Audit mới; producer nhạy cảm phải đủ theo module |
 | HAI-3.2 | Smoke/API test có sẵn; chưa có E2E toàn bộ login → mở ngày → gọi → xác nhận → thu tiền sau deploy | Bản staging cũ; chưa có nghiệm thu UI nghiệp vụ |
 | HAI-3.3 | Security CI hiện có; Jenkins chạy NuGet/npm/Gitleaks trước publish | Kết quả Jenkins/GitHub CI cần xem theo SHA; không báo không có lỗ hổng khi chưa quét |
-| HAI-4.1 | Nginx WebSocket và k6 50 kết nối/30 phút | `/api/fulfillment` mới là route group rỗng, chưa có hub trên develop |
+| HAI-4.1 | Nginx WebSocket và k6 50 kết nối/30 phút | Consumer/state API Fulfillment đã merge; vẫn chưa có SignalR hub trên develop |
 | HAI-4.2 | Mã hóa age, local retention 7 ngày, R2 lifecycle runbook, monitor disk/RAM | Chưa cài và thử alert thật |
-| HAI-4.3 | Bảng thiết bị/reconnect/dedup trong UAT | Chưa có API bếp/giao thật; cần Safari iOS/Android vật lý |
+| HAI-4.3 | Bảng thiết bị/reconnect/dedup trong UAT | API start/ready/deliver đã có; còn hub, tích hợp UI và Safari iOS/Android vật lý |
 | HAI-5.1 | Mapping đủ 17 tiêu chí, parser TRX, kiểm SHA bằng chứng, FAIL/SKIP rõ ràng | Các dòng chưa đủ test không được PASS |
 | HAI-5.2 | ZAP baseline runner, report high-severity gate | Chưa chạy ZAP image được pin và nghiệm thu header/CORS/rate limit mới |
 | HAI-5.3 | Restore tool, 14 bước UAT và biểu mẫu kết quả | Cần R2 và chủ repo xác nhận UAT |
@@ -41,6 +41,14 @@
 
 ## Kiểm chứng
 
-Backend: full suite 397 integration + 5 architecture PASS trên SQL Server 2022, 0 skipped; bổ sung 3 test còn thiếu cho matrix và chạy riêng 3/3 PASS. Ma trận đạt 13/17 dòng; 4 dòng còn phụ thuộc public ordering/Fulfillment. Frontend: lint 0 error/11 warning, 71/71 test PASS, production build PASS. Release tooling: 9 test PASS (bao gồm các tình huống rollback mô phỏng); Bash syntax và ShellCheck PASS; compose production config PASS với giá trị giả. Jenkinsfile validation PASS, node restaurant-linux online. [Ma trận SQL](hai-matrix-results.md) vẫn BLOCKED bởi các tiêu chí thiếu coverage. Các log thử thất bại vẫn giữ trong `artifacts/hai-week7-*`; không đổi FAIL thành PASS bằng cách bỏ test.
+Backend: full suite 397 integration + 5 architecture PASS trên SQL Server 2022, 0 skipped; bổ sung 3 test còn thiếu cho matrix và chạy riêng 3/3 PASS. Ma trận đạt 14/17 dòng; đã bổ sung SQL test giao đồng thời cho API mới và 10 test HTTP phân quyền; chờ full Jenkins trên head cuối. Còn public ordering, liên kết confirm đến consumer và incident/remake. Frontend: lint 0 error/11 warning, 71/71 test PASS, production build PASS. Release tooling: 9 test PASS (bao gồm các tình huống rollback mô phỏng); Bash syntax và ShellCheck PASS; compose production config PASS với giá trị giả. Jenkinsfile validation PASS, node restaurant-linux online. [Ma trận SQL](hai-matrix-results.md) vẫn BLOCKED bởi các tiêu chí thiếu coverage. Các log thử thất bại vẫn giữ trong `artifacts/hai-week7-*`; không đổi FAIL thành PASS bằng cách bỏ test.
 
 Tài liệu vận hành: [runbook](hai-operations-runbook.md). Nghiệm thu/bàn giao: [UAT và backlog](hai-uat-and-handoff.md). Mapping máy đọc: `scripts/release/matrix.json`.
+
+## Cập nhật tích hợp Fulfillment
+
+Sau khi merge cf40c97, phát hiện endpoint deliver/cancel dùng cùng kiểm tra role bếp/bar: Staff bị chặn giao món, còn bếp lại được gọi giao/hủy. Đã đổi sang permission claim theo từng hành động: prepare theo trạm; deliver theo fulfillment.portions.serve; cancel theo fulfillment.incidents.approve. Thêm 10 ca HTTP và SQL tranh chấp giao món; nhóm Fulfillment chạy thật 34/34 PASS, 0 skipped. Không thay hình dạng request/response.
+
+Jenkins build #1 trên c29e2a5 đã SUCCESS: full SQL/web/security/migration; NuGet 0 finding, npm 7 finding nhưng 0 High/Critical, Gitleaks sạch; bundle có 9 module. Nhánh feature bỏ qua publish/deploy đúng thiết kế. Build mới sau tích hợp sẽ là bằng chứng cuối.
+
+Backup/restore đã thử trong container SQL Server riêng: BACKUP/CHECKSUM/VERIFYONLY → age → rclone local alias → đọc lại checksum → giải mã → restore database mới → CHECKDB → sentinel đúng 1 dòng, PASS. Đây là kiểm thử local, không phải R2 thật hoặc API probe. Hai container test được xóa sau chạy; không tác động VPS.

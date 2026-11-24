@@ -9,9 +9,9 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 | # | Kịch bản | Vòng 1 | Vòng 2 | Phụ thuộc chính |
 | --- | --- | --- | --- | --- |
 | 1 | Mở ngày; lần mở thứ hai bị chặn | CHƯA CHẠY | CHƯA CHẠY | Deploy bản mới + dữ liệu ngày thử |
-| 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | BLOCKED | BLOCKED | Fulfillment consumer/API/hub chưa merge |
+| 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | BLOCKED | BLOCKED | Consumer/state API đã merge; hub và UI thật còn thiếu |
 | 3 | QR gửi gọi thêm, nhân viên xác nhận, theo dõi, thu hồi sau đóng phiên | BLOCKED | BLOCKED | Public ordering và realtime hoàn chỉnh |
-| 4 | Hoàn thành/giao từng phần, nối lại không phát âm thanh cũ | BLOCKED | BLOCKED | Fulfillment command API/hub |
+| 4 | Hoàn thành/giao từng phần, nối lại không phát âm thanh cũ | BLOCKED | BLOCKED | SignalR hub và tích hợp UI thật |
 | 5 | Thu nhiều lần/2 phương thức/tiền thừa; hai thu ngân không thu dư | CHƯA CHẠY | CHƯA CHẠY | Bản mới trên staging + tài khoản/dữ liệu riêng |
 | 6 | Gọi thêm sau thu đủ phát sinh số còn phải thu | CHƯA CHẠY | CHƯA CHẠY | Sales/Billing + UI thật |
 | 7 | Miễn thu, đóng đơn, in chứng từ | BLOCKED | BLOCKED | Trạng thái phục vụ thật trước đóng đơn |
@@ -20,7 +20,7 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 | 10 | Chuyển bàn giữ quyền QR theo phiên | CHƯA CHẠY | CHƯA CHẠY | QR + hai bàn dùng riêng |
 | 11 | Nhập kho, đếm bất thường, điều chỉnh có lý do | CHƯA CHẠY | CHƯA CHẠY | Deploy + kho thử |
 | 12 | Chốt bị chặn, chốt đồng thời/hủy/chốt, tồn đầu hôm sau và snapshot | CHƯA CHẠY | CHƯA CHẠY | Các đơn/phần món xử lý xong |
-| 13 | Nhân viên không xem báo cáo, bếp không sửa bar, Admin không có quyền vận hành | BLOCKED | BLOCKED | API bếp/bar chưa hoàn chỉnh |
+| 13 | Nhân viên không xem báo cáo, bếp không sửa bar, Admin không có quyền vận hành | BLOCKED | BLOCKED | Cần deploy/test phân quyền API mới |
 | 14 | Đổi mật khẩu thu hồi phiên; rate limit đăng nhập | CHƯA CHẠY | CHƯA CHẠY | Tài khoản test được phép đổi mật khẩu, hai IP thật |
 
 ## Ma trận thiết bị và realtime
@@ -41,7 +41,7 @@ S1: mất dữ liệu/an ninh/ngừng toàn bộ. S2: chặn luồng chính ho�
 
 | ID | Loại | Mức/ưu tiên | Việc | Chủ | Điều kiện đóng |
 | --- | --- | --- | --- | --- | --- |
-| DEP-01 | Phụ thuộc | P0 | Fulfillment consumer/commands/hub | Hiếu | Merge + test SQL + OpenAPI + deploy |
+| DEP-01 | Phụ thuộc | P0 | SignalR hub, public ordering và incidents/remake | Hiếu | Merge + test SQL + OpenAPI + deploy |
 | OPS-01 | Hạ tầng | P0 | Cài helper CD mới bằng sudo; khóa CI hạn chế; diễn tập rollback thật | Hải/operator VPS | Log success và failure/rollback đúng digest |
 | OPS-02 | Hạ tầng | P0 | R2 public images/private backup, token, lifecycle, hai restore/API probe | Hải/chủ tài khoản R2 | Upload/read/deny + hai drill thật |
 | OPS-03 | Hạ tầng | P0 | Chọn VPS production, DNS/cert/secret riêng và license SQL | Chủ repo/Hải | Production readiness + smoke |
