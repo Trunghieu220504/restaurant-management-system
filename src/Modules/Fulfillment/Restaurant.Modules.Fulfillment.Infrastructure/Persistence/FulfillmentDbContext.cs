@@ -10,6 +10,7 @@ public sealed class FulfillmentDbContext(DbContextOptions<FulfillmentDbContext> 
 
     public DbSet<PhieuCheBien> Tickets => Set<PhieuCheBien>();
     public DbSet<SuCoMon> Incidents => Set<SuCoMon>();
+    public DbSet<YeuCauFulfillmentDaXuLy> Requests => Set<YeuCauFulfillmentDaXuLy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,5 +83,12 @@ public sealed class FulfillmentDbContext(DbContextOptions<FulfillmentDbContext> 
         // The approval screen only reads incidents that wait for a decision.
         incident.HasIndex(x => x.BaoLuc).HasDatabaseName("IX_SuCoMon_ChoDuyet").HasFilter("[TrangThai] = 'CHO_DUYET'");
         incident.HasOne<PhieuCheBien>().WithMany().HasForeignKey(x => x.PhieuCheBienId).OnDelete(DeleteBehavior.NoAction);
+
+        var request = modelBuilder.Entity<YeuCauFulfillmentDaXuLy>();
+        request.ToTable("YeuCauDaXuLy");
+        request.HasKey(x => new { x.Operation, x.ActorScope, x.Key });
+        request.Property(x => x.Operation).HasMaxLength(40).IsUnicode(false).IsRequired();
+        request.Property(x => x.RequestHash).HasColumnType("binary(32)").IsRequired();
+
     }
 }
