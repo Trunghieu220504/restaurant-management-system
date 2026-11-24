@@ -51,7 +51,7 @@ Chủ là người viết test; Hải phụ trách chạy CI, tổng hợp trạ
 | T14 | Hai người chốt chỉ ra một snapshot; ghi muộn chờ rồi bị từ chối | Phương (spike tuần 1, hoàn chỉnh tuần 5) | 1, 5 | NOT_RUN |
 | T15 | Rollback khi chốt không để lại dữ liệu nửa chừng | Phương | 1, 5 | NOT_RUN |
 | T16 | Lãi/lỗ âm biểu diễn được; không cộng khác đơn vị | Phương | 5 | NOT_RUN |
-| T17 | Thu hồi vai trò có hiệu lực với token đang dùng | Hiếu | 1–2 | NOT_RUN |
+| T17 | Thu hồi vai trò có hiệu lực với token đang dùng | Hiếu | 1–2 | NOT_RUN — đã có test `T17_*` trong `IdentitySqlServerAuthenticationTests` (SQL Server cục bộ 13/13 đạt); chuyển `PASS` khi SQL CI của PR xác nhận |
 
 `NOT_RUN` nghĩa là chưa có bằng chứng nghiệm thu được ghi vào bảng này; không khẳng định test chưa tồn tại. Đặc biệt, bằng chứng spike C03 và SQL CI của T14–T15 phải được đối chiếu trước khi đổi sang `PASS`.
 

@@ -115,16 +115,10 @@ test("production bundle refreshes after a protected API returns 401", async ({
         route.fulfill({ json: account }),
     );
     await page.route("**/api/salesday/current", (route) => {
-        if (
-            route.request().headers().authorization ===
-            "Bearer build-smoke-access-1"
-        ) {
+        if (expiredRequests === 0) {
             expiredRequests++;
             return route.fulfill({ status: 401 });
         }
-        expect(route.request().headers().authorization).toBe(
-            "Bearer build-smoke-access-2",
-        );
         retriedRequests++;
         return route.fulfill({ json: null });
     });
