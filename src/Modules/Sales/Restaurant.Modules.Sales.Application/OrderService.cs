@@ -1,4 +1,5 @@
 using Restaurant.Modules.Catalog.Contracts;
+using Restaurant.Modules.Billing.Contracts;
 using Restaurant.Modules.Sales.Domain;
 using Restaurant.Modules.Sales.Contracts;
 using Restaurant.Modules.SalesDay.Contracts;
@@ -12,7 +13,7 @@ namespace Restaurant.Modules.Sales.Application;
 /// through their Contracts, so each of them can be replaced by a fake in tests.
 /// </summary>
 public sealed class OrderService(
-    IOrderStore store, ISessionLookup sessions, ISalesDayGate dayGate, IMenuPricing menu, TimeProvider clock) : IOrderCommands
+    IOrderStore store, ISessionLookup sessions, ISalesDayGate dayGate, IMenuPricing menu, IInvoiceCharging charging, TimeProvider clock) : IOrderCommands
 {
     public async Task<ServiceResult<OrderView>> CreateOrderAsync(CreateOrderCommand command, CancellationToken ct)
     {
@@ -160,6 +161,15 @@ public sealed class OrderService(
 
         var confirmed = order.ConfirmBatch(command.BatchNumber, command.Actor, clock.GetUtcNow().UtcDateTime);
         if (!confirmed.Succeeded) return Fail<BatchView>(confirmed.Error!);
+        // Billing joins the Sales transaction through the host adapter. A charge or Outbox failure
+        // must roll back the obligation and confirmation together.
+        var charged = await charging.ChargeConfirmedBatchAsync(new ChargeBatchRequest(order.Id, batch.Id,
+            order.NgayBanId, batch.KhoaYeuCau, command.Actor,
+            [.. batch.Portions.Where(x => x.TrangThai == PortionStatus.Confirmed).Select(x => new ChargeLine(x.Id,
+                string.Join(", ", new[] { x.TenMonChot, x.TenBienTheChot }.Concat(x.Options.Select(o => o.TenTuyChonChot))),
+                x.GiaMonChot + x.Options.Sum(o => o.GiaCongChot)))]), ct);
+        if (!charged.IsCharged) return Fail<BatchView>(charged.ErrorCode ?? BillingErrorCodes.LineInvalid);
+
         await tx.StageBatchConfirmedAsync(new BatchConfirmed(order.Id, batch.Id, batch.SoDot,
             [.. batch.Portions.Where(x => x.TrangThai == PortionStatus.Confirmed)
                 .Select(x => new ConfirmedPortion(x.Id, x.TramChot))]),
