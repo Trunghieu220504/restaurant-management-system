@@ -22,6 +22,7 @@ public static class SalesModule
 
         services.AddScoped<IOrderSettlement, SalesOrderSettlement>();
         services.AddScoped<IOrderStore, EfOrderStore>();
+        services.AddScoped<IOrderQueries, OrderQueries>();
         services.AddScoped<OrderService>();
         services.AddScoped<IOrderCommands>(provider => provider.GetRequiredService<OrderService>());
 

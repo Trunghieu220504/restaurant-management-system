@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Hosting;
@@ -74,6 +77,17 @@ public sealed class SalesBillingAcceptanceSqlServerTests
             var invoice = (await ledger.FindAsync(invoiceId.Value, default))!;
             Assert.Single(invoice.Lines);
             Assert.Equal(20000, invoice.Due);
+            using var client = factory.CreateClient();
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/sales/orders/")).StatusCode);
+            using var login = await client.PostAsJsonAsync("/api/identity/login", new { userName = "demo.staff", password = configuration["DemoSeed:Password"] });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            using var loginJson = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
+            client.DefaultRequestHeaders.Authorization = new("Bearer", loginJson.RootElement.GetProperty("accessToken").GetString());
+            var listed = await client.GetFromJsonAsync<OpenOrdersPage>("/api/sales/orders/?page=0&pageSize=50");
+            Assert.Equal(1, listed!.Total);
+            Assert.Equal(order.Id, Assert.Single(listed.Items).Id);
+            Assert.Equal("DA_XAC_NHAN", Assert.Single(listed.Items[0].Batches).Status);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/sales/orders/?page=-1")).StatusCode);
             var persisted = Assert.Single(await p.GetRequiredService<SalesDbContext>().Set<OutboxEntry>().AsNoTracking()
                 .Where(e => e.Type == "sales.batch_confirmed").ToArrayAsync());
             var message = new StoredIntegrationEvent(persisted.Id, persisted.AggregateId, persisted.AggregateVersion,

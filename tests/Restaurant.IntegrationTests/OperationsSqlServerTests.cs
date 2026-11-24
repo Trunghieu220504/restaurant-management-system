@@ -35,6 +35,9 @@ public sealed class OperationsSqlServerTests : IAsyncLifetime
         connectionString = new SqlConnectionStringBuilder(supplied) { InitialCatalog = databaseName }.ConnectionString;
         await using var db = Db();
         await db.Database.MigrateAsync();
+        await using var sales = new SalesDbContext(new DbContextOptionsBuilder<SalesDbContext>()
+            .UseSqlServer(connectionString, sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "sales")).Options);
+        await sales.Database.MigrateAsync();
     }
 
     public async Task DisposeAsync()
@@ -42,7 +45,7 @@ public sealed class OperationsSqlServerTests : IAsyncLifetime
         if (connectionString is null) return;
         if (new SqlConnectionStringBuilder(connectionString).InitialCatalog != databaseName ||
             !databaseName.StartsWith("RestaurantOperationsTest_", StringComparison.Ordinal)) throw new InvalidOperationException();
-        SqlConnection.ClearAllPools();
+        SqlTestDatabase.ClearPool(connectionString);
         await using var db = Db();
         await db.Database.EnsureDeletedAsync();
     }

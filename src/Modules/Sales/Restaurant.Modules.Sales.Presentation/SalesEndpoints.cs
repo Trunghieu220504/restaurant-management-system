@@ -16,6 +16,11 @@ public static class SalesEndpoints
             .WithTags("Sales")
             .RequireAuthorization();
         var orders = group.MapGroup("/orders").RequireAuthorization(p => p.RequireClaim("permission", "sales.orders.manage"));
+        orders.MapGet("/", async ([FromServices] IOrderQueries queries, CancellationToken ct, int page = 0, int pageSize = 50) =>
+            page is < 0 or > 10000 || pageSize is < 1 or > 100
+                ? Results.Problem(statusCode: 400, title: SalesErrors.InputInvalid)
+                : Results.Ok(await queries.ReadOpenAsync(page, pageSize, ct)))
+            .WithName("SalesOpenOrders").Produces<OpenOrdersPage>().ProducesProblem(400);
         orders.MapPost("/", async (CreateOrderCommand request, HttpContext http, [FromServices] IOrderCommands service, CancellationToken ct) =>
         {
             return TryActor(http, out var actor)
