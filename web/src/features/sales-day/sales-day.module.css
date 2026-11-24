@@ -9,6 +9,11 @@
     gap: 16px;
     margin-bottom: 28px;
 }
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .heading h1 {
     font-size: 28px;
     font-weight: 650;
@@ -124,6 +129,106 @@
     font-size: 14px;
     color: #626972;
 }
+.closing,
+.history {
+    border-top: 1px solid #dce1e5;
+    padding: 28px 0;
+}
+.sectionHeading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.sectionHeading h2,
+.history h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+.blockers {
+    margin: 0 0 20px;
+    padding: 12px 16px 12px 32px;
+    border-left: 3px solid #be3030;
+    background: #fff0f0;
+    color: #9d2525;
+    font-size: 14px;
+}
+.blockers li + li {
+    margin-top: 6px;
+}
+.preview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+.preview div {
+    display: grid;
+    gap: 7px;
+}
+.preview span {
+    color: #626972;
+    font-size: 13px;
+}
+.preview strong {
+    font-size: 18px;
+}
+.closing textarea {
+    min-height: 76px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid #cbd0d5;
+    border-radius: 5px;
+    font: inherit;
+}
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 14px;
+}
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+.success {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 18px 0;
+    padding: 14px;
+    border-left: 3px solid #287a4a;
+    background: #edf8f1;
+    color: #1d633a;
+}
+.success p {
+    margin-top: 4px;
+    font-size: 14px;
+}
+.history ul {
+    display: grid;
+    gap: 1px;
+    margin-top: 16px;
+    border-block: 1px solid #dce1e5;
+}
+.history li {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(180px, 1fr) auto;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid #edf0f2;
+    font-size: 14px;
+}
+.history li:last-child {
+    border-bottom: 0;
+}
+.history small {
+    color: #626972;
+}
 @media (max-width: 480px) {
     .summary {
         grid-template-columns: 1fr;
@@ -131,5 +236,16 @@
     .date {
         width: 100%;
         margin: 0 0 0 38px;
+    }
+    .headerActions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .preview {
+        grid-template-columns: 1fr;
+    }
+    .history li {
+        grid-template-columns: 1fr;
+        gap: 5px;
     }
 }
