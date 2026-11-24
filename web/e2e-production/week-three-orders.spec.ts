@@ -134,7 +134,8 @@ test("staff builds batches with a topping, reviews a price change and handles ta
     await expect(page.getByLabel("Tên khách")).toBeFocused();
     await page.getByLabel("Tên khách").fill("An");
     await page.getByLabel("Điện thoại").fill("0901234567");
-    await page.getByLabel("Giờ nhận").fill("2026-11-27T18:00");
+    await page.getByLabel("Ngày nhận", { exact: true }).fill("27/11/2026");
+    await page.getByLabel("Giờ nhận").fill("18:00");
     await send.click();
     const takeaway = page.getByRole("article").filter({
         has: page.getByRole("heading", { name: /Mang về · An/ }),

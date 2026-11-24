@@ -1,0 +1,82 @@
+.field {
+    display: grid;
+    align-content: start;
+    gap: 0.25rem;
+    min-width: 0;
+}
+.entry {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    max-width: 100%;
+}
+.field .entry input {
+    width: 10.5rem;
+    max-width: 100%;
+    padding-right: 2.3rem;
+    margin: 0;
+}
+.field .entry .trigger {
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    margin: 0;
+    padding: 0 0.55rem;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    display: grid;
+    place-items: center;
+}
+.field .calendar {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(22rem, 94vw);
+    max-height: 90vh;
+    padding: 1rem;
+    border: 1px solid #b8c9c3;
+    border-radius: 1rem;
+    background: white;
+    color: #18332b;
+    box-shadow: 0 12px 36px #1234;
+}
+.calendar::backdrop {
+    background: #172b2590;
+}
+.month {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    margin: 0.75rem 0;
+}
+.days span {
+    text-align: center;
+    font-size: 0.8rem;
+}
+.field .days button,
+.field .month button {
+    padding: 0;
+    height: 2.5rem;
+    min-height: 0;
+    border: 0;
+    border-radius: 0.5rem;
+    display: grid;
+    place-items: center;
+}
+.field .days button[aria-pressed="true"] {
+    color: white;
+    background: #115e59;
+}
+.calendar button {
+    cursor: pointer;
+}
+.calendar button:disabled {
+    opacity: 0.4;
+}

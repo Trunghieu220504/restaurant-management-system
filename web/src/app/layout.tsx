@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Restaurant Management",
-    description: "Restaurant management web application",
+    title: "Quản lý nhà hàng",
+    description: "Ứng dụng quản lý hoạt động nhà hàng",
 };
 
 export default function RootLayout({

@@ -1,4 +1,6 @@
 "use client";
+import { VietnamDateField } from "@/components/vietnam-date-field";
+import { isoDate } from "@/lib/vietnam-date";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
@@ -84,7 +86,12 @@ function Workspace({ account }: { account: string }) {
         [session, chooseTable] = useState("");
     const [name, setName] = useState(""),
         [phone, setPhone] = useState(""),
-        [pickup, setPickup] = useState("");
+        [pickupDate, setPickupDate] = useState(""),
+        [pickupTime, setPickupTime] = useState("");
+    const pickup =
+        isoDate(pickupDate) && pickupTime
+            ? isoDate(pickupDate) + "T" + pickupTime
+            : "";
     const [search, find] = useState(""),
         [group, filter] = useState(""),
         [item, choose] = useState<MenuItem | null>(null);
@@ -175,7 +182,8 @@ function Workspace({ account }: { account: string }) {
             if (takeaway) {
                 setName("");
                 setPhone("");
-                setPickup("");
+                setPickupDate("");
+                setPickupTime("");
             }
         } catch (err) {
             fail(
@@ -286,17 +294,33 @@ function Workspace({ account }: { account: string }) {
                                                     }
                                                 />
                                             </label>
+                                            <VietnamDateField
+                                                label="Ngày nhận"
+                                                value={pickupDate}
+                                                onChange={setPickupDate}
+                                            />
                                             <label>
-                                                Giờ nhận{" "}
+                                                Giờ nhận
                                                 <input
+                                                    type="text"
                                                     required
-                                                    type="datetime-local"
-                                                    value={pickup}
-                                                    onChange={(e) =>
-                                                        setPickup(
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                    placeholder="HH:mm"
+                                                    maxLength={5}
+                                                    value={pickupTime}
+                                                    pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                                                    onChange={(e) => {
+                                                        const field =
+                                                            e.currentTarget;
+                                                        field.setCustomValidity(
+                                                            field.validity
+                                                                .patternMismatch
+                                                                ? "Nhập giờ từ 00:00 đến 23:59."
+                                                                : "",
+                                                        );
+                                                        setPickupTime(
+                                                            field.value,
+                                                        );
+                                                    }}
                                                 />
                                             </label>
                                         </>

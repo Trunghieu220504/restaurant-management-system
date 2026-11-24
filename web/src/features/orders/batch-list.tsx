@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/vietnam-date";
 import { useState } from "react";
 import { ListOrdered } from "lucide-react";
 import styles from "./orders.module.css";
@@ -280,7 +281,14 @@ export function BatchList({
                             {order.destination.kind === "takeaway" && (
                                 <p>
                                     {order.destination.phone} · Giờ nhận{" "}
-                                    {order.destination.pickup.replace("T", " ")}
+                                    {order.destination.pickup
+                                        .split("T")
+                                        .map((part, index) =>
+                                            index === 0
+                                                ? displayDate(part)
+                                                : part,
+                                        )
+                                        .join(" ")}
                                 </p>
                             )}
                             {batches.map((b) => (
