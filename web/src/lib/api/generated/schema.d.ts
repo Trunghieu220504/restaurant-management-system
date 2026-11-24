@@ -609,6 +609,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Read-only public menu. If Authorization: Guest <session token> is supplied, the host requires an active Seating grant. Menu access alone never grants ordering rights. Responses are not cached. */
         get: operations["CatalogPublicMenu"];
         put?: never;
         post?: never;
@@ -5809,6 +5810,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicMenu"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
