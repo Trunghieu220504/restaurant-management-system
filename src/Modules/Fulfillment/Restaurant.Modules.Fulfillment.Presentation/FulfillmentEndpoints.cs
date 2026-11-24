@@ -15,6 +15,19 @@ public static class FulfillmentEndpoints
         var group = endpoints.MapGroup("/api/fulfillment")
             .WithTags("Fulfillment")
             .RequireAuthorization();
+        group.MapGet("/snapshot", async (HttpContext http, IOperationsSnapshot snapshots, CancellationToken ct,
+            string? station = null, long? orderId = null) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            if (orderId <= 0 || station is not null && !Stations.All.Contains(station))
+                return Problem(FulfillmentErrors.InputInvalid);
+            if (orderId.HasValue && !OperationsAccess.CanServe(http.User)) return Results.Forbid();
+            var stations = station is null
+                ? Stations.All.Where(x => OperationsAccess.CanReadStation(http.User, x)).ToArray()
+                : OperationsAccess.CanReadStation(http.User, station) ? [station] : Array.Empty<string>();
+            if (stations.Length == 0) return Results.Forbid();
+            return Results.Ok(await snapshots.ReadAsync(stations, orderId, ct));
+        }).WithName("FulfillmentSnapshot").Produces<OperationsSnapshot>().Produces(403).ProducesProblem(400);
         group.MapGet("/queue/{station}", async (string station, HttpContext http, IFulfillmentService service, CancellationToken ct) =>
         {
             if (!Stations.All.Contains(station)) return Results.Problem(statusCode: 400, title: FulfillmentErrors.InputInvalid);
