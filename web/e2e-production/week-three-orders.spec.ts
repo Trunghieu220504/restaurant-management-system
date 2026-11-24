@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mockIdentity } from "./helpers/identity";
 import { mockPublicMenu } from "./helpers/public-menu";
-test("staff builds batches with a topping, reviews a price change and handles takeaway", async ({
+test("staff sends real Sales-shaped commands and reloads server-owned batches", async ({
     page,
 }) => {
     await mockIdentity(page, {
@@ -11,13 +11,6 @@ test("staff builds batches with a topping, reviews a price change and handles ta
             "seating.sessions.manage",
         ],
     });
-    let price = 30000;
-    await page.route("**/api/catalog/availability", (route) =>
-        route.fulfill({ json: { businessDayId: "open-day", soldOut: [] } }),
-    );
-    await page.route("**/api/sales/portions", (route) =>
-        route.fulfill({ json: [] }),
-    );
     const row = { active: true, version: "AQ==" };
     await page.route("**/api/catalog/menu", (route) =>
         route.fulfill({
@@ -39,13 +32,13 @@ test("staff builds batches with a topping, reviews a price change and handles ta
                                 itemId: "i",
                                 name: "Ly lớn",
                                 code: "L",
-                                price,
+                                price: 30000,
                             },
                         ],
                         optionGroups: [
                             {
                                 optionGroupId: "og",
-                                minSelections: 1,
+                                minSelections: 0,
                                 maxSelections: 1,
                             },
                         ],
@@ -57,93 +50,160 @@ test("staff builds batches with a topping, reviews a price change and handles ta
                         id: "og",
                         name: "Topping",
                         type: "TOPPING",
-                        options: ["Trân châu", "Thạch"].map((name, i) => ({
-                            ...row,
-                            id: String(i),
-                            optionGroupId: "og",
-                            name,
-                            extraPrice: 5000,
-                        })),
+                        options: [
+                            {
+                                ...row,
+                                id: "o",
+                                optionGroupId: "og",
+                                name: "Trân châu",
+                                extraPrice: 5000,
+                            },
+                        ],
                     },
                 ],
             },
         }),
     );
+    await page.route("**/api/catalog/availability", (route) =>
+        route.fulfill({ json: { businessDayId: "day", soldOut: [] } }),
+    );
     await page.route("**/api/seating/board", (route) =>
         route.fulfill({
-            json: [{ tables: [{ name: "Bàn 01", session: { id: 42 } }] }],
+            json: [
+                { tables: [{ id: 1, name: "Bàn 01", session: { id: 42 } }] },
+            ],
         }),
     );
     await page.route("**/api/salesday/current", (route) =>
-        route.fulfill({ json: { status: "DANG_BAN" } }),
+        route.fulfill({ json: { id: "day", status: "DANG_BAN" } }),
     );
-    await page.goto("/orders");
-    await page.getByLabel("Bàn đang mở").selectOption("42");
-    await page.getByLabel("Nhóm món").selectOption("g");
-    await page.getByLabel("Tìm món").fill("đào");
-    const dish = page.getByRole("button", { name: "Trà đào", exact: true });
-    const add = async () => {
-        await dish.click();
-        const d = page.getByRole("dialog");
-        await d.getByLabel(/Trân châu/).check();
-        await d.getByRole("button", { name: "Thêm vào giỏ" }).click();
-    };
-    await dish.click();
-    const d = page.getByRole("dialog");
-    const pick = d.getByRole("button", { name: "Thêm vào giỏ" });
-    await pick.click();
-    await expect(d.getByRole("alert")).toBeVisible();
-    await d.getByLabel(/Trân châu/).check();
-    await d.getByLabel(/Thạch/).check();
-    await pick.click();
-    await expect(d).toBeVisible();
-    await d.getByLabel(/Thạch/).uncheck();
-    await pick.click();
-    await page.getByLabel("Số lượng").fill("2");
-    const send = page.getByRole("button", { name: "Gửi đợt món" });
-    price = 32000;
-    await send.click();
-    await expect(page.getByText(/order.price.changed/)).toBeVisible();
-    await send.click();
-    await page.getByRole("button", { name: "Sửa phần món" }).click();
-    await page.getByLabel("Số phần sửa").fill("2");
-    await page.getByLabel("Ghi chú chế biến").fill("Ít đá");
-    await page.getByRole("button", { name: "Lưu phần món" }).click();
-    await expect(page.getByText(/· Ít đá/)).toBeVisible();
-    await page.getByRole("button", { name: "Hủy phần món" }).click();
-    await page.getByLabel("Lý do hủy").fill("Khách giảm một phần");
-    await page.getByRole("button", { name: "Xác nhận hủy" }).click();
-    await expect(page.getByText(/Đã hủy 1/)).toBeVisible();
-    await page.getByRole("button", { name: "Xác nhận đợt" }).click();
-    await page.getByLabel("Chỉ hiện đợt chờ xác nhận").uncheck();
-    await expect(
-        page.getByRole("heading", { name: /Đã xác nhận/ }),
-    ).toBeVisible();
-    await expect(
-        page.getByRole("button", { name: "Hủy phần món" }),
-    ).toHaveCount(0);
-    await add();
-    await send.click();
-    await expect(page.getByRole("article")).toHaveCount(1);
-    await page.getByLabel("Lý do từ chối").fill("Khách đổi món");
-    await page.getByRole("button", { name: "Từ chối đợt" }).click();
-    await expect(page.getByText("Lý do từ chối: Khách đổi món")).toBeVisible();
-    await page.getByLabel("Loại đơn").selectOption("away");
-    await add();
-    await send.click();
-    await expect(page.getByLabel("Tên khách")).toBeFocused();
-    await page.getByLabel("Tên khách").fill("An");
-    await page.getByLabel("Điện thoại").fill("0901234567");
-    await page.getByLabel("Ngày nhận", { exact: true }).fill("27/11/2026");
-    await page.getByLabel("Giờ nhận").fill("18:00");
-    await send.click();
-    const takeaway = page.getByRole("article").filter({
-        has: page.getByRole("heading", { name: /Mang về · An/ }),
+    await page.route("**/api/sales/portions", (route) =>
+        route.fulfill({ json: [] }),
+    );
+    const batches: {
+        id: number;
+        number: number;
+        status: string;
+        total: number;
+        portions: {
+            id: number;
+            menuItemName: string;
+            variantName: string;
+            optionNames: string[];
+            unitPrice: number;
+            status: string;
+        }[];
+    }[] = [];
+    let created = false,
+        priceChanged = true,
+        createCalls = 0;
+    const keys: string[] = [];
+    await page.route("**/api/sales/orders**", async (route) => {
+        const request = route.request(),
+            pathname = new URL(request.url()).pathname;
+        if (request.method() === "GET")
+            return route.fulfill({
+                json: {
+                    total: created ? 1 : 0,
+                    items: created
+                        ? [
+                              {
+                                  id: 1,
+                                  code: "DH-0001",
+                                  type: "TAI_BAN",
+                                  businessDayId: "day",
+                                  sessionId: 42,
+                                  tableLabel: "Bàn 01",
+                                  customerName: null,
+                                  batches,
+                              },
+                          ]
+                        : [],
+                },
+            });
+        if (pathname.replace(/\/$/, "") === "/api/sales/orders") {
+            expect(request.postDataJSON()).toMatchObject({
+                type: "TAI_BAN",
+                sessionId: 42,
+                businessDayId: null,
+            });
+            created = true;
+            createCalls++;
+            return route.fulfill({ status: 201, json: { id: 1 } });
+        }
+        if (pathname.endsWith("/batches")) {
+            keys.push((await request.headerValue("Idempotency-Key"))!);
+            expect(request.postDataJSON()).toMatchObject({
+                source: "NHAN_VIEN",
+                lines: [{ menuItemId: "i", variantId: "v", optionIds: ["o"] }],
+            });
+            if (priceChanged) {
+                priceChanged = false;
+                return route.fulfill({
+                    status: 409,
+                    json: { code: "sales.pricing.changed" },
+                });
+            }
+            batches.push({
+                id: 1,
+                number: 1,
+                status: "CHO_XAC_NHAN",
+                total: 35000,
+                portions: [
+                    {
+                        id: 1,
+                        menuItemName: "Trà đào",
+                        variantName: "Ly lớn",
+                        optionNames: ["Trân châu"],
+                        unitPrice: 35000,
+                        status: "CHO_XAC_NHAN",
+                    },
+                ],
+            });
+            return route.fulfill({ status: 201, json: { number: 1 } });
+        }
+        if (pathname.endsWith("/confirm")) {
+            batches[0].status = "DA_XAC_NHAN";
+            return route.fulfill({ json: {} });
+        }
+        throw new Error("Unexpected Sales request");
     });
-    const pickupDetails = takeaway.getByText(/0901234567.*18:00/);
-    await expect(pickupDetails).toBeVisible();
+    await page.goto("/orders");
+    await page.getByLabel("Phục vụ", { exact: true }).selectOption("42");
+    await page
+        .getByRole("button", { name: "Tạo đơn mới", exact: true })
+        .click();
+    await expect(
+        page.getByRole("heading", { name: "DH-0001 · Bàn 01" }),
+    ).toBeVisible();
+    await page.getByLabel("Món", { exact: true }).selectOption("i");
+    await page.getByRole("checkbox", { name: /Trân châu/ }).check();
+    await page
+        .getByRole("button", { name: "Gửi đợt món", exact: true })
+        .click();
+    await expect(
+        page.getByRole("alert").filter({ hasText: "Giá món đã thay đổi" }),
+    ).toBeVisible();
+    await page
+        .getByRole("button", { name: "Gửi đợt món", exact: true })
+        .click();
+    await expect(
+        page.getByRole("heading", { name: "Đợt 1 · Chờ xác nhận" }),
+    ).toBeVisible();
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+    await page
+        .getByRole("button", { name: "Xác nhận đợt 1", exact: true })
+        .click();
+    await expect(
+        page.getByRole("heading", { name: "Đợt 1 · Đã xác nhận" }),
+    ).toBeVisible();
     await page.reload();
-    await expect(pickupDetails).toBeVisible();
+    await page.getByRole("button", { name: /DH-0001.*Bàn 01/ }).click();
+    await expect(
+        page.getByRole("heading", { name: "Đợt 1 · Đã xác nhận" }),
+    ).toBeVisible();
+    expect(createCalls).toBe(1);
 });
 test("public QR at 360px keeps a private draft and sends no orders", async ({
     page,

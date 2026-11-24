@@ -39,3 +39,9 @@ SQL đầy đủ: 441 integration + 5 architecture PASS, 0 skipped, ở `artifac
 Staging vẫn chạy revision cũ vì user deploy chỉ được gọi helper cũ; chưa cài helper CD mới, chưa có GHCR token `write:packages`, chưa có R2/age/rclone trên VPS, chưa có hai restore từ R2 kèm API probe, production/DNS/secret riêng và tập huấn. Token GitHub hiện có chỉ `gist, repo, workflow` nên không tự dùng để publish GHCR bằng Jenkins.
 
 Các nhánh QR/session-access, incidents/remake và UI service/realtime mới của nhóm đã được phát hiện trên GitHub nhưng chưa mặc nhiên coi là merged/đã nghiệm thu. Bản demo này chỉ chứng nhận các luồng nêu trên; không ghi toàn bộ bảy tuần Done.
+
+## Kiểm chứng bổ sung ngày 25/11/2026
+
+- Production UI smoke: 40/40 PASS với NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED=true; đây là suite fixture giao diện, tách biệt với E2E thật đã nêu.
+- SignalR qua Nginx demo: 50 kết nối trong 1.801.014 ms (~30 phút), cuối kỳ 50/50 active, 0 failure; 2 lần refresh, 100 lượt reconnect theo hết hạn JWT. Kết quả ở artifacts/hai-live-demo/signalr-30min.json. Không coi là nghiệm thu đường mạng Cloudflare/VPS.
+- PR #105 đã sửa và xanh ở e69f75f; PR #116 seed và #117 atomic Billing cũng có Build/SQL xanh. PR #118 là nhánh tích hợp UAT, theo dõi CI riêng.

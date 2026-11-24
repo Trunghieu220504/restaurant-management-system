@@ -9,6 +9,12 @@ import { catalogApi, formatPrice } from "@/features/catalog/api";
 import { BillingLive } from "@/features/billing/billing-live";
 import { KitchenLive } from "@/features/kitchen/kitchen-live";
 import { LiveQueryScope } from "@/lib/realtime/live-query";
+import { LivePortions } from "./live-portions";
+import { MenuPhoto } from "@/features/catalog/menu-photo";
+import {
+    useAvailability,
+    unavailableItem,
+} from "@/features/catalog/availability";
 import { salesRequest, type LiveOrder } from "./live-api";
 
 type SessionTable = {
@@ -36,6 +42,7 @@ function OrdersWorkspace() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const allowed = can("sales.orders.manage");
+    const availability = useAvailability(allowed);
     const [page, setPage] = useState(0);
     const orders = useQuery({
         queryKey: ["live-orders", user?.id, page],
@@ -166,6 +173,45 @@ function OrdersWorkspace() {
                     </Link>
                 </p>
             )}
+            <section
+                aria-label="Thực đơn hôm nay"
+                className="rounded-xl border bg-white p-4"
+            >
+                <h2 className="mb-3 text-lg font-semibold">Thực đơn hôm nay</h2>
+                <div className="flex flex-wrap gap-3">
+                    {menu.data?.items
+                        .filter((value) => value.active)
+                        .map((value) => {
+                            const sold = availability.data
+                                ? unavailableItem(
+                                      availability.data,
+                                      menu.data!,
+                                      value,
+                                  )
+                                : false;
+                            return (
+                                <button
+                                    key={value.id}
+                                    disabled={sold}
+                                    className="w-36 rounded border p-2 text-left disabled:opacity-50"
+                                    onClick={() => {
+                                        setItem(value.id);
+                                        setVariant("");
+                                        setOptions([]);
+                                    }}
+                                >
+                                    <MenuPhoto
+                                        objectKey={value.imageObjectKey}
+                                    />
+                                    <span>
+                                        {value.name}
+                                        {sold ? " · Hết món" : ""}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                </div>
+            </section>
             <div className="grid gap-6 xl:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)]">
                 <section className="space-y-4 rounded-xl border bg-white p-4">
                     <h2 className="text-lg font-semibold">Đơn đang mở</h2>
@@ -635,6 +681,7 @@ function OrdersWorkspace() {
                             Chọn một đơn đang mở hoặc tạo đơn mới.
                         </p>
                     )}
+                    <LivePortions />
                     {can("fulfillment.portions.serve") && (
                         <KitchenLive permissions={permissions} />
                     )}
