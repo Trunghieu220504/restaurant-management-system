@@ -2,18 +2,31 @@
 
 Nhánh `feature/bao-week5-guest-accessibility` tiếp nối bản tuần 4 ở commit `48f9941`. Phạm vi gồm giao diện QR của khách và trải nghiệm truy cập màn hình nhân viên.
 
+## Cập nhật GitHub ngày 24/11/2026
+
+Đã gộp `origin/develop` tại `26c1054` vào nhánh tuần 5 tại merge commit `52293d9`. Lịch sử có cả PR #93 của Bảo Anh và commit tuần 5 `d739f2d`. Git tự gộp phần điều hướng dùng chung trong `app-shell.tsx`.
+
+| Code của Hiếu | Phạm vi đã có trên develop | Tác động đến QR |
+| --- | --- | --- |
+| [PR #99](https://github.com/Trunghieu220504/restaurant-management-system/pull/99) | Tạo đơn, thêm đợt. Sales nhận một dòng cho mỗi phần món. | Đã chỉnh dữ liệu phía khách theo `BatchLine`: chọn hai phần sẽ gửi hai dòng, giữ nguyên món, biến thể, tùy chọn và ghi chú. |
+| [PR #100](https://github.com/Trunghieu220504/restaurant-management-system/pull/100) | Nhân viên xác nhận, từ chối và hủy đợt. | Đã bổ sung nhãn tiếng Việt cho `DA_TU_CHOI` và `DA_HUY`, dừng hỏi trạng thái khi đợt đã kết thúc. |
+
+Đối chiếu `SalesEndpoints.cs`, `OrderModels.cs`, `SalesRules.cs` và `SeatingEndpoints.cs`: thêm đợt qua Sales yêu cầu danh tính nhân viên với quyền `sales.orders.manage`, kể cả khi nguồn ghi nhận là `KHACH`. Hai API guest-access hiện có là đổi mã và xác minh phiên. Việc gửi và đọc trạng thái bằng token Guest vẫn phụ thuộc HIE-5.1. Client đã xử lý thêm HTTP 400 với mã `sales.batch.line_invalid` để cập nhật lại thực đơn khi Sales từ chối dòng món.
+
 ## BAO-5.1 · Trang QR cho khách
 
 | Tệp | Thay đổi và lý do |
 | --- | --- |
 | `web/src/features/guest/guest-access.tsx` | Chuyển token trong bộ nhớ sang phần gọi món sau khi kiểm tra phiên và máy chủ báo hỗ trợ đặt món. Ngừng cho gửi khi xác minh phiên lỗi hoặc token hết hạn. QR chỉ có mã bàn vẫn xem được thực đơn. |
 | `web/src/features/guest/guest-menu.tsx` | Cho chọn tùy chọn theo biến thể, kiểm tra giới hạn của từng nhóm và cộng phụ phí vào tổng tiền. Thêm tên truy cập cho nút tăng, giảm và ô ghi chú. Khi thực đơn thay đổi, khách có thể bỏ món đã hết khỏi giỏ. |
-| `web/src/features/guest/guest-checkout.tsx` | Gửi giỏ bằng token khách, khóa thao tác trong lúc gửi và dùng lại khóa chống trùng khi gửi lại cùng nội dung. Hiện trạng thái của đợt vừa gửi; tạm dừng theo Retry-After khi gặp 429, yêu cầu quét lại khi mất quyền, tải lại thực đơn khi gặp 409/422. |
+| `web/src/features/guest/guest-checkout.tsx` | Gửi giỏ bằng token khách, khóa thao tác trong lúc gửi và dùng lại khóa chống trùng khi gửi lại cùng nội dung. Hiện trạng thái của đợt vừa gửi; tạm dừng theo Retry-After khi gặp 429, yêu cầu quét lại khi mất quyền, tải lại thực đơn khi gặp lỗi dòng món 400 hoặc 409/422. |
 
 **Phụ thuộc HIE-5.1.** API trong nhánh tuần 4 đã có thực đơn công khai, đổi mã và xác minh phiên. OpenAPI của nhánh này chưa công bố thao tác gửi và theo dõi đợt của khách. Giao diện và test hiện dùng hợp đồng đề xuất dưới đây. Hiếu cần xác nhận hoặc cung cấp hợp đồng chính thức để đối chiếu trước khi tích hợp trên staging.
 
+**Đối chiếu GitHub ngày 23/11/2026.** Đã kiểm tra danh sách nhánh của repo nhóm, các PR và mã đăng ký endpoint. Trên `main` tại `a8622de` đã có API thực đơn công khai. Trên `develop` tại `172280b` chưa tìm thấy endpoint để khách gửi đợt hoặc xem trạng thái. [PR #61 của Hiếu](https://github.com/Trunghieu220504/restaurant-management-system/pull/61) mô tả thiết kế QR. [PR #93 của Bảo Anh](https://github.com/Trunghieu220504/restaurant-management-system/pull/93) ở `48f9941` có API đổi mã và xác minh phiên. Chưa tìm thấy triển khai HIE-5.1 cho hai thao tác còn thiếu trên các nhánh đã đẩy. Với phiên do PR #93 cấp, khách xem được menu và lập giỏ; nút gửi tiếp tục khóa.
+
 - Phản hồi xác minh phiên có `canSubmitOrders: true` khi máy chủ sẵn sàng nhận món. Trường thiếu hoặc bằng false giữ giỏ ở chế độ xem trước.
-- `POST /api/public/guest-access/batches` nhận `{lines: [{variantId, quantity, note, optionIds}]}`, dùng header `Authorization: Guest <token>` và UUID trong `Idempotency-Key`. Phản hồi thành công gồm `id` và `status`.
+- `POST /api/public/guest-access/batches` nhận `{lines: [{menuItemId, variantId, note, optionIds}]}`, dùng header `Authorization: Guest <token>` và UUID trong `Idempotency-Key`. Phản hồi thành công gồm `id` và `status`.
 - `GET /api/public/guest-access/batches/{id}` trả mã và trạng thái của đợt thuộc khách đang truy cập. Máy chủ cần kiểm quyền sở hữu, kiểm giá và tồn tại thời điểm nhận đợt, đồng thời bảo đảm tính chống trùng. Trình duyệt làm mới trạng thái mỗi 5 giây khi API hoạt động bình thường.
 - Giỏ và biên nhận hiện nằm trong bộ nhớ của trang. Tải lại trang sẽ mất giỏ và trạng thái đang theo dõi.
 

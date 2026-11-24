@@ -56,6 +56,7 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
             g.items.flatMap((i) =>
                 i.variants.map((v) => ({
                     id: v.id,
+                    menuItemId: i.id,
                     name: i.name + " · " + v.name,
                     category: g.id,
                     price: Number(v.price),
@@ -365,11 +366,14 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
                 token={token}
                 count={cartItemsCount}
                 total={cartTotalPrice}
-                lines={Object.entries(cart).map(([variantId, line]) => ({
-                    variantId,
-                    ...line,
-                    optionIds: selected[variantId] ?? [],
-                }))}
+                lines={menuItems
+                    .filter((dish) => cart[dish.id])
+                    .map((dish) => ({
+                        menuItemId: dish.menuItemId,
+                        variantId: dish.id,
+                        ...cart[dish.id],
+                        optionIds: selected[dish.id] ?? [],
+                    }))}
                 valid={Object.keys(cart).every((id) =>
                     menuItems.some(
                         (d) =>

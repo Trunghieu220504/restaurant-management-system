@@ -24,7 +24,13 @@ test("verified guest retries a limited batch and tracks it at 360px", async ({
             "Guest grant",
         );
         keys.push((await r.request().headerValue("Idempotency-Key"))!);
-        expect(r.request().postDataJSON().lines[0].variantId).toBe("v0");
+        const portion = {
+            menuItemId: "i0",
+            variantId: "v0",
+            note: "",
+            optionIds: [],
+        };
+        expect(r.request().postDataJSON().lines).toEqual([portion, portion]);
         if (keys.length === 1)
             return r.fulfill({ status: 429, headers: { "Retry-After": "1" } });
         return r.fulfill({ json: { id: "batch", status: "CHO_XAC_NHAN" } });
@@ -38,6 +44,7 @@ test("verified guest retries a limited batch and tracks it at 360px", async ({
         .first()
         .click();
     const send = page.getByRole("button", { name: "Gửi đợt gọi món" });
+    await page.getByRole("button", { name: /Tăng số lượng Trà đào/ }).click();
     await send.click();
     await expect(page.getByRole("main").getByRole("alert")).toContainText(
         "Quá nhiều yêu cầu",
@@ -112,8 +119,11 @@ test("an unavailable variant can be removed after the server rejects a cart", as
             r.fulfill({ json: { businessDayId: "day", groups: [] } }),
         );
         return r.fulfill({
-            status: 409,
-            json: { code: "catalog.item.sold_out" },
+            status: 400,
+            json: {
+                code: "sales.batch.line_invalid",
+                lineErrors: [{ lineNo: 1, code: "catalog.item.sold_out" }],
+            },
         });
     });
     await page.goto("/guest/T01#j=one");

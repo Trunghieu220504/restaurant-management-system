@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Line = {
+    menuItemId: string;
     variantId: string;
     quantity: number;
     note: string;
@@ -10,6 +11,8 @@ type Receipt = { id: string; status: string };
 const statuses: Record<string, string> = {
     CHO_XAC_NHAN: "Chờ xác nhận",
     DA_XAC_NHAN: "Đã xác nhận",
+    DA_TU_CHOI: "Đã từ chối",
+    DA_HUY: "Đã hủy",
     HUY: "Đã hủy",
     DANG_LAM: "Đang chế biến",
     DA_PHUC_VU: "Đã phục vụ",
@@ -91,7 +94,12 @@ export function GuestCheckout({
                     if (controller.signal.aborted) return;
                     setReceipt(data);
                     setTracking("");
-                    if (["HUY", "DA_PHUC_VU"].includes(data.status)) return;
+                    if (
+                        ["DA_TU_CHOI", "DA_HUY", "HUY", "DA_PHUC_VU"].includes(
+                            data.status,
+                        )
+                    )
+                        return;
                 }
             } catch {
                 if (controller.signal.aborted) return;
@@ -113,7 +121,11 @@ export function GuestCheckout({
         onBusy(true);
         setMessage("");
         try {
-            const body = JSON.stringify({ lines });
+            const body = JSON.stringify({
+                lines: lines.flatMap(({ quantity, ...portion }) =>
+                    Array.from({ length: quantity }, () => portion),
+                ),
+            });
             if (request.current?.body !== body)
                 request.current = { body, key: crypto.randomUUID() };
             const response = await fetch(endpoint, {
@@ -141,7 +153,15 @@ export function GuestCheckout({
                 );
                 return;
             }
-            if (response.status === 409 || response.status === 422) {
+            const problem =
+                response.status === 400
+                    ? await response.json().catch(() => null)
+                    : null;
+            if (
+                problem?.code === "sales.batch.line_invalid" ||
+                response.status === 409 ||
+                response.status === 422
+            ) {
                 onSoldOut();
                 setMessage(
                     "Thực đơn đã thay đổi. Kiểm tra món, giá và lựa chọn trước khi gửi lại.",
