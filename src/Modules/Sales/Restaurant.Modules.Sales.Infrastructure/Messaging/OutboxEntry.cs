@@ -4,7 +4,7 @@ namespace Restaurant.Modules.Sales.Infrastructure.Messaging;
 /// Technical Outbox row (not a domain entity). It is written in the same SaveChanges as the business change, so the
 /// event exists if and only if that change commits. The dispatcher in Restaurant.Shared.SqlServer owns the delivery columns.
 /// </summary>
-internal sealed class OutboxEntry
+public sealed class OutboxEntry
 {
     public Guid Id { get; set; }
     public string AggregateId { get; set; } = string.Empty;

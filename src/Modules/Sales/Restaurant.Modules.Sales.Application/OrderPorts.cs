@@ -1,4 +1,5 @@
 using Restaurant.Modules.Sales.Domain;
+using Restaurant.Modules.Sales.Contracts;
 
 namespace Restaurant.Modules.Sales.Application;
 
@@ -37,6 +38,8 @@ public interface IOrderTransaction : IAsyncDisposable
     Task<string> NextOrderCodeAsync(CancellationToken ct);
 
     void Add(DonHang order);
+
+    Task StageBatchConfirmedAsync(BatchConfirmed message, long aggregateId, int aggregateVersion, CancellationToken ct);
 
     /// <summary>Writes the changes so database-generated ids exist; the transaction stays open.</summary>
     /// <exception cref="StoreConflictException">A unique index or a row version rejected the write.</exception>
