@@ -17,7 +17,10 @@ public sealed record BillWaiver(long Id, decimal Amount, string Reason, Guid Bus
 public sealed record BillDocument(long Id, string Number, string Kind, DateTime CreatedAt);
 public sealed record PrintableBill(string Number, string Kind, DateTime Issued, Guid Actor, string? StoreName,
     string? StoreAddress, long InvoiceId, long OrderId, string InvoiceNumber, Guid BusinessDayId,
-    IReadOnlyList<BillLine> Lines, decimal Obligation, decimal NetCollected, decimal Due, IReadOnlyList<BillWaiver> Waivers, BillPayment? Payment);
+    IReadOnlyList<BillLine> Lines, decimal Obligation, decimal NetCollected, decimal Due, IReadOnlyList<BillWaiver> Waivers, BillPayment? Payment)
+{
+    public RefundView? Refund { get; init; }
+}
 public sealed record InvoiceView(long Id, long OrderId, string Number, Guid BusinessDayId, decimal Obligation, decimal NetCollected,
     decimal Due, decimal Reserved, decimal Available, IReadOnlyList<BillLine> Lines, IReadOnlyList<BillPayment> Payments,
     IReadOnlyList<BillWaiver> Waivers, IReadOnlyList<BillDocument> Documents)
@@ -34,6 +37,10 @@ public sealed record MoneyResult(long? ResourceId, string? Error = null, bool Re
 
 public interface IBillingLedger
 {
+    Task<IReadOnlyList<RefundView>> RefundsAsync(long invoiceId, CancellationToken ct);
+    Task<MoneyResult> RequestRefundAsync(long paymentId, RefundRequest input, Guid actor, Guid key, CancellationToken ct);
+    Task<MoneyResult> ChangeRefundAsync(long refundId, RefundAction action, RefundDecision input, Guid actor, Guid key, CancellationToken ct);
+    Task<MoneyResult> AdjustAsync(long invoiceId, ObligationChange input, Guid actor, Guid key, CancellationToken ct);
     Task<InvoiceView?> FindAsync(long invoiceId, CancellationToken ct);
     Task<long?> ForOrderAsync(long orderId, CancellationToken ct);
     Task<string?> DocumentAsync(long documentId, CancellationToken ct);

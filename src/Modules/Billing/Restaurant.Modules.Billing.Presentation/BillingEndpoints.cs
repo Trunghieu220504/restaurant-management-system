@@ -38,7 +38,46 @@ public static class BillingEndpoints
             return result.Error is { } error ? Problem(error, error.EndsWith(".not_found", StringComparison.Ordinal) ? 404 : 409) : Results.Ok(result);
         }).RequireAuthorization(p => p.RequireClaim("permission", "sales.orders.manage"))
             .WithName("BillingCloseOrder").Produces<MoneyResult>().ProducesProblem(409).ProducesProblem(404);
+        var refunds = billing.MapGroup("/invoices/{id:long}");
+        refunds.MapGet("/refunds", (long id, IBillingLedger ledger, CancellationToken ct) => ledger.RefundsAsync(id, ct))
+            .RequireAuthorization(p => p.RequireClaim("permission", "billing.refunds.request", "billing.refunds.approve", "billing.refunds.pay"));
+        billing.MapPost("/payments/{paymentId:long}/refunds", (long paymentId, RefundRequest body, HttpContext http,
+            [FromHeader(Name = "Idempotency-Key")] string? requestKey, IBillingLedger ledger, CancellationToken ct) =>
+            Write(http, requestKey, (actor, key) => ledger.RequestRefundAsync(paymentId, body, actor, key, ct)))
+            .RequireAuthorization(p => p.RequireClaim("permission", "billing.refunds.request")).Produces<MoneyResult>();
+        var decisions = billing.MapGroup("/refunds/{refundId:long}");
+        MapReview("approve", RefundAction.Approve);
+        MapReview("reject", RefundAction.Reject);
+        MapPayout("pay", false);
+        MapPayout("reconcile", true);
+        refunds.MapPost("/obligation-adjustments", (long id, ObligationChange body, HttpContext http, [FromHeader(Name = "Idempotency-Key")] string? requestKey,
+            IBillingLedger ledger, CancellationToken ct) => Write(http, requestKey, (actor, key) => ledger.AdjustAsync(id, body, actor, key, ct)))
+            .RequireAuthorization(p => p.RequireClaim("permission", "billing.waivers.approve")).Produces<MoneyResult>();
         return billing;
+
+        void MapReview(string route, RefundAction action) =>
+            decisions.MapPost("/" + route, (long refundId, RefundDecision body, HttpContext http,
+                [FromHeader(Name = "Idempotency-Key")] string? requestKey, IBillingLedger ledger, CancellationToken ct) =>
+                Write(http, requestKey, (actor, key) => ledger.ChangeRefundAsync(refundId, action, body, actor, key, ct)))
+                .RequireAuthorization(p => p.RequireClaim("permission", "billing.refunds.approve")).Produces<MoneyResult>();
+
+        void MapPayout(string route, bool reconcile) =>
+            decisions.MapPost("/" + route, (long refundId, PayoutDecision body, HttpContext http,
+                [FromHeader(Name = "Idempotency-Key")] string? requestKey, IBillingLedger ledger, CancellationToken ct) =>
+            {
+                RefundAction? action = (reconcile, body.Outcome) switch
+                {
+                    (false, "DANG_CHI") => RefundAction.BeginPayout,
+                    (false, "THANH_CONG") => RefundAction.Success,
+                    (false, "CHO_DOI_SOAT") => RefundAction.Unknown,
+                    (true, "THANH_CONG") => RefundAction.ConfirmPaid,
+                    (true, "HUY") => RefundAction.ConfirmUnpaid,
+                    _ => null
+                };
+                return action.HasValue ? Write(http, requestKey, (actor, key) =>
+                    ledger.ChangeRefundAsync(refundId, action.Value, new(body.BusinessDayId, body.Reference), actor, key, ct)) :
+                    Task.FromResult(Problem("billing.input.invalid", 400));
+            }).RequireAuthorization(p => p.RequireClaim("permission", "billing.refunds.pay")).Produces<MoneyResult>();
     }
 
     private static async Task<IResult> Write(HttpContext http, string? requestKey, Func<Guid, Guid, Task<MoneyResult>> action)

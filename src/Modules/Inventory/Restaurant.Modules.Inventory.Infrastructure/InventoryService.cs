@@ -43,7 +43,7 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
         return new(header, lines, lines.Sum(x => x.ThanhTien));
     }
 
-    private async Task<StockResult> WriteAsync(Guid? day, Func<Task<StockResult>> write, CancellationToken ct)
+    internal async Task<StockResult> WriteAsync(Guid? day, Func<Task<StockResult>> write, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
@@ -148,12 +148,17 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
         return new(ingredient);
     }, ct);
 
-    public Task<StockResult> DraftAsync(PurchaseInput input, Guid actor, Guid key, CancellationToken ct) => WriteAsync(input.DayId, async () =>
+    public Task<StockResult> DraftAsync(PurchaseInput input, Guid actor, Guid key, CancellationToken ct)
+    {
+        var hash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { input, actor })));
+        return WriteAsync(input.DayId, () => CreateReceiptAsync(input, actor, key, hash, "NHAP", ct), ct);
+    }
+
+    internal async Task<StockResult> CreateReceiptAsync(PurchaseInput input, Guid actor, Guid key, string fingerprint, string status, CancellationToken ct)
     {
         if (key == Guid.Empty || actor == Guid.Empty || input.Lines is not { Count: > 0 } || input.Note?.Length > 2000) return Fail(Invalid);
-        var hash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { input, actor })));
         var old = await db.Set<PhieuNhap>().FromSqlInterpolated($"SELECT * FROM inventory.PhieuNhap WITH (UPDLOCK,HOLDLOCK) WHERE KhoaYeuCau={key}").SingleOrDefaultAsync(ct);
-        if (old is not null) return old.DauVanTay == hash ? new(old.Id) : Fail("inventory.idempotency.conflict");
+        if (old is not null) return old.DauVanTay == fingerprint ? new(old.Id) : Fail("inventory.idempotency.conflict");
         if (input.SupplierId.HasValue && !await db.Set<NhaCungCap>().AnyAsync(x => x.Id == input.SupplierId && x.HoatDong, ct)) return Fail(Missing);
         var lines = new List<ChiTietPhieuNhap>();
         foreach (var line in input.Lines)
@@ -187,13 +192,13 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
         {
             NgayBanId = input.DayId,
             NhaCungCapId = input.SupplierId,
-            TrangThai = "NHAP",
+            TrangThai = status,
             TraBangTienKet = input.CashDrawer,
             GhiChu = input.Note,
             TaoLuc = DateTimeOffset.UtcNow,
             NguoiLapId = actor,
             KhoaYeuCau = key,
-            DauVanTay = hash
+            DauVanTay = fingerprint
         };
         db.Add(header);
         await db.SaveChangesAsync(ct);
@@ -203,7 +208,7 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
             db.Add(line);
         }
         return new(header.Id);
-    }, ct);
+    }
 
     public Task<StockResult> TransitionAsync(long id, Guid day, bool post, CancellationToken ct) => WriteAsync(day, async () =>
     {
