@@ -27,7 +27,7 @@ export IDENTITY_TEST_SQLSERVER="Server=127.0.0.1,$port;User Id=sa;Password=$MSSQ
 unset MSSQL_SA_PASSWORD
 dotnet restore RestaurantManagement.slnx --locked-mode
 dotnet format whitespace RestaurantManagement.slnx --verify-no-changes --no-restore
-dotnet build RestaurantManagement.slnx -c Release --no-restore
+dotnet build RestaurantManagement.slnx -c Release --no-restore -m:2 -nodeReuse:false
 dotnet test RestaurantManagement.slnx -c Release --no-build --no-restore --settings scripts/release/sql.runsettings --logger trx --results-directory artifacts/release/trx
 python3 scripts/release/evidence.py trx artifacts/release/trx --output artifacts/release/tests.json
 python3 - <<'PY'

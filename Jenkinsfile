@@ -11,6 +11,9 @@ pipeline {
     environment {
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         DOTNET_NOLOGO = '1'
+        DOTNET_PROCESSOR_COUNT = '2'
+        MSBUILDDISABLENODEREUSE = '1'
+        DOTNET_CLI_USE_MSBUILD_SERVER = '0'
         NEXT_TELEMETRY_DISABLED = '1'
     }
     stages {
