@@ -173,8 +173,8 @@ public sealed class SalesDomainTests
         Assert.Equal(SalesErrors.BatchEmpty, order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [], T0).Error);
         foreach (var bad in new[]
                  {
-                     Portion() with { Price = -1 }, Portion() with { Station = "KHO" }, Portion() with { DishId = 0 },
-                     Portion() with { VariantId = 0 }, Portion() with { DishName = " " },
+                     Portion() with { Price = -1 }, Portion() with { Station = "KHO" }, Portion() with { DishId = Guid.Empty },
+                     Portion() with { VariantId = Guid.Empty }, Portion() with { DishName = " " },
                      Portion() with { VariantName = new string('x', 151) }, Portion() with { Note = new string('x', 2001) }
                  })
             Assert.Equal(SalesErrors.InputInvalid, order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [bad], T0).Error);
@@ -190,23 +190,23 @@ public sealed class SalesDomainTests
         var order = OpenOrder();
         var good = Portion() with
         {
-            Options = [new NewOption(7, 2, " Topping ", OptionGroupKinds.Topping, " Pearl ", 5000), new NewOption(8, 3, "Sugar", OptionGroupKinds.Option, "50%", 0)]
+            Options = [new NewOption(CatalogId.Of(7), CatalogId.Of(2), " Topping ", OptionGroupKinds.Topping, " Pearl ", 5000), new NewOption(CatalogId.Of(8), CatalogId.Of(3), "Sugar", OptionGroupKinds.Option, "50%", 0)]
         };
         var portion = order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [good], T0).Value!.Portions.Single();
         Assert.Equal(2, portion.Options.Count);
-        Assert.Contains(portion.Options, o => o.TuyChonId == 7 && o.TenNhomChot == "Topping" && o.TenTuyChonChot == "Pearl" && o.GiaCongChot == 5000);
+        Assert.Contains(portion.Options, o => o.TuyChonId == CatalogId.Of(7) && o.TenNhomChot == "Topping" && o.TenTuyChonChot == "Pearl" && o.GiaCongChot == 5000);
 
         foreach (var bad in new[]
                  {
-                     new NewOption(0, 2, "G", OptionGroupKinds.Topping, "O", 0), new NewOption(7, 0, "G", OptionGroupKinds.Topping, "O", 0),
-                     new NewOption(7, 2, "G", "KHAC", "O", 0), new NewOption(7, 2, " ", OptionGroupKinds.Topping, "O", 0),
-                     new NewOption(7, 2, "G", OptionGroupKinds.Topping, "", 0), new NewOption(7, 2, "G", OptionGroupKinds.Topping, "O", -1)
+                     new NewOption(Guid.Empty, CatalogId.Of(2), "G", OptionGroupKinds.Topping, "O", 0), new NewOption(CatalogId.Of(7), Guid.Empty, "G", OptionGroupKinds.Topping, "O", 0),
+                     new NewOption(CatalogId.Of(7), CatalogId.Of(2), "G", "KHAC", "O", 0), new NewOption(CatalogId.Of(7), CatalogId.Of(2), " ", OptionGroupKinds.Topping, "O", 0),
+                     new NewOption(CatalogId.Of(7), CatalogId.Of(2), "G", OptionGroupKinds.Topping, "", 0), new NewOption(CatalogId.Of(7), CatalogId.Of(2), "G", OptionGroupKinds.Topping, "O", -1)
                  })
             Assert.Equal(SalesErrors.InputInvalid,
                 order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [Portion() with { Options = [bad] }], T0).Error);
         var twice = Portion() with
         {
-            Options = [new NewOption(7, 2, "G", OptionGroupKinds.Topping, "O", 0), new NewOption(7, 2, "G", OptionGroupKinds.Topping, "O", 0)]
+            Options = [new NewOption(CatalogId.Of(7), CatalogId.Of(2), "G", OptionGroupKinds.Topping, "O", 0), new NewOption(CatalogId.Of(7), CatalogId.Of(2), "G", OptionGroupKinds.Topping, "O", 0)]
         };
         Assert.Equal(SalesErrors.InputInvalid, order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), [twice], T0).Error);
     }
@@ -501,9 +501,9 @@ public sealed class SalesDomainTests
     {
         var order = OpenOrder();
         var batch = order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(),
-            [new NewPortion(11, 22, " Milk tea ", " Large ", 45000, Stations.Bar, " less ice ")], T0).Value!;
+            [new NewPortion(CatalogId.Of(11), CatalogId.Of(22), " Milk tea ", " Large ", 45000, Stations.Bar, " less ice ")], T0).Value!;
         var portion = batch.Portions.Single();
-        Assert.Equal((11, 22), (portion.MonId, portion.BienTheId));
+        Assert.Equal((CatalogId.Of(11), CatalogId.Of(22)), (portion.MonId, portion.BienTheId));
         Assert.Equal(("Milk tea", "Large", 45000, Stations.Bar, "less ice"),
             (portion.TenMonChot, portion.TenBienTheChot, portion.GiaMonChot, portion.TramChot, portion.GhiChu));
     }
@@ -536,7 +536,7 @@ public sealed class SalesDomainTests
     private static DonHang OpenOrder() => Order(OrderTypes.DineIn, session: 9).Value!;
 
     private static NewPortion Portion() =>
-        new(1, 2, "Pho", "Regular", 60000, Stations.Kitchen, null);
+        new(CatalogId.Of(1), CatalogId.Of(2), "Pho", "Regular", 60000, Stations.Kitchen, null);
 
     private static DotGoiMon Add(DonHang order, IReadOnlyList<NewPortion>? portions = null) =>
         order.AddBatch(BatchSource.Staff, null, Staff, Guid.NewGuid(), portions ?? [Portion()], T0).Value!;

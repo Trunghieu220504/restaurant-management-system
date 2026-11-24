@@ -77,6 +77,240 @@ namespace Restaurant.Modules.SalesDay.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_NgayBan_State", "([Status] IN ('DANG_BAN','CHO_CHOT') AND [ActiveSlot] = 1 AND [ActiveSlot] IS NOT NULL) OR ([Status] = 'DA_CHOT' AND [ActiveSlot] IS NULL)");
                         });
                 });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.ClosingEntry", b =>
+                {
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequestKey")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("Actor")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("DayId", "RequestKey");
+
+                    b.ToTable("ClosingHistory", "salesday");
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.DayMethodSnapshot", b =>
+                {
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Method")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal>("Net")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("Receipts")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("Refunds")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.HasKey("DayId", "Method");
+
+                    b.ToTable("TongHopNgayPhuongThuc", "salesday");
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.DaySnapshot", b =>
+                {
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Adjustments")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<DateOnly>("BusinessDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Charges")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<DateTimeOffset>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ClosedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("CountedCash")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<string>("DifferenceReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("DrawerPurchases")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("ExpectedCash")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("GrossProfit")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<bool>("LateClose")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LateReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("NetRevenue")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("Receipts")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<decimal>("Refunds")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.Property<Guid>("RequestKey")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("RoundingDifference")
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)");
+
+                    b.Property<int>("SnapshotVersion")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Waivers")
+                        .HasPrecision(28)
+                        .HasColumnType("decimal(28,0)");
+
+                    b.HasKey("DayId");
+
+                    b.ToTable("TongHopNgay", "salesday");
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Infrastructure.Messaging.OutboxEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AggregateId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("AggregateVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LeaseUntil")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("IX_Outbox_ChoGui")
+                        .HasFilter("[ProcessedAt] IS NULL");
+
+                    b.HasIndex("Type", "AggregateId", "AggregateVersion")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Outbox_SuKien");
+
+                    b.ToTable("Outbox", "salesday", t =>
+                        {
+                            t.HasCheckConstraint("CK_Outbox_LanThu", "[Attempts] >= 0");
+
+                            t.HasCheckConstraint("CK_Outbox_PhienBan", "[AggregateVersion] > 0 AND [SchemaVersion] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.ClosingEntry", b =>
+                {
+                    b.HasOne("Restaurant.Modules.SalesDay.Domain.BusinessDay", null)
+                        .WithMany()
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.DayMethodSnapshot", b =>
+                {
+                    b.HasOne("Restaurant.Modules.SalesDay.Domain.DaySnapshot", null)
+                        .WithMany("Methods")
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.DaySnapshot", b =>
+                {
+                    b.HasOne("Restaurant.Modules.SalesDay.Domain.BusinessDay", null)
+                        .WithOne()
+                        .HasForeignKey("Restaurant.Modules.SalesDay.Domain.DaySnapshot", "DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.SalesDay.Domain.DaySnapshot", b =>
+                {
+                    b.Navigation("Methods");
+                });
 #pragma warning restore 612, 618
         }
     }

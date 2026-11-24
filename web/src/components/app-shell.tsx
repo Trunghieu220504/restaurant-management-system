@@ -14,7 +14,7 @@ import {
     QrCode,
     type LucideIcon,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePermissions } from "@/components/permission-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Forbidden } from "@/components/forbidden";
@@ -50,6 +50,46 @@ export function AppShell({ children }: { children: ReactNode }) {
     const { user, logout } = useAuth();
     const { salesDay } = useRestaurant();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [liveSalesDay, setLiveSalesDay] = useState<{
+        status: "DANG_BAN" | "CHO_CHOT" | "DA_CHOT";
+        businessDate: string;
+    } | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        fetch("/api/salesday/current", {
+            credentials: "include",
+            cache: "no-store",
+        })
+            .then(async (response) => {
+                if (!response.ok) return null;
+                return (await response.json()) as {
+                    status?: string;
+                    businessDate?: string;
+                } | null;
+            })
+            .then((day) => {
+                if (
+                    active &&
+                    day &&
+                    typeof day.businessDate === "string" &&
+                    (day.status === "DANG_BAN" ||
+                        day.status === "CHO_CHOT" ||
+                        day.status === "DA_CHOT")
+                ) {
+                    setLiveSalesDay({
+                        status: day.status,
+                        businessDate: day.businessDate,
+                    });
+                }
+            })
+            .catch(() => {});
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const headerSalesDay = liveSalesDay ?? salesDay;
 
     const visibleTabs = primaryTabs.filter((tab) => canAccess(tab.href, can));
     const showKitchen = canAccess("/kitchen", can);
@@ -222,7 +262,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             href="/sales-day"
                             className={cn(
                                 "hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors",
-                                salesDay.status === "DANG_BAN"
+                                headerSalesDay.status === "DANG_BAN"
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                                     : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
                             )}
@@ -230,14 +270,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                             <span
                                 className={cn(
                                     "size-2 rounded-full",
-                                    salesDay.status === "DANG_BAN"
+                                    headerSalesDay.status === "DANG_BAN"
                                         ? "bg-emerald-500 animate-pulse"
                                         : "bg-amber-500",
                                 )}
                             />
                             <span>
-                                {salesDay.status === "DANG_BAN"
-                                    ? `Đang bán (${salesDay.businessDate})`
+                                {headerSalesDay.status === "DANG_BAN"
+                                    ? `Đang bán (${headerSalesDay.businessDate})`
                                     : "Chưa mở ngày bán"}
                             </span>
                         </Link>

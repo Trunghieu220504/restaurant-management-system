@@ -62,10 +62,16 @@ public static class SalesErrors
     public const string OrderSessionForbidden = "sales.order.session_forbidden";
     public const string OrderHasPendingBatches = "sales.order.has_pending_batches";
     public const string OrderHasActivePortions = "sales.order.has_active_portions";
+    public const string OrderNotFound = "sales.order.not_found";
+    public const string OrderSessionHasOpenOrder = "sales.order.session_has_open_order";
+    public const string OrderChanged = "sales.order.changed";
     public const string BatchNotFound = "sales.batch.not_found";
     public const string BatchNotPending = "sales.batch.not_pending";
     public const string BatchEmpty = "sales.batch.empty";
     public const string BatchGuestNeedsSession = "sales.batch.guest_needs_session";
+    public const string BatchLineInvalid = "sales.batch.line_invalid";
+    public const string PricingInconsistent = "sales.pricing.inconsistent";
+    public const string PricingChanged = "sales.pricing.changed";
     public const string PortionNotFound = "sales.portion.not_found";
     public const string PortionAlreadyCancelled = "sales.portion.already_cancelled";
 }

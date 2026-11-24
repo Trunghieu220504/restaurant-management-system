@@ -44,8 +44,7 @@ internal sealed class StaffPortions(SalesDbContext db, IStaffPortionDay days, IO
         var batchToChange = orderToChange.Dots.Single(b => b.SoDot == owner.SoDot);
         var portion = batchToChange.Portions.Single(p => p.Id == id);
         if (change.Version != Convert.ToBase64String(portion.Version)) return "sales.portion.changed";
-        // Confirmed portions also require a kitchen state check and a billing adjustment.
-        if (batchToChange.TrangThai != BatchStatus.Pending) return SalesErrors.BatchNotPending;
+        if (!cancel && batchToChange.TrangThai != BatchStatus.Pending) return SalesErrors.BatchNotPending;
         if (!cancel && portion.TrangThai == PortionStatus.Pending && orderToChange.TrangThai == OrderStatus.Open &&
             portion.GhiChu == (string.IsNullOrWhiteSpace(change.Note) ? null : change.Note.Trim())) return null;
         var result = cancel ? orderToChange.CancelPortion(owner.SoDot, id) : orderToChange.EditPendingNote(owner.SoDot, id, change.Note);

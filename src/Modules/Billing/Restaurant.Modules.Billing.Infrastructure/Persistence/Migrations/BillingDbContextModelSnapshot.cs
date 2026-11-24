@@ -23,6 +23,30 @@ namespace Restaurant.Modules.Billing.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Restaurant.Modules.Billing.Domain.BillingRequest", b =>
+                {
+                    b.Property<Guid>("Key")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<long>("InvoiceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ResourceId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Key");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("YeuCauDaXuLy", "billing");
+                });
+
             modelBuilder.Entity("Restaurant.Modules.Billing.Domain.ChungTu", b =>
                 {
                     b.Property<long>("Id")
@@ -448,6 +472,15 @@ namespace Restaurant.Modules.Billing.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_ThanhToan_TrangThai", "[TrangThai] IN ('CHO_XAC_NHAN','THANH_CONG','HUY')");
                         });
+                });
+
+            modelBuilder.Entity("Restaurant.Modules.Billing.Domain.BillingRequest", b =>
+                {
+                    b.HasOne("Restaurant.Modules.Billing.Domain.HoaDon", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Restaurant.Modules.Billing.Domain.ChungTu", b =>
