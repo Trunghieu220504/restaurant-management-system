@@ -1,0 +1,181 @@
+[
+    {
+        "id":  1,
+        "criterion":  "Unique identity, invoice and charge",
+        "owner":  "Hiếu / Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekTwoSqlServerTests.InitialBilling_applies_once_and_rejects_duplicate_charges_and_invalid_money_or_documents",
+                      "Restaurant.IntegrationTests.IdentityAccountManagementSqlServerTests.Create_rejects_duplicates_weak_passwords_and_malformed_input",
+                      "Restaurant.IntegrationTests.IdentitySqlServerTests.Database_rejects_duplicate_user_role_assignments"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  2,
+        "criterion":  "Variant and option ownership",
+        "owner":  "Phương / Hiếu",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.CatalogServiceSqlServerTests.Ownership_invalid_ranges_and_negative_prices_are_rejected_without_partial_writes",
+                      "Restaurant.IntegrationTests.CatalogServiceSqlServerTests.Sales_pricing_rejects_a_foreign_variant_or_unassigned_option_on_real_SQL"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  3,
+        "criterion":  "Concurrent seating open and transfer",
+        "owner":  "Hiếu",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Concurrent_opens_of_one_table_yield_exactly_one_session",
+                      "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Concurrent_transfers_into_one_free_table_move_only_one_session",
+                      "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Open_and_transfer_racing_for_one_table_never_occupy_it_twice"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  4,
+        "criterion":  "QR expiry, revocation and session isolation",
+        "owner":  "Hiếu",
+        "coverageComplete":  false,
+        "tests":  [
+                      "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Close_revokes_every_unrevoked_guest_grant_and_frees_the_table"
+                  ],
+        "gap":  "Need public ordering and token expiry/cross-session SQL tests."
+    },
+    {
+        "id":  5,
+        "criterion":  "Confirmation produces one charge and first ticket",
+        "owner":  "Hiếu / Phương",
+        "coverageComplete":  false,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekThreeSqlServerTests.Confirm_joins_sales_transaction_replays_once_and_adds_new_portions"
+                  ],
+        "gap":  "Fulfillment consumer not integrated on develop."
+    },
+    {
+        "id":  6,
+        "criterion":  "Approved remake without new revenue",
+        "owner":  "Hiếu",
+        "coverageComplete":  false,
+        "tests":  [
+
+                  ],
+        "gap":  "Fulfillment command API not implemented on develop."
+    },
+    {
+        "id":  7,
+        "criterion":  "Cannot serve twice or after cancellation",
+        "owner":  "Hiếu",
+        "coverageComplete":  false,
+        "tests":  [
+
+                  ],
+        "gap":  "Fulfillment command API not implemented on develop."
+    },
+    {
+        "id":  8,
+        "criterion":  "Concurrent collectors never overcollect",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekThreeSqlServerTests.Two_cashiers_cannot_overcollect_and_replay_does_not_issue_another_receipt"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  9,
+        "criterion":  "Refund reservation under concurrency and unknown payout",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekSixSqlServerTests.Concurrent_refunds_reserve_collected_money_and_old_invoice_is_refunded_on_execution_day"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  10,
+        "criterion":  "Prior-day refunds preserve prior snapshots",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekSixSqlServerTests.Concurrent_refunds_reserve_collected_money_and_old_invoice_is_refunded_on_execution_day"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  11,
+        "criterion":  "Purchase snapshots survive unit conversion edits",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFourSqlServerTests.Purchase_snapshots_survive_conversion_edits_and_stock_blocks_structural_changes"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  12,
+        "criterion":  "Archived stock remains countable and blocks structural changes",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFourSqlServerTests.Carried_stock_blocks_archive_even_without_a_current_day_purchase",
+                      "Restaurant.IntegrationTests.PhuongWeekFourSqlServerTests.Purchase_snapshots_survive_conversion_edits_and_stock_blocks_structural_changes",
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.An_archived_ingredient_with_carried_stock_remains_countable"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  13,
+        "criterion":  "Residual stock value and signed adjustments",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.Zero_quantity_with_residual_value_blocks_freeze_and_new_draft_invalidates_approval",
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.Signed_stock_adjustments_change_both_quantity_and_value_in_the_average"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  14,
+        "criterion":  "Atomic concurrent closing and late writers",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.Two_managers_commit_one_snapshot_and_one_outbox_event",
+                      "Restaurant.IntegrationTests.PhuongWeekTwoSqlServerTests.One_closer_wins_and_a_waiting_writer_reads_the_committed_day_state"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  15,
+        "criterion":  "Closing rollback leaves no partial state",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.Failure_after_stock_write_rolls_back_stock_snapshot_event_and_day_then_allows_retry"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  16,
+        "criterion":  "Negative profit and distinct units",
+        "owner":  "Phương",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.PhuongWeekFiveSqlServerTests.Cost_rounds_once_across_units_and_is_carried_to_the_next_day"
+                  ],
+        "gap":  ""
+    },
+    {
+        "id":  17,
+        "criterion":  "Permission revocation affects existing access token",
+        "owner":  "Hiếu",
+        "coverageComplete":  true,
+        "tests":  [
+                      "Restaurant.IntegrationTests.IdentityAccountManagementSqlServerTests.Role_changes_reach_the_token_already_in_use_and_a_demoted_admin_loses_account_management"
+                  ],
+        "gap":  ""
+    }
+]

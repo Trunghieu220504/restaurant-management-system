@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily encrypted restaurant database backup
+[Timer]
+OnCalendar=*-*-* 03:15:00 Asia/Ho_Chi_Minh
+RandomizedDelaySec=15min
+Persistent=true
+[Install]
+WantedBy=timers.target

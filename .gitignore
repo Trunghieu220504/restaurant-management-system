@@ -33,3 +33,7 @@ infra/nginx/*.bak
 AGENTS.md
 CLAUDE.md
 docs/AGENT_PROGRESS.md
+
+# Python release tooling caches
+__pycache__/
+*.pyc

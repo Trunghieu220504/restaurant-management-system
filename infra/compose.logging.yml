@@ -1,0 +1,13 @@
+services:
+  api:
+    logging: &bounded
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+  web:
+    logging: *bounded
+  nginx:
+    logging: *bounded
+  sqlserver:
+    logging: *bounded
