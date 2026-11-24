@@ -36,6 +36,7 @@ public sealed class FulfillmentPermissionTests
         builder.Services.AddAuthentication("Fixture").AddScheme<AuthenticationSchemeOptions, FixtureAuthentication>("Fixture", _ => { });
         builder.Services.AddAuthorization();
         builder.Services.AddSingleton<IFulfillmentService, Stub>();
+        builder.Services.AddSingleton<IOperationsSnapshot, Stub>();
         await using var app = builder.Build();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -62,8 +63,11 @@ public sealed class FulfillmentPermissionTests
         }
     }
 
-    private sealed class Stub : IFulfillmentService
+    private sealed class Stub : IFulfillmentService, IOperationsSnapshot
     {
+        public Task<OperationsSnapshot> ReadAsync(IReadOnlyCollection<string> stations, long? orderId, CancellationToken ct) =>
+            Task.FromResult(new OperationsSnapshot([], []));
+
         private static Task<FulfillmentResult<TicketView>> Success() => Task.FromResult(FulfillmentResult<TicketView>.Ok(
             new(1, 42, Stations.Kitchen, TicketStatus.Ready, DateTime.UtcNow, null, null, null, null, null, null, "AAAAAAAAAAE=")));
         public Task<IReadOnlyList<TicketView>> QueueAsync(string station, CancellationToken ct) => Task.FromResult<IReadOnlyList<TicketView>>([]);
