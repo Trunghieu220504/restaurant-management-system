@@ -1,5 +1,6 @@
 "use client";
 
+import { displayDate } from "@/lib/vietnam-date";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -268,7 +269,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             />
                             <span>
                                 {headerSalesDay?.status === "DANG_BAN"
-                                    ? `Đang bán (${headerSalesDay.businessDate})`
+                                    ? `Đang bán (${displayDate(headerSalesDay.businessDate)})`
                                     : headerSalesDay?.status === "DA_CHOT"
                                       ? "Đã chốt ngày"
                                       : headerSalesDay?.status === "CHO_CHOT"

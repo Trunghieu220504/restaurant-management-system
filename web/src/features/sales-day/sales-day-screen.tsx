@@ -1,4 +1,6 @@
 "use client";
+import { VietnamDateField } from "@/components/vietnam-date-field";
+import { displayDate, isoDate, vietnamDateTime } from "@/lib/vietnam-date";
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, RefreshCw, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,7 @@ export function SalesDayScreen({
     const [pending, setPending] = useState(false);
     const [error, setError] = useState("");
     const [lookupFailed, setLookupFailed] = useState(false);
-    const [date, setDate] = useState(() => localBusinessDate());
+    const [date, setDate] = useState(() => displayDate(localBusinessDate()));
     const [cash, setCash] = useState<number | null>(0);
     const [refresh, setRefresh] = useState(0);
     const submission = useRef<{ input: OpenDayInput; key: string } | null>(
@@ -57,14 +59,14 @@ export function SalesDayScreen({
         if (
             busy.current ||
             !canManage ||
-            !date ||
+            !isoDate(date) ||
             cash === null ||
             loading ||
             lookupFailed ||
             day
         )
             return;
-        const input = { businessDate: date, openingCash: cash };
+        const input = { businessDate: isoDate(date), openingCash: cash };
         if (
             !submission.current ||
             JSON.stringify(submission.current.input) !== JSON.stringify(input)
@@ -146,7 +148,7 @@ export function SalesDayScreen({
                 </div>
                 {day && (
                     <strong className={styles.date}>
-                        {day.businessDate.split("-").reverse().join("/")}
+                        {displayDate(day.businessDate)}
                     </strong>
                 )}
             </div>
@@ -166,11 +168,7 @@ export function SalesDayScreen({
                     <div>
                         <dt>Mở lúc</dt>
                         <dd className={styles.timestamp}>
-                            {new Intl.DateTimeFormat("vi-VN", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                                timeZone: "Asia/Ho_Chi_Minh",
-                            }).format(new Date(day.openedAt))}
+                            {vietnamDateTime.format(new Date(day.openedAt))}
                         </dd>
                     </div>
                 </dl>
@@ -178,14 +176,11 @@ export function SalesDayScreen({
                 <form className={styles.form} onSubmit={open}>
                     <h2>Mở ngày bán</h2>
                     <div className={styles.field}>
-                        <label htmlFor="business-date">Ngày kinh doanh</label>
-                        <input
-                            id="business-date"
-                            type="date"
-                            required
+                        <VietnamDateField
+                            label="Ngày kinh doanh"
                             value={date}
                             disabled={pending}
-                            onChange={(e) => setDate(e.target.value)}
+                            onChange={setDate}
                         />
                     </div>
                     <div className={styles.field}>

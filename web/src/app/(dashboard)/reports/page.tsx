@@ -1,4 +1,7 @@
 "use client";
+import { VietnamDateField } from "@/components/vietnam-date-field";
+import { displayDate, isoDate } from "@/lib/vietnam-date";
+import { localBusinessDate } from "@/features/sales-day/api";
 import Link from "next/link";
 import { useState } from "react";
 import type { components } from "@/lib/api/generated";
@@ -7,11 +10,9 @@ import s from "@/features/management/management.module.css";
 type Report = components["schemas"]["BusinessReport"];
 const money = (n: number | string) => Number(n).toLocaleString("vi-VN") + " đ";
 export default function Reports() {
-    const today = new Intl.DateTimeFormat("sv-SE", {
-        timeZone: "Asia/Ho_Chi_Minh",
-    }).format(new Date());
-    const [from, setFrom] = useState(today),
-        [to, setTo] = useState(today),
+    const today = localBusinessDate();
+    const [from, setFrom] = useState(displayDate(today)),
+        [to, setTo] = useState(displayDate(today)),
         [range, setRange] = useState([today, today]);
     const [start, end] = range;
     const result = useRead<Report>(
@@ -30,30 +31,25 @@ export default function Reports() {
                 className={s.card}
                 onSubmit={(e) => {
                     e.preventDefault();
-                    setRange([from, to]);
-                    if (from === start && to === end) result.reload();
+                    const first = isoDate(from),
+                        last = isoDate(to);
+                    if (!first || !last || last < first) return;
+                    setRange([first, last]);
+                    if (first === start && last === end) result.reload();
                 }}
             >
                 <div className={s.toolbar}>
-                    <label>
-                        Từ ngày
-                        <input
-                            type="date"
-                            required
-                            value={from}
-                            onChange={(e) => setFrom(e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Đến ngày
-                        <input
-                            type="date"
-                            required
-                            min={from}
-                            value={to}
-                            onChange={(e) => setTo(e.target.value)}
-                        />
-                    </label>
+                    <VietnamDateField
+                        label="Từ ngày"
+                        value={from}
+                        onChange={setFrom}
+                    />
+                    <VietnamDateField
+                        label="Đến ngày"
+                        value={to}
+                        onChange={setTo}
+                        min={isoDate(from)}
+                    />
                     <button type="submit">Xem báo cáo</button>
                 </div>
             </form>
@@ -137,7 +133,9 @@ export default function Reports() {
                                     <tbody>
                                         {r.days.map((d) => (
                                             <tr key={d.dayId}>
-                                                <th scope="row">{d.date}</th>
+                                                <th scope="row">
+                                                    {displayDate(d.date)}
+                                                </th>
                                                 {[
                                                     d.netRevenue,
                                                     d.receipts,

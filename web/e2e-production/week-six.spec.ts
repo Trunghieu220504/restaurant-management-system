@@ -43,13 +43,27 @@ test("manager navigates to reports, filters closed dates and separates revenue a
     await expect(
         page.getByText("Chưa có ngày đã chốt trong kỳ đã chọn."),
     ).toBeVisible();
-    await page.getByLabel("Từ ngày").fill("2026-11-20");
-    await page.getByLabel("Đến ngày").fill("2026-11-21");
+    await page.getByLabel("Từ ngày", { exact: true }).fill("20/11/2026");
+    await page.getByLabel("Đến ngày", { exact: true }).fill("20/11/2026");
+    await page
+        .getByRole("button", { name: "Mở lịch: Đến ngày", exact: true })
+        .click();
+    const calendar = page.getByRole("dialog", { name: "Chọn ngày: Đến ngày" });
+    await expect(calendar.getByText("Tháng 11 năm 2026")).toBeVisible();
+    await calendar
+        .getByRole("button", { name: "21/11/2026", exact: true })
+        .click();
+    await expect(page.getByLabel("Đến ngày", { exact: true })).toHaveValue(
+        "21/11/2026",
+    );
     await page.getByRole("button", { name: "Xem báo cáo" }).click();
     await expect(
         page.getByRole("heading", { name: "Dòng tiền", exact: true }),
     ).toBeVisible();
     await expect(page.getByText("3.000.000 đ").first()).toBeVisible();
+    await expect(
+        page.getByRole("rowheader", { name: "21/11/2026" }),
+    ).toBeVisible();
     for (const width of [1366, 360]) {
         await page.setViewportSize({ width, height: 820 });
         expect(
