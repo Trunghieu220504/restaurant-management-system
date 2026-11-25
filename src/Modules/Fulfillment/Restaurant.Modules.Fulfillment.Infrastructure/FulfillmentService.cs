@@ -5,6 +5,7 @@ using System.Text;
 using Restaurant.Modules.Fulfillment.Application;
 using Restaurant.Modules.Fulfillment.Domain;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
+using Restaurant.Modules.Fulfillment.Infrastructure.Messaging;
 
 namespace Restaurant.Modules.Fulfillment.Infrastructure;
 
@@ -64,6 +65,7 @@ public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clo
                 var result = transition(ticket, clock.GetUtcNow().UtcDateTime);
                 if (!result.Succeeded) return FulfillmentResult<TicketView>.Fail(result.Error!);
                 await db.SaveChangesAsync(ct);
+                TicketEvents.Stage(db, ticket, clock.GetUtcNow());
                 db.Requests.Add(new YeuCauFulfillmentDaXuLy
                 {
                     Operation = operation,
