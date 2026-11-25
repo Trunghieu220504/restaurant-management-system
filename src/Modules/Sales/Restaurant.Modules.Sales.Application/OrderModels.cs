@@ -16,10 +16,6 @@ public sealed record BatchLine(Guid MenuItemId, Guid VariantId, IReadOnlyList<Gu
 public sealed record CancelBatchCommand(long OrderId, int BatchNumber);
 public sealed record ConfirmBatchCommand(long OrderId, int BatchNumber, Guid Actor);
 public sealed record RejectBatchCommand(long OrderId, int BatchNumber, Guid Actor, string? Reason);
-<<<<<<< HEAD
-
-=======
->>>>>>> 42c8c61 (feat(sales): add batch decision commands)
 
 public sealed record OrderView(
     long Id, string Code, string Type, Guid BusinessDayId, long? SessionId, string? TableLabel, string? CustomerName, string Status);

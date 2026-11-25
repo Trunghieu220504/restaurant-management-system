@@ -160,13 +160,10 @@ public sealed class OrderService(
 
         var confirmed = order.ConfirmBatch(command.BatchNumber, command.Actor, clock.GetUtcNow().UtcDateTime);
         if (!confirmed.Succeeded) return Fail<BatchView>(confirmed.Error!);
-<<<<<<< HEAD
         await tx.StageBatchConfirmedAsync(new BatchConfirmed(order.Id, batch.Id, batch.SoDot,
             [.. batch.Portions.Where(x => x.TrangThai == PortionStatus.Confirmed)
                 .Select(x => new ConfirmedPortion(x.Id, x.TramChot))]),
             batch.Id, order.SoLanCapNhat, ct);
-=======
->>>>>>> 42c8c61 (feat(sales): add batch decision commands)
         return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
     }
 
