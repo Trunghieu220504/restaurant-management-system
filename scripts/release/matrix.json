@@ -48,11 +48,11 @@
         "id":  5,
         "criterion":  "Confirmation produces one charge and first ticket",
         "owner":  "Hiếu / Phương",
-        "coverageComplete":  false,
+        "coverageComplete":  true,
         "tests":  [
-                      "Restaurant.IntegrationTests.PhuongWeekThreeSqlServerTests.Confirm_joins_sales_transaction_replays_once_and_adds_new_portions"
+                      "Restaurant.IntegrationTests.SalesBillingAcceptanceSqlServerTests.Concurrent_confirmation_and_replayed_outbox_create_one_charge_and_one_initial_ticket"
                   ],
-        "gap":  "Consumer and state API merged in cf40c97; need integrated Sales confirmation -\u003e charge + outbox -\u003e consumer replay SQL test."
+        "gap":  ""
     },
     {
         "id":  6,
