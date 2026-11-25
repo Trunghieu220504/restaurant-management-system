@@ -37,6 +37,7 @@ public sealed class FulfillmentPermissionTests
         builder.Services.AddAuthorization();
         builder.Services.AddSingleton<IFulfillmentService, Stub>();
         builder.Services.AddSingleton<IOperationsSnapshot, Stub>();
+        builder.Services.AddSingleton<IFulfillmentIncidents, Stub>();
         await using var app = builder.Build();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -63,10 +64,16 @@ public sealed class FulfillmentPermissionTests
         }
     }
 
-    private sealed class Stub : IFulfillmentService, IOperationsSnapshot
+    private sealed class Stub : IFulfillmentService, IOperationsSnapshot, IFulfillmentIncidents
     {
         public Task<OperationsSnapshot> ReadAsync(IReadOnlyCollection<string> stations, long? orderId, CancellationToken ct) =>
             Task.FromResult(new OperationsSnapshot([], []));
+
+        // Mapping the group also maps incident routes; those services must be registered even
+        // when this fixture only exercises ticket commands. Unexpected calls should fail.
+        public Task<IReadOnlyList<IncidentView>> PendingAsync(IReadOnlyCollection<string> stations, CancellationToken ct) => throw new NotSupportedException();
+        public Task<FulfillmentResult<IncidentView>> ReportAsync(long id, IncidentReport request, Guid actor, CancellationToken ct) => throw new NotSupportedException();
+        public Task<FulfillmentResult<IncidentView>> ResolveAsync(long id, IncidentResolution request, Guid actor, CancellationToken ct) => throw new NotSupportedException();
 
         private static Task<FulfillmentResult<TicketView>> Success() => Task.FromResult(FulfillmentResult<TicketView>.Ok(
             new(1, 42, Stations.Kitchen, TicketStatus.Ready, DateTime.UtcNow, null, null, null, null, null, null, "AAAAAAAAAAE=")));
