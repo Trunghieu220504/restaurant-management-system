@@ -68,3 +68,22 @@ it("uses the restaurant timezone rather than the host timezone", () => {
         "2026-11-10",
     );
 });
+
+it("reports blockers returned by a conflicting begin-close request", async () => {
+    const blockers = [{ code: "salesday.pending_refunds", count: 2 }];
+    const closing = createSalesDayApi(
+        () => "test-token",
+        async () =>
+            Response.json(
+                { code: "salesday.close.blocked", checklist: { blockers } },
+                { status: 409 },
+            ),
+    );
+    await expect(
+        closing.beginClose("day", crypto.randomUUID()),
+    ).rejects.toMatchObject({
+        status: 409,
+        code: "salesday.close.blocked",
+        blockers,
+    });
+});

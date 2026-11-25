@@ -11,6 +11,7 @@ import {
     useOperationCommand,
 } from "@/features/operations/operation-request";
 import { refundActions, type RefundAction } from "./refund-actions";
+import { BillDocuments } from "./bill-documents";
 
 type Schema = components["schemas"];
 type Refund = Schema["RefundView"];
@@ -335,6 +336,9 @@ function RefundInvoice({ orderId }: { orderId: string }) {
                         </article>
                     ))}
                 </section>
+            )}
+            {invoice.data && !invoice.isError && (
+                <BillDocuments documents={invoice.data.documents} />
             )}
             {choice && (
                 <form

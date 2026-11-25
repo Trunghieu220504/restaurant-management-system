@@ -29,7 +29,10 @@ public static class CatalogEndpoints
             .Produces(204).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);
         var manage = group.MapGroup("").RequireAuthorization(policy => policy.RequireClaim("permission", "catalog.menu.manage"));
         endpoints.MapGet("/api/public/menu", async ([FromServices] IMenuAvailability menu, CancellationToken ct) => Results.Ok(await menu.PublicAsync(ct)))
-            .AllowAnonymous().WithName("CatalogPublicMenu").WithTags("Catalog").Produces<PublicMenu>();
+            .AllowAnonymous().RequireRateLimiting("qr-read")
+            .WithName("CatalogPublicMenu").WithTags("Catalog").Produces<PublicMenu>()
+            .ProducesProblem(401).ProducesProblem(429)
+            .WithDescription("Read-only public menu. If Authorization: Guest <session token> is supplied, the host requires an active Seating grant. Menu access alone never grants ordering rights. Responses are not cached.");
         endpoints.MapGet("/api/public/menu-images/{itemId:guid}/{name}", (Guid itemId, string name, Microsoft.Extensions.Configuration.IConfiguration config) =>
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[0-9a-f]{64}\.webp\z")) return Results.NotFound();
