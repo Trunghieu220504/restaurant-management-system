@@ -172,18 +172,17 @@ test("two browsers see a transferred session, availability and portion changes w
             exact: true,
         });
         await expect(dish).toBeEnabled();
-        await page.getByLabel("Mục cần cập nhật").selectOption("i");
-        await page
-            .getByRole("button", { name: "Báo hết", exact: true })
-            .click();
+        const saleSwitch = page.getByRole("switch", { name: "Bán Trà đào" });
+        await expect(saleSwitch).toBeChecked();
+        await saleSwitch.click();
         await withinBudget("soldOut", async () => {
             await expect(
                 other.getByRole("button", { name: "Trà đào · Hết món" }),
             ).toBeDisabled({ timeout: 2000 });
         });
-        await page
-            .getByRole("button", { name: "Bán lại", exact: true })
-            .click();
+        await expect(saleSwitch).not.toBeChecked();
+        await expect(page.getByText("Đã hết", { exact: true })).toBeVisible();
+        await saleSwitch.click();
         await withinBudget("restock", async () => {
             await expect(dish).toBeEnabled({ timeout: 2000 });
         });
