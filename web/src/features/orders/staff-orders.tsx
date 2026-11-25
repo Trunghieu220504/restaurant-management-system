@@ -204,6 +204,16 @@ function Workspace({ account }: { account: string }) {
                     Đơn hàng nhân viên
                 </h1>
                 <nav aria-label="Điều hướng đơn hàng">
+                    {can("fulfillment.incidents.report") && (
+                        <Link href="/orders?view=incidents">Sự cố món</Link>
+                    )}
+                    {["request", "approve", "pay"].some((action) =>
+                        can("billing.refunds." + action),
+                    ) && (
+                        <Link href="/orders?view=refunds">
+                            <WalletCards aria-hidden="true" /> Hoàn tiền
+                        </Link>
+                    )}
                     {seating && (
                         <Link href="/tables">
                             <Grid2X2 /> Sơ đồ và chuyển bàn
