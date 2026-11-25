@@ -39,6 +39,7 @@ public sealed class TicketChangedHandler(
             if (OperationsAccess.CanReadStation(user, ticket.Station)) recipients.Add(id);
         }
         if (recipients.Count == 0) return;
+        ticket = (await TicketDescriptions.EnrichAsync([ticket], sales, cancellationToken))[0];
         await hub.Clients.Clients(recipients).SendAsync("TicketChanged",
             new TicketChanged(message.EventId, message.OccurredAt, ticket.Version, ticket), cancellationToken);
     }

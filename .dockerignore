@@ -17,3 +17,15 @@ infra/.env
 **/.env
 **/.env.*
 !**/.env.example
+
+# Local tooling and private configuration never belong in API build contexts.
+.venv
+.agents
+.codex
+.aws
+**/__pycache__
+**/appsettings.Local.json
+**/*.key
+**/*.pem
+**/*.pfx
+**/*.p12

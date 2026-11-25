@@ -1,7 +1,8 @@
 import { authFetch } from "@/lib/auth/auth-client";
 
 export type FulfillmentStation = "BEP" | "BAR";
-export type FulfillmentStatus = "MOI" | "DANG_LAM" | "SAN_SANG" | "DA_HUY";
+export type FulfillmentStatus =
+    "MOI" | "DANG_LAM" | "SAN_SANG" | "DA_GIAO" | "DA_HUY" | "LOI";
 
 export type FulfillmentTicket = {
     id: number | string;
@@ -16,6 +17,11 @@ export type FulfillmentTicket = {
     deliveredBy: string | null;
     deliveredAt: string | null;
     version: string;
+    dishName?: string | null;
+    variantName?: string | null;
+    optionNames?: string[] | null;
+    note?: string | null;
+    orderCode?: string | null;
 };
 
 export class FulfillmentApiError extends Error {

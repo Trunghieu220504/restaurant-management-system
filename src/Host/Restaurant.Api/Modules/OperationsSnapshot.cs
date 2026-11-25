@@ -23,7 +23,7 @@ public sealed class OperationsSnapshotReader(FulfillmentDbContext fulfillment, S
         var tickets = await query.OrderBy(x => x.TaoLuc).ThenBy(x => x.Id).ToArrayAsync(ct);
         var terminal = tickets.Where(x => x.TrangThai is TicketStatus.Served or TicketStatus.Cancelled or TicketStatus.Failed).ToArray();
         var visible = orderId.HasValue ? tickets : tickets.Except(terminal);
-        return new OperationsSnapshot(visible.Select(TicketEvents.View).ToArray(),
+        return new OperationsSnapshot(await TicketDescriptions.EnrichAsync(visible.Select(TicketEvents.View), sales, ct),
             terminal.Select(x => new TerminalTicket(x.Id, Convert.ToBase64String(x.Version))).ToArray());
     }
 }

@@ -35,14 +35,16 @@
         "gap":  ""
     },
     {
-        "id":  4,
-        "criterion":  "QR expiry, revocation and session isolation",
-        "owner":  "Hiếu",
-        "coverageComplete":  false,
-        "tests":  [
-                      "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Close_revokes_every_unrevoked_guest_grant_and_frees_the_table"
-                  ],
-        "gap":  "Need public ordering and token expiry/cross-session SQL tests."
+        "id": 4,
+        "criterion": "QR expiry, revocation and session isolation",
+        "owner": "Hiếu",
+        "coverageComplete": false,
+        "tests": [
+            "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Close_revokes_every_unrevoked_guest_grant_and_frees_the_table",
+            "Restaurant.IntegrationTests.SeatingSqlServerTests.Invitation_is_single_use_and_the_token_follows_only_its_open_session",
+            "Restaurant.IntegrationTests.SeatingSqlServerTests.Qr_expiry_revocation_and_a_reopened_table_never_resurrect_an_old_grant"
+        ],
+        "gap": "Session invite/expiry/revocation SQL coverage is present. Guest order submission, cross-session order access and ordering racing session close remain unavailable; HIE-5.1 public ordering is not implemented."
     },
     {
         "id":  5,
@@ -55,14 +57,18 @@
         "gap":  ""
     },
     {
-        "id":  6,
-        "criterion":  "Approved remake without new revenue",
-        "owner":  "Hiếu",
-        "coverageComplete":  false,
-        "tests":  [
-
-                  ],
-        "gap":  "Incident approval/remake API is still absent on cf40c97."
+        "id": 6,
+        "criterion": "Approved remake without new revenue",
+        "owner": "Hiếu",
+        "coverageComplete": true,
+        "tests": [
+            "Restaurant.IntegrationTests.FulfillmentIncidentSqlServerTests.Pending_incident_blocks_serving_and_concurrent_remake_creates_one_attempt_without_new_revenue",
+            "Restaurant.IntegrationTests.FulfillmentIncidentSqlServerTests.Cancellation_adjustment_commits_once_and_links_incident_without_refunding_payment",
+            "Restaurant.IntegrationTests.FulfillmentIncidentSqlServerTests.Failure_after_billing_write_rolls_back_every_module",
+            "Restaurant.IntegrationTests.FulfillmentIncidentSqlServerTests.Report_racing_delivery_cannot_commit_both_using_the_same_ticket_version",
+            "Restaurant.IntegrationTests.FulfillmentIncidentSqlServerTests.Rejection_unblocks_serving_and_frozen_day_refuses_new_reports"
+        ],
+        "gap": ""
     },
     {
         "id":  7,

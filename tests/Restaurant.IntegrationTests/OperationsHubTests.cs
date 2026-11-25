@@ -13,8 +13,10 @@ namespace Restaurant.IntegrationTests;
 
 public sealed class OperationsHubTests
 {
-    [Fact]
-    public async Task Authenticated_socket_rejoins_after_disconnect_and_snapshot_recovers_current_state()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Authenticated_socket_rejoins_after_disconnect_and_snapshot_recovers_current_state(bool queryToken)
     {
         var identity = new IdentityStub();
         var snapshot = new SnapshotStub();
@@ -34,8 +36,9 @@ public sealed class OperationsHubTests
             Assert.Equal(HttpStatusCode.Forbidden, order.StatusCode);
 
         var client = factory.Server.CreateWebSocketClient();
-        client.ConfigureRequest = request => request.Headers.Authorization = "Bearer " + token;
-        using (var socket = await client.ConnectAsync(new Uri("ws://localhost/hubs/operations"), default))
+        if (!queryToken) client.ConfigureRequest = request => request.Headers.Authorization = "Bearer " + token;
+        var socketUri = new Uri("ws://localhost/hubs/operations" + (queryToken ? "?access_token=" + Uri.EscapeDataString(token) : ""));
+        using (var socket = await client.ConnectAsync(socketUri, default))
         {
             await Send(socket, "{\"protocol\":\"json\",\"version\":1}");
             Assert.Equal("{}", await Receive(socket));
@@ -46,7 +49,7 @@ public sealed class OperationsHubTests
             socket.Abort();
         }
         snapshot.Status = "SAN_SANG";
-        using var reconnect = await client.ConnectAsync(new Uri("ws://localhost/hubs/operations"), default);
+        using var reconnect = await client.ConnectAsync(socketUri, default);
         await Send(reconnect, "{\"protocol\":\"json\",\"version\":1}");
         Assert.Equal("{}", await Receive(reconnect));
         await Send(reconnect, "{\"type\":1,\"invocationId\":\"3\",\"target\":\"JoinStation\",\"arguments\":[\"BEP\"]}");

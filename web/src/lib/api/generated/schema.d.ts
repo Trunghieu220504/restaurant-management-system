@@ -2990,6 +2990,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SalesOpenOrders"];
+        put?: never;
+        post: operations["SalesCreateOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/orders/{orderId}/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires a UUID Idempotency-Key header; repeated requests replay the original batch. */
+        post: operations["SalesAddBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/orders/{orderId}/batches/{batchNumber}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SalesConfirmBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/orders/{orderId}/batches/{batchNumber}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SalesRejectBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/orders/{orderId}/batches/{batchNumber}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SalesCancelBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4021,6 +4102,11 @@ export interface components {
             /** Format: date-time */
             deliveredAt: null | string;
             version: string;
+            dishName?: null | string;
+            variantName?: null | string;
+            optionNames?: null | string[];
+            note?: null | string;
+            orderCode?: null | string;
         };
         TerminalTicket: {
             /** Format: int64 */
@@ -4067,6 +4153,104 @@ export interface components {
             reason: string;
             /** Format: uuid */
             requestKey: string;
+        };
+        OpenOrdersPage: {
+            items: components["schemas"]["OpenOrder"][];
+            /** Format: int32 */
+            total: number | string;
+        };
+        OpenOrder: {
+            /** Format: int64 */
+            id: number | string;
+            code: string;
+            type: string;
+            /** Format: uuid */
+            businessDayId: string;
+            /** Format: int64 */
+            sessionId: null | number | string;
+            tableLabel: null | string;
+            customerName: null | string;
+            batches: components["schemas"]["OpenOrderBatch"][];
+        };
+        OpenOrderBatch: {
+            /** Format: int64 */
+            id: number | string;
+            /** Format: int32 */
+            number: number | string;
+            status: string;
+            /** Format: int64 */
+            total: number | string;
+            portions: components["schemas"]["PortionView"][];
+        };
+        PortionView: {
+            /** Format: int64 */
+            id: number | string;
+            menuItemName: string;
+            variantName: string;
+            station: string;
+            note: null | string;
+            /** Format: int64 */
+            unitPrice: number | string;
+            optionNames: string[];
+            status: string;
+        };
+        CreateOrderCommand: {
+            type: null | string;
+            /** Format: int64 */
+            sessionId: null | number | string;
+            /** Format: uuid */
+            businessDayId: null | string;
+            customerName: null | string;
+            /** Format: uuid */
+            actor: string;
+        };
+        OrderView: {
+            /** Format: int64 */
+            id: number | string;
+            code: string;
+            type: string;
+            /** Format: uuid */
+            businessDayId: string;
+            /** Format: int64 */
+            sessionId: null | number | string;
+            tableLabel: null | string;
+            customerName: null | string;
+            status: string;
+        };
+        AddBatchCommand: {
+            /** Format: int64 */
+            orderId: number | string;
+            source: null | string;
+            /** Format: uuid */
+            guestGrantId: null | string;
+            /** Format: uuid */
+            staffId: null | string;
+            /** Format: uuid */
+            requestKey: string;
+            lines: null | components["schemas"]["BatchLine"][];
+        };
+        BatchLine: {
+            /** Format: uuid */
+            menuItemId: string;
+            /** Format: uuid */
+            variantId: string;
+            optionIds: null | string[];
+            note: null | string;
+        };
+        BatchView: {
+            /** Format: int64 */
+            orderId: number | string;
+            /** Format: int64 */
+            batchId: number | string;
+            /** Format: int32 */
+            number: number | string;
+            status: string;
+            portions: components["schemas"]["PortionView"][];
+            /** Format: int64 */
+            total: number | string;
+        };
+        RejectBatchRequest: {
+            reason: null | string;
         };
     };
     responses: never;
@@ -7666,6 +7850,298 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesOpenOrders: {
+        parameters: {
+            query?: {
+                page?: number | string;
+                pageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersPage"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesCreateOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesAddBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                orderId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddBatchCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchView"];
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesConfirmBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: number;
+                batchNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesRejectBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: number;
+                batchNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SalesCancelBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: number;
+                batchNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
             /** @description Conflict */
             409: {
