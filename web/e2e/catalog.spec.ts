@@ -37,6 +37,11 @@ async function catalogFixture(
         const path = new URL(request.url()).pathname;
         const method = request.method();
         expect(request.headers().authorization).toBe("Bearer ui-test-access");
+        if (method === "GET" && path === "/api/catalog/availability") {
+            return route.fulfill({
+                json: { businessDayId: "day", soldOut: [] },
+            });
+        }
         if (method === "GET" && path === "/api/catalog/menu") {
             state.reads++;
             if (state.waitForRead) await state.waitForRead;

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { authFetch } from "@/lib/auth/auth-client";
 import type { MenuItem } from "./api";
+import styles from "./catalog.module.css";
 
 export function MenuPhoto({ objectKey }: { objectKey?: string | null }) {
     const match = /^menu\/([a-f0-9]{32})\/([a-f0-9]{64}\.webp)$/.exec(
@@ -103,9 +104,10 @@ export function PhotoUpload({
     }
     return (
         <div>
-            <label>
-                Ảnh món {item.name}
+            <label className={styles.photoPicker}>
+                {item.imageObjectKey ? "Đổi ảnh món" : "Thêm ảnh món"}
                 <input
+                    aria-label={`Ảnh món ${item.name}`}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     disabled={busy}

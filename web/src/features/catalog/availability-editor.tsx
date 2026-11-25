@@ -4,10 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { catalogApi, type CatalogMenu } from "./api";
 import { isSoldOut, useAvailability, type TargetKind } from "./availability";
 
-export function AvailabilityEditor({ menu }: { menu: CatalogMenu }) {
+export function useAvailabilityEditor() {
     const stock = useAvailability();
-    const [kind, setKind] = useState<TargetKind>("ITEM");
-    const [id, select] = useState("");
     const write = useMutation({
         mutationFn: (body: {
             businessDayId: string;
@@ -15,37 +13,44 @@ export function AvailabilityEditor({ menu }: { menu: CatalogMenu }) {
             targetId: string;
             soldOut: boolean;
         }) => catalogApi.apply({ method: "PUT", path: "availability", body }),
-        onSuccess: () => stock.refetch(),
+        onSettled: () => stock.refetch(),
     });
+    return { stock, write };
+}
+
+export function AvailabilityEditor({
+    menu,
+    stock,
+    write,
+}: { menu: CatalogMenu } & ReturnType<typeof useAvailabilityEditor>) {
+    const [kind, setKind] = useState<TargetKind>("VARIANT");
+    const [id, select] = useState("");
     const targets =
-        kind === "ITEM"
-            ? menu.items
-            : kind === "VARIANT"
-              ? menu.items.flatMap((i) =>
-                    i.variants.map((v) => ({
-                        ...v,
-                        name: i.name + " · " + v.name,
-                    })),
-                )
-              : menu.optionGroups
-                    .filter(
-                        (g) =>
-                            g.type ===
-                            (kind === "TOPPING" ? "TOPPING" : "TUY_CHON"),
-                    )
-                    .flatMap((g) =>
-                        g.options.map((o) => ({
-                            ...o,
-                            name: g.name + " · " + o.name,
-                        })),
-                    );
+        kind === "VARIANT"
+            ? menu.items.flatMap((i) =>
+                  i.variants.map((v) => ({
+                      ...v,
+                      name: i.name + " · " + v.name,
+                  })),
+              )
+            : menu.optionGroups
+                  .filter(
+                      (g) =>
+                          g.type ===
+                          (kind === "TOPPING" ? "TOPPING" : "TUY_CHON"),
+                  )
+                  .flatMap((g) =>
+                      g.options.map((o) => ({
+                          ...o,
+                          name: g.name + " · " + o.name,
+                      })),
+                  );
     const sold = !!stock.data && isSoldOut(stock.data, kind, id);
     return (
         <section
             aria-label="Tình trạng bán"
             className="my-4 space-y-2 rounded-xl border p-4"
         >
-            <h2 className="font-semibold">Tình trạng bán trong ngày</h2>
             <div className="flex flex-wrap items-center gap-3">
                 <label>
                     Loại mục{" "}
@@ -57,7 +62,6 @@ export function AvailabilityEditor({ menu }: { menu: CatalogMenu }) {
                             write.reset();
                         }}
                     >
-                        <option value="ITEM">Món</option>
                         <option value="VARIANT">Biến thể</option>
                         <option value="TOPPING">Topping</option>
                         <option value="OPTION">Tùy chọn</option>
@@ -107,13 +111,6 @@ export function AvailabilityEditor({ menu }: { menu: CatalogMenu }) {
                     {sold ? "Bán lại" : "Báo hết"}
                 </button>
             </div>
-            {stock.data?.businessDayId === null && <p>Chưa mở ngày bán.</p>}
-            {(stock.isError || write.isError) && (
-                <p role="alert">
-                    Không thể cập nhật tình trạng bán. Kiểm tra kết nối và quyền
-                    thao tác.
-                </p>
-            )}
         </section>
     );
 }
