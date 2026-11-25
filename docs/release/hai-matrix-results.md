@@ -1,15 +1,15 @@
 # Ma trận SQL của Hải — 25/11/2026
 
-Full SQL Server 2022: **482 integration + 5 architecture = 487 PASS**, 0 failed/skipped. Nguồn: `artifacts/hai-sql-20261125T065302Z/summary.json` và TRX. Sau sửa middleware, thêm kiểm chứng tập trung 20/20 phân quyền/SignalR; không cộng thành một lượt full suite mới.
+Lượt kiểm thử sau khi hoàn thiện gửi món qua QR chạy trên SQL Server 2022. **493 integration + 5 architecture = 498 PASS**, 0 lỗi, 0 bỏ qua. Tổng hợp và TRX nằm trong `artifacts/hai-sql-20261125T132550Z/`.
 
-**16/17 tiêu chí**, toàn bộ matrix vẫn **BLOCKED** do public guest ordering chưa được triển khai. PASS dưới đây là SQL coverage; không thay UAT trên VPS.
+**17/17 tiêu chí** có bằng chứng SQL. Hai vòng UAT ghi kết quả trong hồ sơ nghiệm thu staging.
 
 | # | Tiêu chí | Trạng thái |
 | --- | --- | --- |
 | 1 | Unique identity, invoice and charge | PASS |
 | 2 | Variant and option ownership | PASS |
 | 3 | Concurrent seating open and transfer | PASS |
-| 4 | QR expiry, revocation and session isolation | SKIP |
+| 4 | QR expiry, revocation and session isolation | PASS |
 | 5 | Confirmation produces one charge and first ticket | PASS |
 | 6 | Approved remake without new revenue | PASS |
 | 7 | Cannot serve twice or after cancellation | PASS |
@@ -24,8 +24,8 @@ Full SQL Server 2022: **482 integration + 5 architecture = 487 PASS**, 0 failed/
 | 16 | Negative profit and distinct units | PASS |
 | 17 | Permission revocation affects existing access token | PASS |
 
-Tiêu chí 4 đã có test invitation một lần, token hết hạn/thu hồi và không tái sử dụng sau mở lại bàn. Còn thiếu guest gửi món, kiểm đơn khác phiên và cạnh tranh với đóng phiên; không giả lập các phần này để đánh PASS.
+Tiêu chí 4 kiểm tra API gửi món và theo dõi đợt của đúng khách, gửi lại cùng khóa, mã bàn dùng một mình, token hết hạn/thu hồi và khách gửi món đồng thời với đóng phiên. Bộ Seating kiểm thêm invitation một lần và token cũ sau khi bàn mở phiên mới.
 
 Tiêu chí 6 kiểm remake đồng thời/idempotency, không thêm doanh thu, chặn giao khi pending, rollback Billing/Outbox và kiểm quyền. E2E thật bổ sung: `web/e2e-hai-live/incident-remake.spec.ts`; bằng chứng `artifacts/hai-live-demo/incident-remake-evidence.json`.
 
-Mapping tên test: `scripts/release/matrix.json`. Báo cáo máy đọc: `artifacts/hai-live-demo/matrix-resume.json`.
+Danh sách test theo tiêu chí nằm trong `scripts/release/matrix.json`. Bằng chứng máy đọc gồm `summary.json` và hai file TRX của lượt kiểm thử trên.

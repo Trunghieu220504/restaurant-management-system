@@ -62,6 +62,18 @@ app.Use(async (context, next) =>
             return;
         }
     }
+    else if (HttpMethods.IsPost(context.Request.Method) &&
+        context.Request.Path.StartsWithSegments("/api/public/guest-access/batches"))
+    {
+        const int maxGuestBatchBytes = 65536;
+        var limit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+        if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = maxGuestBatchBytes;
+        if (context.Request.ContentLength > maxGuestBatchBytes)
+        {
+            context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            return;
+        }
+    }
     await next(context);
 });
 // Browser SignalR tokens arrive in the query only on actual WebSocket/SSE requests.

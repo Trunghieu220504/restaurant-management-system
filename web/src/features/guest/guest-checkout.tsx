@@ -159,7 +159,6 @@ export function GuestCheckout({
                     : null;
             if (
                 problem?.code === "sales.batch.line_invalid" ||
-                response.status === 409 ||
                 response.status === 422
             ) {
                 onSoldOut();
@@ -201,6 +200,7 @@ export function GuestCheckout({
                             bàn chưa hỗ trợ gửi món.
                         </p>
                     )}
+                    {count > 50 && <p>Mỗi đợt gọi món tối đa 50 phần.</p>}
                     {!valid && (
                         <p>
                             Kiểm tra lại món trong giỏ và số tùy chọn cần chọn.
@@ -208,7 +208,14 @@ export function GuestCheckout({
                     )}
                     <button
                         className="rounded-lg bg-red-700 px-4 py-3 font-semibold text-white disabled:bg-slate-600"
-                        disabled={!token || !valid || busy || !!until || denied}
+                        disabled={
+                            !token ||
+                            !valid ||
+                            count > 50 ||
+                            busy ||
+                            !!until ||
+                            denied
+                        }
                         onClick={send}
                     >
                         {busy ? "Đang gửi…" : "Gửi đợt gọi món"}

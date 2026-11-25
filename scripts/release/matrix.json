@@ -38,13 +38,15 @@
         "id": 4,
         "criterion": "QR expiry, revocation and session isolation",
         "owner": "Hiếu",
-        "coverageComplete": false,
+        "coverageComplete": true,
         "tests": [
             "Restaurant.IntegrationTests.SeatingServiceSqlServerTests.Close_revokes_every_unrevoked_guest_grant_and_frees_the_table",
             "Restaurant.IntegrationTests.SeatingSqlServerTests.Invitation_is_single_use_and_the_token_follows_only_its_open_session",
-            "Restaurant.IntegrationTests.SeatingSqlServerTests.Qr_expiry_revocation_and_a_reopened_table_never_resurrect_an_old_grant"
+            "Restaurant.IntegrationTests.SeatingSqlServerTests.Qr_expiry_revocation_and_a_reopened_table_never_resurrect_an_old_grant",
+            "Restaurant.IntegrationTests.GuestOrdersSqlServerTests.Guest_can_submit_and_track_only_its_own_batch_and_replay_once",
+            "Restaurant.IntegrationTests.GuestOrdersSqlServerTests.Expired_and_revoked_grants_cannot_submit_and_close_cannot_race_past_submission"
         ],
-        "gap": "Session invite/expiry/revocation SQL coverage is present. Guest order submission, cross-session order access and ordering racing session close remain unavailable; HIE-5.1 public ordering is not implemented."
+        "gap": ""
     },
     {
         "id":  5,

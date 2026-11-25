@@ -34,6 +34,16 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
                 .Select(x => (long?)x.Id)
                 .SingleOrDefaultAsync(ct);
 
+        public async Task<GuestBatchReceipt?> FindGuestBatchAsync(GuestSalesSession session, Guid requestKey, CancellationToken ct)
+        {
+            var previous = await (from batch in db.Batches.AsNoTracking()
+                                  join order in db.Orders on batch.DonHangId equals order.Id
+                                  where batch.KhoaYeuCau == requestKey && batch.QuyenTruyCapKhachId == session.GrantId &&
+                                      order.PhienSuDungId == session.SessionId
+                                  select new { batch.Id, batch.TrangThai }).SingleOrDefaultAsync(ct);
+            return previous is null ? null : GuestBatchReceipt.From(previous.Id, previous.TrangThai);
+        }
+
         public async Task<string> NextOrderCodeAsync(CancellationToken ct)
         {
             var suffix = await db.Orders.AsNoTracking()
@@ -103,6 +113,10 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_DonHang_PhienMo", StringComparison.OrdinalIgnoreCase) == true)
             {
                 throw new StoreConflictException(StoreConflict.OpenOrderForSession, ex);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_DonHang_MaDon", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                throw new StoreConflictException(StoreConflict.ConcurrentChange, ex);
             }
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_Outbox_SuKien", StringComparison.OrdinalIgnoreCase) == true)
             {
