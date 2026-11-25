@@ -201,6 +201,7 @@ export function IncidentPanel({ orderId }: { orderId?: string }) {
                     <label className="grid gap-1">
                         Quyết định
                         <select
+                            aria-label="Quyết định"
                             className={field}
                             required
                             disabled={disabled}
@@ -283,6 +284,7 @@ export function IncidentPanel({ orderId }: { orderId?: string }) {
                                 <label className="grid gap-1">
                                     Phiếu chế biến
                                     <select
+                                        aria-label="Phiếu chế biến"
                                         className={field}
                                         required
                                         disabled={disabled}
@@ -294,7 +296,9 @@ export function IncidentPanel({ orderId }: { orderId?: string }) {
                                         <option value="">Chọn phiếu</option>
                                         {tickets.map((row) => (
                                             <option key={row.id} value={row.id}>
-                                                #{row.id} · Phần món #
+                                                {row.dishName ?? "Phiếu"} ·{" "}
+                                                {row.orderCode ?? ""} · #
+                                                {row.id} · Phần món #
                                                 {row.portionId} ·{" "}
                                                 {row.station === "BAR"
                                                     ? "Bar"

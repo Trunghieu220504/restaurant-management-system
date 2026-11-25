@@ -1,6 +1,5 @@
 "use client";
 import { Suspense, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { usePermissions } from "@/components/permission-provider";
@@ -10,9 +9,6 @@ import { RefundPanel } from "@/features/billing/refund-panel";
 import { IncidentPanel } from "@/features/kitchen/incident-panel";
 import { LiveQueryScope } from "@/lib/realtime/live-query";
 import { Button } from "@/components/ui/button";
-const ServiceView = dynamic(() => import("@/features/orders/service-view"), {
-    loading: () => <p role="status">Đang tải màn phục vụ…</p>,
-});
 function OrderRoute() {
     const params = useSearchParams();
     const { can } = usePermissions();
@@ -45,12 +41,7 @@ function OrderRoute() {
             </LiveQueryScope>
         );
     }
-    return can("sales.orders.manage") &&
-        (params.has("orderId") || params.get("view") === "service") ? (
-        <ServiceView />
-    ) : (
-        <LiveOrders />
-    );
+    return <LiveOrders />;
 }
 function OrderIncidents({ orderId }: { orderId?: string }) {
     const [input, setInput] = useState(orderId ?? "");

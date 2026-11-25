@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { usePermissions } from "@/components/permission-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -72,7 +73,11 @@ function OrdersWorkspace() {
         enabled: allowed,
         refetchInterval: 5000,
     });
-    const [selected, select] = useState<number | null>(null);
+    const params = useSearchParams();
+    const [selected, select] = useState<number | null>(() => {
+        const value = Number(params.get("orderId"));
+        return Number.isSafeInteger(value) && value > 0 ? value : null;
+    });
     const order = orders.data?.items.find(
         (item) => Number(item.id) === selected,
     );
@@ -337,6 +342,30 @@ function OrdersWorkspace() {
                                         order.customerName ??
                                         "Mang về"}
                                 </h2>
+                                <nav
+                                    className="flex flex-wrap gap-4"
+                                    aria-label="Xử lý đơn"
+                                >
+                                    {can("fulfillment.incidents.report") && (
+                                        <Link
+                                            className="underline"
+                                            href={`/orders?view=incidents&orderId=${order.id}`}
+                                        >
+                                            Báo và xử lý sự cố món
+                                        </Link>
+                                    )}
+                                    {["request", "approve", "pay"].some(
+                                        (action) =>
+                                            can("billing.refunds." + action),
+                                    ) && (
+                                        <Link
+                                            className="underline"
+                                            href={`/orders?view=refunds&orderId=${order.id}`}
+                                        >
+                                            Hoàn tiền đơn này
+                                        </Link>
+                                    )}
+                                </nav>
                                 <form
                                     className="grid gap-3 sm:grid-cols-2"
                                     onSubmit={(event) => {

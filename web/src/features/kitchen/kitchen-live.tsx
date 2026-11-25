@@ -32,7 +32,7 @@ function version(value: string): bigint {
     );
 }
 const terminal = (status: string) =>
-    status === "DA_GIAO" || status === "DA_HUY";
+    status === "DA_GIAO" || status === "DA_HUY" || status === "LOI";
 export function KitchenLive({
     permissions,
 }: {

@@ -64,6 +64,9 @@ app.Use(async (context, next) =>
     }
     await next(context);
 });
+// Browser SignalR tokens arrive in the query only on actual WebSocket/SSE requests.
+// Install the WebSocket feature before JWT authentication inspects it.
+app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

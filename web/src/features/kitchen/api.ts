@@ -2,7 +2,7 @@ import { authFetch } from "@/lib/auth/auth-client";
 
 export type FulfillmentStation = "BEP" | "BAR";
 export type FulfillmentStatus =
-    "MOI" | "DANG_LAM" | "SAN_SANG" | "DA_GIAO" | "DA_HUY";
+    "MOI" | "DANG_LAM" | "SAN_SANG" | "DA_GIAO" | "DA_HUY" | "LOI";
 
 export type FulfillmentTicket = {
     id: number | string;
