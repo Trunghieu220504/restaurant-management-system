@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { KitchenDemo } from "@/features/kitchen/kitchen-demo";
-import { BillingDemo } from "@/features/billing/billing-demo";
+import { BillingLive } from "@/features/billing/billing-live";
 import { CloseDayDemo } from "@/features/sales-day/close-day-demo";
 
 export function WeekThreeDemo() {
@@ -89,7 +89,7 @@ export function WeekThreeDemo() {
                 aria-labelledby="tab-billing"
                 hidden={tab !== "billing"}
             >
-                <BillingDemo />
+                <BillingLive />
             </div>
         </main>
     );
