@@ -35,7 +35,7 @@ if args[0]=='inspect':
  sys.exit(0)
 if args[0]=='compose':
  if 'config' in args:
-  if '--format' in args: print(json.dumps({'services':{'nginx':{'networks':{'internal':{}}}}}))
+  if '--format' in args: print(json.dumps({'services':{'nginx':{'networks':{'internal':None}}}}))
  elif 'stop' in args: log('writers-stopped')
  elif 'up' in args:
   rollback=any('rollback.override.json' in x for x in args)

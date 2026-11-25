@@ -7,6 +7,7 @@ export LC_ALL=C
 umask 077
 # Preserve the operator error stream when a failing SQL function redirects its logs.
 exec 8>&2
+trap 'status=$?; printf "Preflight failed at line %s (exit %s).\n" "$LINENO" "$status" >&8' ERR
 mode=${1:---plan}
 if [ "$#" -gt 1 ] || { [ "$mode" != --plan ] && [ "$mode" != --apply ]; } ||
    [ "$(id -u)" -ne 0 ] || [ "$(hostname)" != restaurant-staging ]; then
@@ -59,7 +60,7 @@ compose=(docker compose --project-name restaurant-staging --project-directory "$
 export GHCR_API_IMAGE="$api_image" GHCR_WEB_IMAGE="$web_image"
 [[ "$peer" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
 # Move Nginx to reviewed root-owned config; resolve its actual IP after recreation.
-"${compose[@]}" config --format json | jq -e '.services.nginx.networks.internal != null' >/dev/null
+"${compose[@]}" config --format json | jq -e '.services.nginx.networks | has("internal")' >/dev/null
 jq -n --arg config "$release/nginx.conf" --arg image "$nginx_image" '
  {services:{api:{environment:{Outbox__Enabled:"true",Outbox__PollSeconds:"1"}},
  nginx:{image:$image,volumes:[{type:"bind",source:$config,target:"/etc/nginx/conf.d/default.conf",read_only:true}]}}}' > "$release/runtime.override.json"
