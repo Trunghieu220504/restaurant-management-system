@@ -15,7 +15,7 @@ Các lệnh POST của Billing dùng `Idempotency-Key` dạng UUID và `business
 
 Đề nghị gồm `businessDayId`, `amount` theo đồng và `reason`. Hệ thống giữ hạn mức từ lúc duyệt. Nếu hai người cùng duyệt và tổng vượt số tiền còn hoàn được trên khoản thu, một lệnh nhận HTTP 409 với mã `billing.amount.exceeds_available`.
 
-Khi chi, gửi `outcome` là `DANG_CHI`, `THANH_CONG` hoặc `CHO_DOI_SOAT`. Trạng thái chờ đối soát tiếp tục giữ hạn mức và chặn chốt ngày. Khi có bằng chứng, gửi `THANH_CONG` hoặc `HUY` qua endpoint đối soát. Hoàn qua chuyển khoản thành công cần `reference`. API ghi nhận kết quả chi do nhân viên xác nhận. Phiếu hoàn được lập khi ghi nhận thành công và đọc lại qua API chứng từ.
+Khi chi, gửi `outcome` là `DANG_CHI`, `THANH_CONG` hoặc `CHO_DOI_SOAT`. Trạng thái chờ đối soát tiếp tục giữ hạn mức và chặn chốt ngày. Khi có bằng chứng, gửi `THANH_CONG` hoặc `HUY` qua endpoint đối soát. Khi xác nhận đã hoàn qua chuyển khoản, gửi `reference` nếu mã tham chiếu chưa được lưu ở bước chi hoặc chờ đối soát. API ghi nhận kết quả chi do nhân viên xác nhận. Phiếu hoàn được lập khi ghi nhận thành công và đọc lại qua API chứng từ.
 
 Ví dụ, hóa đơn hôm qua đã thu 100.000 đồng. Chi hoàn 60.000 đồng hôm nay làm số thu ròng của hóa đơn còn 40.000 đồng. Nghĩa vụ vẫn là 100.000 đồng cho đến khi quản lý ghi một điều chỉnh riêng. Khoản chi hoàn và điều chỉnh phát sinh hôm nay xuất hiện ở ngày hôm nay. Snapshot hôm qua giữ nguyên.
 
