@@ -28,7 +28,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "fulfillment")).Options);
     private BillingDbContext Billing() => new(new DbContextOptionsBuilder<BillingDbContext>().UseSqlServer(connection,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "billing")).Options);
-    private FulfillmentIncidents Service(FulfillmentDbContext db) => new(db, new FulfillmentIncidentContext(), TimeProvider.System);
+    private FulfillmentIncidents Service(FulfillmentDbContext db) => new(db, new FulfillmentIncidentContext(), TimeProvider.System, BusinessAuditTestSupport.Writer(db));
 
     public async Task InitializeAsync()
     {
@@ -38,6 +38,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         await using var days = new SalesDayDbContext(new DbContextOptionsBuilder<SalesDayDbContext>().UseSqlServer(connection,
             sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "salesday")).Options);
         await days.Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(connection);
         days.Days.Add(new BusinessDay
         {
             Id = day,
@@ -101,7 +102,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         await using (var db = Db())
         {
             var ticket = await db.Tickets.SingleAsync();
-            var result = await new FulfillmentService(db, TimeProvider.System).DeliverAsync(ticketId, Stations.Kitchen,
+            var result = await new FulfillmentService(db, TimeProvider.System, new FulfillmentIncidentContext(), BusinessAuditTestSupport.Writer(db)).DeliverAsync(ticketId, Stations.Kitchen,
                 Convert.ToBase64String(ticket.Version), Guid.NewGuid(), actor, default);
             Assert.Equal(FulfillmentErrors.IncidentPending, result.Error);
         }
@@ -124,13 +125,14 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         Assert.Equal(TicketStatus.Failed, tickets[0].TrangThai);
         Assert.Equal(TicketStatus.New, tickets[1].TrangThai);
         Assert.Equal(tickets[0].ChiTietDonId, tickets[1].ChiTietDonId);
-        var old = await new FulfillmentService(check, TimeProvider.System).DeliverAsync(ticketId, Stations.Kitchen,
+        var old = await new FulfillmentService(check, TimeProvider.System, new FulfillmentIncidentContext(), BusinessAuditTestSupport.Writer(check)).DeliverAsync(ticketId, Stations.Kitchen,
             Convert.ToBase64String(tickets[0].Version), Guid.NewGuid(), actor, default);
         Assert.False(old.Succeeded);
         await using var bill = Billing();
         Assert.Equal(50000, await bill.Set<DongHoaDon>().SumAsync(x => x.ThanhTienGoc));
         Assert.Empty(await bill.Set<DieuChinhNghiaVu>().ToArrayAsync());
         Assert.Equal(2, await check.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM fulfillment.Outbox").SingleAsync());
+        Assert.Equal(2, await check.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM audit.NhatKy WHERE SourceModule='Fulfillment'").SingleAsync());
         await check.Database.ExecuteSqlRawAsync("UPDATE salesday.NgayBan SET Status='CHO_CHOT'");
         Assert.True((await Decide()).Succeeded);
     }
@@ -163,6 +165,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         var adjustment = Assert.Single(await billing.Set<DieuChinhNghiaVu>().Where(x => x.SuCoMonId != null).ToArrayAsync());
         Assert.Equal(-50000, adjustment.SoTien);
         Assert.Equal(incident.Id, adjustment.SuCoMonId);
+        Assert.Equal(2, await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM audit.NhatKy WHERE SourceModule='Fulfillment'").SingleAsync());
         Assert.Empty(await billing.Set<HoanTien>().ToArrayAsync());
     }
 
@@ -202,7 +205,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         var incident = await Report();
         await using (var db = Db())
         {
-            var service = new FulfillmentIncidents(db, new FailAfterAdjustment(), TimeProvider.System);
+            var service = new FulfillmentIncidents(db, new FailAfterAdjustment(), TimeProvider.System, BusinessAuditTestSupport.Writer(db));
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.ResolveAsync(incident.Id,
                 new(incident.Version, IncidentDecision.CancelWithObligationAdjustment, "Cancel", Guid.NewGuid()), actor, default));
         }
@@ -239,7 +242,7 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         async Task<bool> DeliverAttempt()
         {
             await using var deliverDb = Db();
-            return (await new FulfillmentService(deliverDb, TimeProvider.System).DeliverAsync(ticketId, Stations.Kitchen,
+            return (await new FulfillmentService(deliverDb, TimeProvider.System, new FulfillmentIncidentContext(), BusinessAuditTestSupport.Writer(deliverDb)).DeliverAsync(ticketId, Stations.Kitchen,
                 version, Guid.NewGuid(), actor, default)).Succeeded;
         }
         var results = await Task.WhenAll(ReportAttempt(), DeliverAttempt());
@@ -253,12 +256,15 @@ public sealed class FulfillmentIncidentSqlServerTests : IAsyncLifetime
         await using var db = Db();
         Assert.True((await Service(db).ResolveAsync(incident.Id, new(incident.Version, null, "No fault", Guid.NewGuid()), actor, default)).Succeeded);
         var ticket = await db.Tickets.AsNoTracking().SingleAsync();
-        Assert.True((await new FulfillmentService(db, TimeProvider.System).DeliverAsync(ticketId, Stations.Kitchen,
+        Assert.True((await new FulfillmentService(db, TimeProvider.System, new FulfillmentIncidentContext(), BusinessAuditTestSupport.Writer(db)).DeliverAsync(ticketId, Stations.Kitchen,
             Convert.ToBase64String(ticket.Version), Guid.NewGuid(), actor, default)).Succeeded);
         await db.Database.ExecuteSqlRawAsync("UPDATE salesday.NgayBan SET Status='CHO_CHOT'");
         var current = await db.Tickets.AsNoTracking().SingleAsync();
         var denied = await Service(db).ReportAsync(ticketId,
             new(Convert.ToBase64String(current.Version), Stations.Kitchen, "Late report", Guid.NewGuid()), actor, default);
         Assert.Equal("salesday.day.not_open", denied.Error);
+        var blocked = await new FulfillmentService(db, TimeProvider.System, new FulfillmentIncidentContext(), BusinessAuditTestSupport.Writer(db))
+            .CancelAsync(ticketId, Stations.Kitchen, Convert.ToBase64String(current.Version), Guid.NewGuid(), actor, default);
+        Assert.Equal("salesday.day.not_open", blocked.Error);
     }
 }

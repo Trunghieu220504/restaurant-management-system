@@ -8,6 +8,7 @@ using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Infrastructure;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 using Xunit;
 
 namespace Restaurant.IntegrationTests;
@@ -76,6 +77,9 @@ public sealed class SeatingSqlServerTests : IAsyncLifetime
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
         services.AddSeatingModule();
+        services.AddSingleton<IBusinessAudit>(TestBusinessAudit.Instance);
+        services.AddSingleton<IBusinessDayDirectory>(new SeatingTestDayDirectory(
+            Guid.Parse("22222222-2222-2222-2222-222222222222")));
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var access = scope.ServiceProvider.GetRequiredService<IGuestAccess>();

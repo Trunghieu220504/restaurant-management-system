@@ -39,6 +39,7 @@ public sealed class PhuongWeekFourSqlServerTests : IAsyncLifetime
         var provider = scope.ServiceProvider;
         var days = provider.GetRequiredService<SalesDayDbContext>();
         await days.Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(days.Database.GetConnectionString()!);
         await provider.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
         await provider.GetRequiredService<SalesDbContext>().Database.MigrateAsync();
         await provider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();
@@ -193,6 +194,7 @@ public sealed class PhuongWeekFourSqlServerTests : IAsyncLifetime
         Assert.Null((await ledger.CollectAsync(extra.Invoice, new(day, "TIEN_MAT", 40, 40, null), actor, Guid.NewGuid(), default)).Error);
         Assert.Null((await closing.CloseAsync(order.Id, day, default)).Error);
         Assert.True((await closing.CloseAsync(order.Id, day, default)).Replayed);
+        Assert.Equal(1, await sales.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM audit.NhatKy WHERE Action='sales.order.closed'").SingleAsync());
         Assert.Equal(OrderStatus.Closed, (await sales.Orders.AsNoTracking().SingleAsync()).TrangThai);
     }
 }

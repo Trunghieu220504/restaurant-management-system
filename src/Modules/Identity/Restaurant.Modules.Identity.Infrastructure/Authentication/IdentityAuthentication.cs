@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Restaurant.Modules.Identity.Application.Authentication;
 using Restaurant.Modules.Identity.Domain;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Identity.Infrastructure.Authentication;
 
@@ -11,7 +12,8 @@ public sealed class IdentityAuthentication(
     IdentityDbContext db,
     UserManager<IdentityUser<Guid>> users,
     IAccessTokenIssuer issuer,
-    TimeProvider clock) : IIdentityAuthentication
+    TimeProvider clock,
+    IBusinessAudit audit) : IIdentityAuthentication
 {
     public static readonly TimeSpan AccessTokenLifetime = TimeSpan.FromMinutes(15);
     /// <summary>Absolute cap from login: rotation never extends it, so a stolen cookie cannot live forever.</summary>
@@ -38,12 +40,20 @@ public sealed class IdentityAuthentication(
             await users.IsLockedOutAsync(candidate))
         {
             DummyHasher.VerifyHashedPassword(DummyUser, DummyHash, request.Password!);
+            if (db.Entry(candidate).State != EntityState.Detached)
+            {
+                await audit.AppendAsync(new BusinessAuditEntry("Identity", "login.failure", "Account", candidate.Id.ToString(), candidate.Id,
+                    Reason: "account-unavailable"), cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
             return null;
         }
 
         if (!await users.CheckPasswordAsync(candidate, request.Password!))
         {
             EnsureSuccess(await users.AccessFailedAsync(candidate));
+            await audit.AppendAsync(new BusinessAuditEntry("Identity", "login.failure", "Account", candidate.Id.ToString(), candidate.Id,
+                Reason: "invalid-credentials"), cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return null;
         }
@@ -67,6 +77,7 @@ public sealed class IdentityAuthentication(
         var (refreshSecret, refresh) = NewRefreshToken(session.Id, candidate.Id, now, now.Add(RefreshTokenLifetime));
         db.Set<RefreshToken>().Add(refresh);
         await db.SaveChangesAsync(cancellationToken);
+        await audit.AppendAsync(new BusinessAuditEntry("Identity", "login.success", "LoginSession", session.Id.ToString(), candidate.Id), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new LoginResult(token, session.ExpiresAt, account)
         {
@@ -93,7 +104,9 @@ public sealed class IdentityAuthentication(
         {
             if (current.RevokedAt is not null) return null;
             // An already-rotated secret came back: treat as theft and end the whole chain (= its session).
-            await RevokeSessionAsync(current.SessionId, now, cancellationToken);
+            if (await RevokeSessionAsync(current.SessionId, now, cancellationToken))
+                await audit.AppendAsync(new BusinessAuditEntry("Identity", "refresh.replay-revoke", "LoginSession",
+                    current.SessionId.ToString(), current.UserId, Reason: "refresh-token-reuse"), cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return null;
         }
@@ -111,6 +124,7 @@ public sealed class IdentityAuthentication(
             .ExecuteUpdateAsync(set => set.SetProperty(s => s.ExpiresAt, accessExpires), cancellationToken);
         var access = issuer.Issue(current.UserId, current.SessionId, account.Roles, now, accessExpires);
         await db.SaveChangesAsync(cancellationToken);
+        await audit.AppendAsync(new BusinessAuditEntry("Identity", "refresh.rotate", "LoginSession", current.SessionId.ToString(), current.UserId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new LoginResult(access, accessExpires, account) { RefreshToken = secret, RefreshTokenExpiresAt = next.ExpiresAt };
     }
@@ -127,7 +141,8 @@ public sealed class IdentityAuthentication(
         await LockUserAsync(userId, cancellationToken);
         if (await FindSessionUserAsync(userId, sessionId, cancellationToken) is null) return AccountMutationResult.Unauthorized;
         var now = clock.GetUtcNow().UtcDateTime;
-        await RevokeSessionAsync(sessionId, now, cancellationToken);
+        if (await RevokeSessionAsync(sessionId, now, cancellationToken))
+            await audit.AppendAsync(new BusinessAuditEntry("Identity", "logout", "LoginSession", sessionId.ToString(), userId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return AccountMutationResult.Success;
     }
@@ -145,7 +160,8 @@ public sealed class IdentityAuthentication(
         var now = clock.GetUtcNow().UtcDateTime;
         if (token is null || token.ExpiresAt <= now) return AccountMutationResult.Unauthorized;
         // Even a consumed cookie may end its own session, but can never issue new credentials.
-        await RevokeSessionAsync(token.SessionId, now, cancellationToken);
+        if (await RevokeSessionAsync(token.SessionId, now, cancellationToken))
+            await audit.AppendAsync(new BusinessAuditEntry("Identity", "logout", "LoginSession", token.SessionId.ToString(), token.UserId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return AccountMutationResult.Success;
     }
@@ -166,6 +182,7 @@ public sealed class IdentityAuthentication(
             .ExecuteUpdateAsync(set => set.SetProperty(s => s.RevokedAt, (DateTime?)now), cancellationToken);
         await db.Set<RefreshToken>().Where(t => t.UserId == userId && t.RevokedAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, (DateTime?)now), cancellationToken);
+        await audit.AppendAsync(new BusinessAuditEntry("Identity", "password.change", "Account", userId.ToString(), userId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return AccountMutationResult.Success;
     }
@@ -199,12 +216,13 @@ public sealed class IdentityAuthentication(
         return new CurrentAccount(user.Id, user.UserName!, user.Email, roles, permissions);
     }
 
-    private async Task RevokeSessionAsync(Guid sessionId, DateTime now, CancellationToken cancellationToken)
+    private async Task<bool> RevokeSessionAsync(Guid sessionId, DateTime now, CancellationToken cancellationToken)
     {
-        await db.Set<LoginSession>().Where(s => s.Id == sessionId && s.RevokedAt == null)
+        var sessions = await db.Set<LoginSession>().Where(s => s.Id == sessionId && s.RevokedAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(s => s.RevokedAt, (DateTime?)now), cancellationToken);
-        await db.Set<RefreshToken>().Where(t => t.SessionId == sessionId && t.RevokedAt == null)
+        var tokens = await db.Set<RefreshToken>().Where(t => t.SessionId == sessionId && t.RevokedAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, (DateTime?)now), cancellationToken);
+        return sessions > 0 || tokens > 0;
     }
 
     private static (string Secret, RefreshToken Entity) NewRefreshToken(Guid sessionId, Guid userId, DateTime now, DateTime expiresAt)

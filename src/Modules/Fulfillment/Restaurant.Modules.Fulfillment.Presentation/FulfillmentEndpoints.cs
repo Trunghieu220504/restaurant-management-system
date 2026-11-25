@@ -67,6 +67,7 @@ public static class FulfillmentEndpoints
             FulfillmentErrors.TicketNotFound => 404,
             FulfillmentErrors.StationForbidden => 403,
             FulfillmentErrors.InvalidTransition or FulfillmentErrors.AlreadyProcessed or FulfillmentErrors.ConcurrencyConflict or FulfillmentErrors.IncidentPending => 409,
+            "salesday.day.not_open" or "sales.order.not_open" or "sales.portion.cancelled" => 409,
             _ => 400
         };
         return Results.Problem(statusCode: status, title: error,

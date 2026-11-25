@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="../Restaurant.Modules.Identity.Domain/Restaurant.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Identity.Application/Restaurant.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="../../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
   </ItemGroup>
 </Project>

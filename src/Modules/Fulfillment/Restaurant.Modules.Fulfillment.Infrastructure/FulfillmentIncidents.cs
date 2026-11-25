@@ -7,10 +7,11 @@ using Restaurant.Modules.Fulfillment.Application;
 using Restaurant.Modules.Fulfillment.Domain;
 using Restaurant.Modules.Fulfillment.Infrastructure.Messaging;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Fulfillment.Infrastructure;
 
-public sealed class FulfillmentIncidents(FulfillmentDbContext db, IFulfillmentIncidentContext context, TimeProvider clock) : IFulfillmentIncidents
+public sealed class FulfillmentIncidents(FulfillmentDbContext db, IFulfillmentIncidentContext context, TimeProvider clock, IBusinessAudit audit) : IFulfillmentIncidents
 {
     public async Task<IReadOnlyList<IncidentView>> PendingAsync(IReadOnlyCollection<string> stations, CancellationToken ct)
     {
@@ -64,6 +65,8 @@ public sealed class FulfillmentIncidents(FulfillmentDbContext db, IFulfillmentIn
                 CreatedAt = clock.GetUtcNow().UtcDateTime
             });
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Fulfillment", "fulfillment.incident.reported", "SuCoMon",
+                report.Value!.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), actor, Reason: report.Value.LyDo), ct);
             await tx.CommitAsync(ct);
             return FulfillmentResult<IncidentView>.Ok(View(report.Value!, null));
         }
@@ -125,6 +128,9 @@ public sealed class FulfillmentIncidents(FulfillmentDbContext db, IFulfillmentIn
             if (request.Decision is not null) TicketEvents.Stage(db, ticket, clock.GetUtcNow());
             if (remake is not null) TicketEvents.Stage(db, remake, clock.GetUtcNow());
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Fulfillment", request.Decision is null ? "fulfillment.incident.rejected" :
+                "fulfillment.incident." + request.Decision.ToLowerInvariant(), "SuCoMon",
+                incident.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), actor, Reason: request.Reason.Trim()), ct);
             await tx.CommitAsync(ct);
             return FulfillmentResult<IncidentView>.Ok(View(incident, remake?.Id));
         }

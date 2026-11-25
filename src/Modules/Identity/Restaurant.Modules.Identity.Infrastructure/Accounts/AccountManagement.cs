@@ -4,6 +4,7 @@ using Restaurant.Modules.Identity.Application.Accounts;
 using Restaurant.Modules.Identity.Application.Authorization;
 using Restaurant.Modules.Identity.Domain;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Identity.Infrastructure.Accounts;
 
@@ -13,7 +14,7 @@ namespace Restaurant.Modules.Identity.Infrastructure.Accounts;
 /// Two Admins can therefore never disable each other at the same time and leave nobody able to manage accounts.
 /// </summary>
 public sealed class AccountManagement(
-    IdentityDbContext db, UserManager<IdentityUser<Guid>> users, TimeProvider clock) : IAccountManagement
+    IdentityDbContext db, UserManager<IdentityUser<Guid>> users, TimeProvider clock, IBusinessAudit audit) : IAccountManagement
 {
     private const int MaxText = 256;
     private const int MaxPassword = 1024;
@@ -99,6 +100,7 @@ public sealed class AccountManagement(
         var created = await users.CreateAsync(user, request.Password!);
         if (!created.Succeeded) return Fail<AccountDto>(MapCreateError(created));
         EnsureSuccess(await users.AddToRolesAsync(user, roles));
+        await audit.AppendAsync(new BusinessAuditEntry("Identity", "account.create", "Account", user.Id.ToString(), actorId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return AccountResult<AccountDto>.Ok(new AccountDto(user.Id, user.UserName!, user.Email, roles, true, false));
     }
@@ -119,6 +121,8 @@ public sealed class AccountManagement(
         var add = wanted.Except(target.Roles).ToArray();
         if (remove.Length > 0) EnsureSuccess(await users.RemoveFromRolesAsync(target.User, remove));
         if (add.Length > 0) EnsureSuccess(await users.AddToRolesAsync(target.User, add));
+        if (remove.Length > 0 || add.Length > 0)
+            await audit.AppendAsync(new BusinessAuditEntry("Identity", "account.roles", "Account", accountId.ToString(), actorId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         // No session is touched: roles are read from the database on every request, so open tokens lose or gain rights at once.
         return AccountResult<AccountDto>.Ok(await ToDtoAsync(target.User, wanted, cancellationToken));
@@ -137,6 +141,8 @@ public sealed class AccountManagement(
             entry.Property<bool>("IsActive").CurrentValue = active;
             await db.SaveChangesAsync(cancellationToken);
             if (!active) await RevokeAllSessionsAsync(accountId, cancellationToken);
+            await audit.AppendAsync(new BusinessAuditEntry("Identity", active ? "account.activate" : "account.deactivate",
+                "Account", accountId.ToString(), actorId), cancellationToken);
         }
         await transaction.CommitAsync(cancellationToken);
         return AccountResult<AccountDto>.Ok(await ToDtoAsync(target.User, target.Roles, cancellationToken));
@@ -163,6 +169,7 @@ public sealed class AccountManagement(
         if (target.User.LockoutEnabled) EnsureSuccess(await users.SetLockoutEndDateAsync(target.User, null));
         EnsureSuccess(await users.ResetAccessFailedCountAsync(target.User));
         await RevokeAllSessionsAsync(accountId, cancellationToken);
+        await audit.AppendAsync(new BusinessAuditEntry("Identity", "account.reset-password", "Account", accountId.ToString(), actorId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return AccountResult<AccountDto>.Ok(await ToDtoAsync(target.User, target.Roles, cancellationToken));
     }
