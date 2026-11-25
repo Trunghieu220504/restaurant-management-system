@@ -51,7 +51,7 @@ public sealed class FulfillmentSqlServerTests : IAsyncLifetime
         var cancelled = PhieuCheBien.CreateInitial(43, Stations.Kitchen, Now).Value!;
         db.Tickets.AddRange(ticket, cancelled);
         await db.SaveChangesAsync();
-        var service = new FulfillmentService(db, TimeProvider.System);
+        var service = new FulfillmentService(db, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance);
         var started = await service.StartAsync(ticket.Id, Stations.Kitchen, Convert.ToBase64String(ticket.Version), Guid.NewGuid(), Staff, default);
         Assert.True(started.Succeeded);
         var ready = await service.ReadyAsync(ticket.Id, Stations.Kitchen, started.Value!.Version, Guid.NewGuid(), Staff, default);
@@ -59,7 +59,7 @@ public sealed class FulfillmentSqlServerTests : IAsyncLifetime
         async Task<bool> Deliver()
         {
             await using var request = CreateContext();
-            return (await new FulfillmentService(request, TimeProvider.System).DeliverAsync(ticket.Id, Stations.Kitchen,
+            return (await new FulfillmentService(request, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance).DeliverAsync(ticket.Id, Stations.Kitchen,
                 ready.Value!.Version, Guid.NewGuid(), Staff, default)).Succeeded;
         }
         Assert.Single(await Task.WhenAll(Deliver(), Deliver()), success => success);
