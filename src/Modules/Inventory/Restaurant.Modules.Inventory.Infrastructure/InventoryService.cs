@@ -148,17 +148,25 @@ public sealed class InventoryService(InventoryDbContext db, IInventoryDayGate da
         return new(ingredient);
     }, ct);
 
-    public Task<StockResult> DraftAsync(PurchaseInput input, Guid actor, Guid key, CancellationToken ct)
+    public async Task<StockResult> DraftAsync(PurchaseInput input, Guid actor, Guid key, CancellationToken ct)
     {
         var hash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { input, actor })));
-        return WriteAsync(input.DayId, () => CreateReceiptAsync(input, actor, key, hash, "NHAP", ct), ct);
+        var result = await WriteAsync(input.DayId, () => CreateReceiptAsync(input, actor, key, hash, "NHAP", ct), ct);
+        if (result.Error != "salesday.day.not_open" || key == Guid.Empty || actor == Guid.Empty) return result;
+
+        // The day gate rejects new writes. A retry can still return a committed receipt.
+        var existing = await db.Set<PhieuNhap>().AsNoTracking().SingleOrDefaultAsync(p => p.KhoaYeuCau == key, ct);
+        return existing is null ? result : MatchReceiptRequest(existing, hash);
     }
+
+    private static StockResult MatchReceiptRequest(PhieuNhap existing, string fingerprint) =>
+        existing.DauVanTay == fingerprint ? new(existing.Id) : Fail("inventory.idempotency.conflict");
 
     internal async Task<StockResult> CreateReceiptAsync(PurchaseInput input, Guid actor, Guid key, string fingerprint, string status, CancellationToken ct)
     {
         if (key == Guid.Empty || actor == Guid.Empty || input.Lines is not { Count: > 0 } || input.Note?.Length > 2000) return Fail(Invalid);
         var old = await db.Set<PhieuNhap>().FromSqlInterpolated($"SELECT * FROM inventory.PhieuNhap WITH (UPDLOCK,HOLDLOCK) WHERE KhoaYeuCau={key}").SingleOrDefaultAsync(ct);
-        if (old is not null) return old.DauVanTay == fingerprint ? new(old.Id) : Fail("inventory.idempotency.conflict");
+        if (old is not null) return MatchReceiptRequest(old, fingerprint);
         if (input.SupplierId.HasValue && !await db.Set<NhaCungCap>().AnyAsync(x => x.Id == input.SupplierId && x.HoatDong, ct)) return Fail(Missing);
         var lines = new List<ChiTietPhieuNhap>();
         foreach (var line in input.Lines)

@@ -19,13 +19,17 @@ public sealed class StockCounts(InventoryDbContext db, IInventoryDayGate days) :
               AND NOT EXISTS (SELECT 1 FROM inventory.KiemKeTon k WITH (UPDLOCK,HOLDLOCK) WHERE k.NgayBanId={day} AND k.NguyenLieuId=i.Id)
             """, ct);
 
+    internal static IQueryable<KiemKeTon> RelevantForDay(InventoryDbContext db, Guid day, IQueryable<KiemKeTon>? source = null) =>
+        (source ?? db.Set<KiemKeTon>()).Where(count => count.NgayBanId == day &&
+            (count.ChotLuc != null || count.TonDau > 0 || count.GiaTriTonDau > 0 || count.SoDemNhap != null || count.SoDemDuyet != null ||
+             db.Set<NguyenLieu>().Any(item => item.Id == count.NguyenLieuId && !item.LuuTru && item.CheDo == "THEO_DOI_TON")));
+
     public async Task<IReadOnlyList<StockCountView>> ListAsync(Guid day, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var open = await days.RequireOpenAsync(tx.GetDbTransaction(), day, ct);
-        var rows = from k in db.Set<KiemKeTon>().AsNoTracking()
+        var rows = from k in RelevantForDay(db, day).AsNoTracking()
                    join i in db.Set<NguyenLieu>() on k.NguyenLieuId equals i.Id
-                   where k.NgayBanId == day
                    orderby i.Ma
                    select new StockCountView(i.Id, i.Ten, k.DonViChotId ?? i.DonViChuanId,
                        k.TonDau, k.GiaTriTonDau, k.SoDemNhap, k.SoDemDuyet, k.Version)
@@ -57,8 +61,9 @@ public sealed class StockCounts(InventoryDbContext db, IInventoryDayGate days) :
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         if (!await days.RequireOpenAsync(tx.GetDbTransaction(), day, ct)) return new(null, "salesday.day.not_open");
         db.ChangeTracker.Clear();
-        var row = await db.Set<KiemKeTon>().FromSqlInterpolated(
-            $"SELECT * FROM inventory.KiemKeTon WITH (UPDLOCK,HOLDLOCK) WHERE NgayBanId={day} AND NguyenLieuId={ingredient}").SingleOrDefaultAsync(ct);
+        var locked = db.Set<KiemKeTon>().FromSqlInterpolated(
+            $"SELECT * FROM inventory.KiemKeTon WITH (UPDLOCK,HOLDLOCK) WHERE NgayBanId={day} AND NguyenLieuId={ingredient}");
+        var row = await RelevantForDay(db, day, locked).SingleOrDefaultAsync(ct);
         if (row == null)
         {
             if (approve || version != null) return new(null, "inventory.count.stale");
