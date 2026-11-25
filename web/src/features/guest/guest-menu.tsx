@@ -13,6 +13,7 @@ type PublicMenu = components["schemas"]["PublicMenu"];
 export function GuestMenu({ tableCode }: { tableCode: string }) {
     const [sending, setSending] = useState(false);
     const [token, setToken] = useState<string | null>(null);
+    const [menuToken, setMenuToken] = useState<string | null>(null);
     const [selected, setSelected] = useState<Record<string, string[]>>({});
     const [menu, setMenu] = useState<PublicMenu | null>(null),
         [error, fail] = useState(""),
@@ -22,6 +23,9 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
         async function load() {
             try {
                 const res = await fetch("/api/public/menu", {
+                    headers: menuToken
+                        ? { Authorization: "Guest " + menuToken }
+                        : undefined,
                     signal: c.signal,
                     credentials: "omit",
                     cache: "no-store",
@@ -50,7 +54,7 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
         }
         void load();
         return () => c.abort();
-    }, [attempt]);
+    }, [attempt, menuToken]);
     const menuItems =
         menu?.groups.flatMap((g) =>
             g.items.flatMap((i) =>
@@ -161,7 +165,11 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
             </div>
 
             <div className="px-4 pt-3">
-                <GuestAccessStatus tableCode={tableCode} onToken={setToken} />
+                <GuestAccessStatus
+                    tableCode={tableCode}
+                    onToken={setToken}
+                    onAccessToken={setMenuToken}
+                />
                 {error && (
                     <p role="alert">
                         {error}{" "}
