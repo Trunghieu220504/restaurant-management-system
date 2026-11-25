@@ -9,8 +9,8 @@ import {
     type CatalogChange,
 } from "./api";
 import { CatalogEditor, type Editor } from "./catalog-editor";
-import { AvailabilityEditor } from "./availability-editor";
-import { MenuPhoto, PhotoUpload } from "./menu-photo";
+import { DishBrowser } from "./dish-browser";
+
 import styles from "./catalog.module.css";
 
 export function CatalogScreen() {
@@ -21,7 +21,6 @@ export function CatalogScreen() {
         [tab, setTab] = useState("Món ăn"),
         [selected, setSelected] = useState(""),
         [optionSelected, setOptionSelected] = useState(""),
-        [search, setSearch] = useState(""),
         [editor, setEditor] = useState<Editor | null>(null),
         [notice, setNotice] = useState("");
     async function load(signal?: AbortSignal) {
@@ -83,9 +82,6 @@ export function CatalogScreen() {
                     Tải lại
                 </button>
             </header>
-            {menu && can("catalog.availability.manage") && (
-                <AvailabilityEditor menu={menu} />
-            )}
             <nav className={styles.tabs} aria-label="Danh mục thực đơn">
                 {["Món ăn", "Nhóm món", "Tùy chọn & topping"].map((t) => (
                     <button
@@ -143,103 +139,16 @@ export function CatalogScreen() {
                     )}
                     {tab === "Món ăn" && (
                         <>
-                            <div className={styles.toolbar}>
-                                <label>
-                                    Tìm món
-                                    <input
-                                        value={search}
-                                        onChange={(e) =>
-                                            setSearch(e.target.value)
-                                        }
-                                        placeholder="Tên hoặc mã món"
-                                    />
-                                </label>
-                                {edit({ kind: "item" }, "Thêm món")}
-                            </div>
-                            {!menu.groups.some((g) => g.active) && (
-                                <p>
-                                    Tạo nhóm món đang sử dụng trước khi thêm
-                                    món.
-                                </p>
-                            )}
-                            <div className={styles.grid}>
-                                {menu.items
-                                    .filter((x) =>
-                                        `${x.name} ${x.code}`
-                                            .toLocaleLowerCase()
-                                            .includes(
-                                                search.toLocaleLowerCase(),
-                                            ),
-                                    )
-                                    .map((x) => (
-                                        <article
-                                            key={x.id}
-                                            className={styles.card}
-                                        >
-                                            {x.imageObjectKey ? (
-                                                <MenuPhoto
-                                                    objectKey={x.imageObjectKey}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className={
-                                                        styles.placeholder
-                                                    }
-                                                >
-                                                    Chưa có ảnh
-                                                </div>
-                                            )}
-                                            <h3>{x.name}</h3>
-                                            {manage && (
-                                                <PhotoUpload
-                                                    item={x}
-                                                    refresh={load}
-                                                />
-                                            )}
-                                            <p>
-                                                {
-                                                    menu.groups.find(
-                                                        (g) =>
-                                                            g.id === x.groupId,
-                                                    )?.name
-                                                }{" "}
-                                                ·{" "}
-                                                {x.station === "BEP"
-                                                    ? "Bếp"
-                                                    : "Bar"}
-                                            </p>
-                                            <p>
-                                                {x.variants
-                                                    .filter((v) => v.active)
-                                                    .map((v) =>
-                                                        formatPrice(v.price),
-                                                    )
-                                                    .join(" / ") ||
-                                                    "Chưa có biến thể / giá bán"}
-                                            </p>
-                                            <small>
-                                                {x.active
-                                                    ? "Đang sử dụng"
-                                                    : "Ngừng sử dụng"}
-                                            </small>
-                                            <button
-                                                className={styles.secondary}
-                                                aria-label={`Chi tiết món ${x.name}`}
-                                                onClick={() =>
-                                                    setSelected(x.id)
-                                                }
-                                            >
-                                                Chi tiết món
-                                            </button>
-                                        </article>
-                                    ))}
-                            </div>
-                            {!menu.items.length && (
-                                <p>
-                                    Chưa có món ăn. Thêm món và biến thể để đặt
-                                    giá bán.
-                                </p>
-                            )}
+                            <DishBrowser
+                                menu={menu}
+                                manage={manage}
+                                canChangeStock={can(
+                                    "catalog.availability.manage",
+                                )}
+                                refresh={load}
+                                onAdd={() => setEditor({ kind: "item" })}
+                                onSelect={setSelected}
+                            />
                             {item && (
                                 <article className={styles.detail}>
                                     <div className={styles.toolbar}>
