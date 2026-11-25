@@ -1,4 +1,5 @@
 import { KitchenDemo } from "@/features/kitchen/kitchen-demo";
+import { KitchenIncidents } from "@/features/kitchen/kitchen-incidents";
 
 export default function KitchenPage() {
     return (
@@ -19,6 +20,7 @@ export default function KitchenPage() {
                     Chưa kết nối được nguồn phiếu chế biến.
                 </p>
             )}
+            <KitchenIncidents />
         </section>
     );
 }
