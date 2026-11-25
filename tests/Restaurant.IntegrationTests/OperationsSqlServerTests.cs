@@ -57,7 +57,7 @@ public sealed class OperationsSqlServerTests : IAsyncLifetime
         var ticket = PhieuCheBien.CreateInitial(42, Stations.Kitchen, Now).Value!;
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync();
-        var service = new FulfillmentService(db, TimeProvider.System);
+        var service = new FulfillmentService(db, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance);
         var key = Guid.NewGuid();
         var version = Convert.ToBase64String(ticket.Version);
         var started = await service.StartAsync(ticket.Id, Stations.Kitchen, version, key, Actor, default);
@@ -92,6 +92,8 @@ public sealed class OperationsSqlServerTests : IAsyncLifetime
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IBusinessAudit>(TestBusinessAudit.Instance);
+        services.AddSingleton<Restaurant.Modules.Fulfillment.Application.IFulfillmentIncidentContext>(TestFulfillmentContext.Instance);
         services.AddFulfillmentModule();
         await using var provider = services.BuildServiceProvider();
         var payload = new BatchConfirmed(10, 20, 1, [new ConfirmedPortion(42, "BEP"), new ConfirmedPortion(43, "BAR")]);
@@ -162,7 +164,7 @@ public sealed class OperationsSqlServerTests : IAsyncLifetime
         Assert.Equal(1, delivered);
         Assert.Equal(0, await dispatcher.RunOnceAsync(default));
 
-        var service = new FulfillmentService(db, TimeProvider.System);
+        var service = new FulfillmentService(db, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance);
         Assert.True((await service.StartAsync(ticket.Id, Stations.Bar, Convert.ToBase64String(ticket.Version), Guid.NewGuid(), Actor, default)).Succeeded);
         var failing = Dispatcher((_, _) => throw new IOException("Transport unavailable"));
         Assert.Equal(1, await failing.RunOnceAsync(default));

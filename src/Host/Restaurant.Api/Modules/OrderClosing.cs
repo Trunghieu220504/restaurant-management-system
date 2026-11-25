@@ -7,10 +7,11 @@ using Restaurant.Modules.Sales.Contracts;
 using Restaurant.Modules.Sales.Infrastructure;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
 using Restaurant.Modules.SalesDay.Contracts;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Api.Modules;
 
-internal sealed class OrderClosing(SalesDbContext sales, ISalesDayGate days, IOrderSettlement settlement) : ICloseOrder
+internal sealed class OrderClosing(SalesDbContext sales, ISalesDayGate days, IOrderSettlement settlement, IBusinessAudit audit) : ICloseOrder
 {
     public async Task<MoneyResult> CloseAsync(long orderId, Guid day, CancellationToken ct)
     {
@@ -37,6 +38,8 @@ internal sealed class OrderClosing(SalesDbContext sales, ISalesDayGate days, IOr
             var closed = order.Close(now);
             if (!closed.Succeeded) return new(null, closed.Error);
             await sales.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Sales", "sales.order.closed", "DonHang",
+                order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), BusinessDayId: day), ct);
             await tx.CommitAsync(ct);
             return new(orderId);
         }

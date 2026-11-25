@@ -8,15 +8,15 @@ using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Sales.Infrastructure;
 
-internal sealed class EfOrderStore(SalesDbContext db) : IOrderStore
+internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IOrderStore
 {
     public async Task<IOrderTransaction> BeginAsync(CancellationToken ct)
     {
         var transaction = await db.Database.BeginTransactionAsync(ct);
-        return new Transaction(db, transaction);
+        return new Transaction(db, transaction, audit);
     }
 
-    private sealed class Transaction(SalesDbContext db, IDbContextTransaction transaction) : IOrderTransaction
+    private sealed class Transaction(SalesDbContext db, IDbContextTransaction transaction, IBusinessAudit audit) : IOrderTransaction
     {
         private bool committed;
 
@@ -66,9 +66,31 @@ internal sealed class EfOrderStore(SalesDbContext db) : IOrderStore
 
         public async Task SaveAsync(CancellationToken ct)
         {
+            var orders = db.ChangeTracker.Entries<DonHang>()
+                .Where(x => x.State is EntityState.Added or EntityState.Modified)
+                .Select(x => (Order: x.Entity, Created: x.State == EntityState.Added)).ToArray();
+            var batches = db.ChangeTracker.Entries<DotGoiMon>()
+                .Where(x => x.State is EntityState.Added or EntityState.Modified)
+                .Select(x => (Batch: x.Entity, Created: x.State == EntityState.Added)).ToArray();
             try
             {
                 await db.SaveChangesAsync(ct);
+                foreach (var (order, created) in orders)
+                    await audit.AppendAsync(new("Sales", created ? "sales.order.created" : "sales.order.updated",
+                        "DonHang", order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        created ? order.NguoiTaoId : null, order.NgayBanId), ct);
+                foreach (var (batch, created) in batches)
+                {
+                    var day = orders.First(x => x.Order.Id == batch.DonHangId).Order.NgayBanId;
+                    var action = created ? "sales.batch.added" : batch.TrangThai switch
+                    {
+                        BatchStatus.Confirmed => "sales.batch.confirmed",
+                        BatchStatus.Rejected => "sales.batch.rejected",
+                        _ => "sales.batch.cancelled"
+                    };
+                    await audit.AppendAsync(new("Sales", action, "DotGoiMon", batch.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        created ? batch.NguoiTaoId : batch.NguoiXacNhanId, day, batch.LyDoTuChoi), ct);
+                }
             }
             catch (DbUpdateConcurrencyException ex)
             {

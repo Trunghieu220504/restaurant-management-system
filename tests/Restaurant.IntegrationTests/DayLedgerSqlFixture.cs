@@ -35,6 +35,7 @@ public abstract class DayLedgerSqlFixture : IAsyncLifetime
         var provider = scope.ServiceProvider;
         var days = provider.GetRequiredService<SalesDayDbContext>();
         await days.Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(days.Database.GetConnectionString()!);
         await provider.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
         await provider.GetRequiredService<SalesDbContext>().Database.MigrateAsync();
         await provider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();

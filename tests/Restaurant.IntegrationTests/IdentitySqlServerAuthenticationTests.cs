@@ -37,6 +37,7 @@ public sealed class IdentitySqlServerAuthenticationTests : IAsyncLifetime
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         await db.Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(connection);
         originalPassword = RandomPassword();
         replacementPassword = RandomPassword();
         var user = new IdentityUser<Guid> { Id = Guid.NewGuid(), UserName = "operator", Email = "operator@example.invalid" };

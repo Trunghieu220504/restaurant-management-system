@@ -2,7 +2,6 @@
 
 import { usePermissions } from "@/components/permission-provider";
 import { KitchenLive } from "@/features/kitchen/kitchen-live";
-import { KitchenIncidents } from "@/features/kitchen/kitchen-incidents";
 
 export default function KitchenPage() {
     const { can } = usePermissions();
@@ -14,7 +13,6 @@ export default function KitchenPage() {
         <section className="min-w-0 space-y-4">
             <h1 className="text-2xl font-semibold">Phiếu chế biến</h1>
             <KitchenLive permissions={permissions} />
-            <KitchenIncidents />
         </section>
     );
 }
