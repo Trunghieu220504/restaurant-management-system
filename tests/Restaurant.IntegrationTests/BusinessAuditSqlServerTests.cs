@@ -154,6 +154,8 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
         var batch = (await commands.AddBatchAsync(new(order.Id, BatchSource.Staff, null, actor, Guid.NewGuid(),
             [new BatchLine(Guid.NewGuid(), Guid.NewGuid(), [], null)]), default)).Value!;
 
+        var menu = Assert.IsType<MenuStub>(scope.ServiceProvider.GetRequiredService<IMenuPricing>());
+        menu.Price = 60000;
         var beforeAudit = await scope.ServiceProvider.GetRequiredService<AuditDbContext>().Entries.CountAsync();
         var result = await commands.ConfirmBatchAsync(new(order.Id, batch.Number, actor), default);
 
@@ -240,7 +242,9 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
         failingServices.AddScoped<IBusinessAudit, FailingAudit>();
         await using var failingProvider = failingServices.BuildServiceProvider();
         await using var failingScope = failingProvider.CreateAsyncScope();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => failingScope.ServiceProvider.GetRequiredService<IOrderCommands>().ConfirmBatchAsync(new(order.Id, batch.Number, actor), default));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => failingScope.ServiceProvider
+            .GetRequiredService<IOrderCommands>().ConfirmBatchAsync(new(order.Id, batch.Number, actor), default));
+        Assert.Equal("audit unavailable", failure.Message);
         var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
         Assert.Equal(BatchStatus.Pending, await sales.Batches.AsNoTracking()
             .Where(x => x.Id == batch.BatchId).Select(x => x.TrangThai).SingleAsync());
@@ -321,7 +325,9 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
 
     private sealed class MenuStub : IMenuPricing
     {
+        public long Price { get; set; } = 50000;
+
         public Task<MenuPricingResult> PriceAsync(MenuPricingRequest request, CancellationToken ct) => Task.FromResult(new MenuPricingResult(
-            request.Lines.Select(x => new PricedMenuLine(x.LineNo, x.MenuItemId, "Soup", x.VariantId, "Bowl", 50000, "BEP", [], 50000)).ToArray(), []));
+            request.Lines.Select(x => new PricedMenuLine(x.LineNo, x.MenuItemId, "Soup", x.VariantId, "Bowl", Price, "BEP", [], Price)).ToArray(), []));
     }
 }
