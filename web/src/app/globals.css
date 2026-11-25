@@ -62,3 +62,14 @@ body {
 .table-scroll > table {
     min-width: 32rem;
 }
+
+@media print {
+    body:has(> [data-billing-print]) > :not([data-billing-print]) {
+        display: none !important;
+    }
+
+    body:has(> [data-billing-print]) {
+        background: white;
+        color: black;
+    }
+}
