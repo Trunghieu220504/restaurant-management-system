@@ -240,10 +240,7 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
         failingServices.AddScoped<IBusinessAudit, FailingAudit>();
         await using var failingProvider = failingServices.BuildServiceProvider();
         await using var failingScope = failingProvider.CreateAsyncScope();
-        var result = await failingScope.ServiceProvider.GetRequiredService<IOrderCommands>()
-            .ConfirmBatchAsync(new(order.Id, batch.Number, actor), default);
-
-        Assert.False(result.Succeeded);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => failingScope.ServiceProvider.GetRequiredService<IOrderCommands>().ConfirmBatchAsync(new(order.Id, batch.Number, actor), default));
         var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
         Assert.Equal(BatchStatus.Pending, await sales.Batches.AsNoTracking()
             .Where(x => x.Id == batch.BatchId).Select(x => x.TrangThai).SingleAsync());
