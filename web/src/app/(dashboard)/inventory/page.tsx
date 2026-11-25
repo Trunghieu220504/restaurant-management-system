@@ -4,15 +4,40 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Package, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRestaurant } from "@/lib/store/restaurant-context";
+import { LiveQueryScope } from "@/lib/realtime/live-query";
+import { readOperation } from "@/features/operations/operation-request";
+import type { BusinessDay } from "@/features/sales-day/api";
 import { createInventoryApi, type StockCount } from "@/features/inventory/api";
+import { useAuth } from "@/components/auth/auth-provider";
+import { usePermissions } from "@/components/permission-provider";
+import { StockAdjustment } from "@/features/inventory/stock-adjustment";
 
 export default function InventoryPage() {
-    const { salesDay } = useRestaurant();
-    const day = salesDay.businessDate;
+    const { user } = useAuth();
+    if (!user) return null;
+    return (
+        <LiveQueryScope key={user.id}>
+            <InventoryWorkspace />
+        </LiveQueryScope>
+    );
+}
+
+function InventoryWorkspace() {
+    const { user } = useAuth();
+    const { can } = usePermissions();
+    const canAdjust =
+        user?.roles.includes("Manager") && can("inventory.adjustments.approve");
+    const currentDay = useQuery({
+        queryKey: ["stock-adjustment", "day"],
+        queryFn: ({ signal }) =>
+            readOperation<BusinessDay | null>("/api/salesday/current", signal),
+    });
+    const day = currentDay.data?.id ?? "";
+    const dayOpen =
+        !currentDay.isError && currentDay.data?.status === "DANG_BAN";
     const api = createInventoryApi();
     const client = useQueryClient();
-    const [tab, setTab] = useState<"catalog" | "counts">("catalog");
+    const [tab, setTab] = useState<"catalog" | "counts" | "adjust">("catalog");
     const catalog = useQuery({
         queryKey: ["inventory", "catalog"],
         queryFn: api.catalog,
@@ -28,10 +53,10 @@ export default function InventoryPage() {
     const [busy, setBusy] = useState(false);
 
     async function update(row: StockCount, quantity: number, approve: boolean) {
-        if (!row.version) return;
+        if (!dayOpen || (approve && !row.version)) return;
         setBusy(true);
         try {
-            if (approve)
+            if (approve && row.version)
                 await api.approveCount(day, row.ingredientId, row.version);
             else
                 await api.saveCount(
@@ -71,12 +96,16 @@ export default function InventoryPage() {
                     variant="outline"
                     aria-label="Tải lại kho"
                     title="Tải lại kho"
-                    onClick={() => void catalog.refetch()}
+                    onClick={() => {
+                        void catalog.refetch();
+                        void currentDay.refetch();
+                        if (tab === "counts" && day) void counts.refetch();
+                    }}
                 >
                     <RefreshCw size={16} />
                 </Button>
             </header>
-            <div className="flex gap-2 border-b">
+            <div className="flex flex-wrap gap-2 border-b">
                 <Button
                     variant={tab === "catalog" ? "default" : "ghost"}
                     onClick={() => setTab("catalog")}
@@ -89,7 +118,18 @@ export default function InventoryPage() {
                 >
                     Số đếm cuối ngày
                 </Button>
+                {canAdjust && (
+                    <Button
+                        variant={tab === "adjust" ? "default" : "ghost"}
+                        onClick={() => setTab("adjust")}
+                    >
+                        Điều chỉnh tồn
+                    </Button>
+                )}
             </div>
+            {tab === "adjust" && user && canAdjust && (
+                <StockAdjustment key={user.id} />
+            )}
             {message && (
                 <p
                     role="status"
@@ -136,11 +176,16 @@ export default function InventoryPage() {
             )}
             {tab === "counts" && (
                 <div className="space-y-3">
-                    {!day && (
-                        <p className="rounded border bg-amber-50 p-3 text-sm">
-                            Cần mở ngày bán trước khi nhập số đếm.
-                        </p>
+                    {currentDay.isError && (
+                        <p role="alert">{currentDay.error.message}</p>
                     )}
+                    {!dayOpen &&
+                        !currentDay.isPending &&
+                        !currentDay.isError && (
+                            <p className="rounded border bg-amber-50 p-3 text-sm">
+                                Cần mở ngày bán trước khi nhập số đếm.
+                            </p>
+                        )}
                     {counts.isError && (
                         <p role="alert" className="text-red-700">
                             {counts.error.message}
@@ -150,7 +195,7 @@ export default function InventoryPage() {
                         <CountRow
                             key={String(row.ingredientId)}
                             row={row}
-                            busy={busy}
+                            busy={busy || !dayOpen}
                             onSave={(quantity, approve) =>
                                 void update(row, quantity, approve)
                             }
