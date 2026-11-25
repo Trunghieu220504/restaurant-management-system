@@ -7,7 +7,7 @@ using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Sales.Infrastructure;
 
-internal sealed class StaffPortions(SalesDbContext db, IStaffPortionDay days, IOutboxWriter outbox) : IStaffPortions
+internal sealed class StaffPortions(SalesDbContext db, IStaffPortionDay days, IOutboxWriter outbox, IBusinessAudit audit) : IStaffPortions
 {
     public async Task<IReadOnlyList<StaffPortion>> ListAsync(CancellationToken ct)
     {
@@ -55,6 +55,8 @@ internal sealed class StaffPortions(SalesDbContext db, IStaffPortionDay days, IO
         try
         {
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Sales", cancel ? "sales.portion.cancelled" : "sales.portion.edited",
+                "ChiTietDon", id.ToString(System.Globalization.CultureInfo.InvariantCulture), actor, owner.NgayBanId, reason), ct);
             await tx.CommitAsync(ct);
             return null;
         }

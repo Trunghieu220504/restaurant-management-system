@@ -44,7 +44,8 @@ void CopyReferences(JsonNode? node)
                 var name = reference[prefix.Length..];
                 if (!visited.Add(name)) continue;
                 var schema = actualSchemas[name] ?? throw new InvalidOperationException("Missing schema " + name);
-                if (name is "TicketView" or "TicketCommand" or "OperationsSnapshot" or "TerminalTicket")
+                if (name is "TicketView" or "TicketCommand" or "OperationsSnapshot" or "TerminalTicket" or
+                    "IncidentView" or "IncidentReport" or "IncidentResolution")
                     schemas[name] = schema.DeepClone();
                 else if (!JsonNode.DeepEquals(schemas[name], schema))
                     throw new InvalidOperationException("Shared schema mismatch: " + name);

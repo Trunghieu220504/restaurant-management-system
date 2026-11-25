@@ -807,7 +807,8 @@
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "[10.0.8, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Identity.Application": "[1.0.0, )",
-          "Restaurant.Modules.Identity.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Identity.Domain": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.identity.presentation": {
@@ -939,7 +940,8 @@
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.8, )",
           "Restaurant.Modules.Seating.Application": "[1.0.0, )",
           "Restaurant.Modules.Seating.Contracts": "[1.0.0, )",
-          "Restaurant.Modules.Seating.Domain": "[1.0.0, )"
+          "Restaurant.Modules.Seating.Domain": "[1.0.0, )",
+          "Restaurant.Shared.Contracts": "[1.0.0, )"
         }
       },
       "restaurant.modules.seating.presentation": {

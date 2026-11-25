@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Restaurant.Modules.Identity.Application.Authentication;
 using Restaurant.Modules.Identity.Domain;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 using Xunit;
 
 namespace Restaurant.IntegrationTests;
@@ -34,6 +35,7 @@ public sealed class IdentityRefreshTokenSqlServerTests : IAsyncLifetime
         factory = new RefreshFactory(connection);
         await using var scope = factory.Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(connection);
         password = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)) + "aA1!";
         var user = new IdentityUser<Guid> { Id = Guid.NewGuid(), UserName = "operator", Email = "operator@example.invalid" };
         var manager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<Guid>>>();
@@ -217,7 +219,7 @@ public sealed class IdentityRefreshTokenSqlServerTests : IAsyncLifetime
             var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
             var service = new Restaurant.Modules.Identity.Infrastructure.Authentication.IdentityAuthentication(
                 db, scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<Guid>>>(),
-                new FailingIssuer(), TimeProvider.System);
+                new FailingIssuer(), TimeProvider.System, scope.ServiceProvider.GetRequiredService<IBusinessAudit>());
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.RefreshAsync(secret, CancellationToken.None));
         }
         await using (var scope = factory!.Services.CreateAsyncScope())

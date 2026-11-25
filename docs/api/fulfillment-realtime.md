@@ -25,7 +25,7 @@ Reconnect sequence:
 1. Register TicketChanged listener and buffer events. Connect, then await `JoinStation` or `JoinServing` completion, plus any `JoinOrder` calls. Repeat on every reconnect. `hub.start()` alone is not a subscription-ready barrier.
 2. GET `/api/fulfillment/snapshot?station=BEP` (or BAR). Without station, return stations the current role may read.
 3. Replace the queue with response.tickets and retain every ID/version in response.tombstones. Then apply buffered events only if their version exceeds both the visible and tombstone version. Do not play snapshot sounds.
-4. Remove tickets in DA_GIAO/DA_HUY from station queues and retain their terminal versions, including buffered terminal events. Never discard tombstones while consuming retries from the Outbox.
+4. Remove tickets in DA_GIAO/DA_HUY/LOI from station queues and retain their terminal versions, including buffered terminal events. Never discard tombstones while consuming retries from the Outbox.
 
 Optional `orderId` requires Staff/Manager and returns all ticket states for that order, including terminal states.
 Unknown orders return an empty list. Cross-station reads by Kitchen/Bar return 403.
