@@ -38,9 +38,11 @@ class LimitError extends Error {
 export function GuestAccessStatus({
     tableCode,
     onToken,
+    onAccessToken,
 }: {
     tableCode: string;
     onToken: (token: string | null) => void;
+    onAccessToken?: (token: string | null) => void;
 }) {
     const [message, setMessage] = useState("Thực đơn công khai");
     const join = useRef<string | null>(null);
@@ -49,6 +51,8 @@ export function GuestAccessStatus({
         expiresAt: string;
     }> | null>(null);
     useEffect(() => {
+        onAccessToken?.(null);
+        onToken(null);
         if (location.hash) {
             join.current = new URLSearchParams(location.hash.slice(1)).get("j");
             history.replaceState(
@@ -68,12 +72,14 @@ export function GuestAccessStatus({
                     headers: { Authorization: "Guest " + token },
                 });
                 if (active) {
+                    onAccessToken?.(token);
                     onToken(state.canSubmitOrders === true ? token : null);
                     setMessage("Đã vào phiên · " + state.tableName);
                     timer = setTimeout(check, 20000);
                 }
             } catch (e) {
                 if (active) {
+                    onAccessToken?.(null);
                     onToken(null);
                     setMessage(
                         e instanceof Error
@@ -107,6 +113,7 @@ export function GuestAccessStatus({
                     active = false;
                     clearTimeout(timer);
                     token = "";
+                    onAccessToken?.(null);
                     onToken(null);
                     setMessage(errors["qr.token.expired"]);
                 }, ms);
@@ -136,7 +143,7 @@ export function GuestAccessStatus({
             clearTimeout(timer);
             clearTimeout(expiryTimer);
         };
-    }, [tableCode, onToken]);
+    }, [tableCode, onToken, onAccessToken]);
     return (
         <p role="status" className="text-xs">
             {message}

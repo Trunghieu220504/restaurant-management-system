@@ -14,7 +14,7 @@ public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clo
     public async Task<IReadOnlyList<TicketView>> QueueAsync(string station, CancellationToken ct)
     {
         return await db.Tickets.AsNoTracking()
-            .Where(x => x.TramChot == station && x.TrangThai != TicketStatus.Served && x.TrangThai != TicketStatus.Cancelled)
+            .Where(x => x.TramChot == station && x.TrangThai != TicketStatus.Served && x.TrangThai != TicketStatus.Cancelled && x.TrangThai != TicketStatus.Failed)
             .OrderBy(x => x.TaoLuc).ThenBy(x => x.Id)
             .Select(x => ToView(x))
             .ToListAsync(ct);
@@ -57,10 +57,13 @@ public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clo
                     return FulfillmentResult<TicketView>.Ok(ToView(replay));
                 }
 
-                var ticket = await db.Tickets.SingleOrDefaultAsync(x => x.Id == id, ct);
+                var ticket = await db.Tickets.FromSqlInterpolated(
+                    $"SELECT * FROM fulfillment.PhieuCheBien WITH (UPDLOCK,HOLDLOCK) WHERE Id={id}").SingleOrDefaultAsync(ct);
                 if (ticket is null) return FulfillmentResult<TicketView>.Fail(FulfillmentErrors.TicketNotFound);
                 if (!Stations.All.Contains(station) || ticket.TramChot != station)
                     return FulfillmentResult<TicketView>.Fail(FulfillmentErrors.StationForbidden);
+                if (await db.Incidents.AnyAsync(x => x.PhieuCheBienId == id && x.TrangThai == IncidentStatus.Pending, ct))
+                    return FulfillmentResult<TicketView>.Fail(FulfillmentErrors.IncidentPending);
                 db.Entry(ticket).Property(x => x.Version).OriginalValue = expectedVersion;
                 var result = transition(ticket, clock.GetUtcNow().UtcDateTime);
                 if (!result.Succeeded) return FulfillmentResult<TicketView>.Fail(result.Error!);

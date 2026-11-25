@@ -39,6 +39,7 @@ public static class FulfillmentEndpoints
         MapCommand(group, "ready", (service, id, request, actor, ct) => service.ReadyAsync(id, request.Station, request.Version, request.RequestKey, actor, ct));
         MapCommand(group, "deliver", (service, id, request, actor, ct) => service.DeliverAsync(id, request.Station, request.Version, request.RequestKey, actor, ct));
         MapCommand(group, "cancel", (service, id, request, actor, ct) => service.CancelAsync(id, request.Station, request.Version, request.RequestKey, actor, ct));
+        group.MapIncidentEndpoints();
         return group;
     }
 
@@ -76,7 +77,7 @@ public static class FulfillmentEndpoints
         {
             FulfillmentErrors.TicketNotFound => 404,
             FulfillmentErrors.StationForbidden => 403,
-            FulfillmentErrors.InvalidTransition or FulfillmentErrors.AlreadyProcessed or FulfillmentErrors.ConcurrencyConflict => 409,
+            FulfillmentErrors.InvalidTransition or FulfillmentErrors.AlreadyProcessed or FulfillmentErrors.ConcurrencyConflict or FulfillmentErrors.IncidentPending => 409,
             _ => 400
         };
         return Results.Problem(statusCode: status, title: error,

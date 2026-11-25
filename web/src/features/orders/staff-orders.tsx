@@ -46,6 +46,7 @@ import {
     useAvailability,
 } from "@/features/catalog/availability";
 import { LivePortions } from "./live-portions";
+import { ServiceLive } from "./service-live";
 
 type Table = { name: string; session: { id: string | number } | null };
 async function readTables(signal?: AbortSignal): Promise<Table[]> {
@@ -204,6 +205,16 @@ function Workspace({ account }: { account: string }) {
                     Đơn hàng nhân viên
                 </h1>
                 <nav aria-label="Điều hướng đơn hàng">
+                    {can("fulfillment.incidents.report") && (
+                        <Link href="/orders?view=incidents">Sự cố món</Link>
+                    )}
+                    {["request", "approve", "pay"].some((action) =>
+                        can("billing.refunds." + action),
+                    ) && (
+                        <Link href="/orders?view=refunds">
+                            <WalletCards aria-hidden="true" /> Hoàn tiền
+                        </Link>
+                    )}
                     {seating && (
                         <Link href="/tables">
                             <Grid2X2 /> Sơ đồ và chuyển bàn
@@ -595,6 +606,7 @@ function Workspace({ account }: { account: string }) {
                 </div>
             )}
             {manage && <LivePortions />}
+            {manage && <ServiceLive />}
             {item && menu && (
                 <ItemPicker
                     item={item}

@@ -20,6 +20,7 @@ public static class FulfillmentModule
 
         services.AddScoped<IIntegrationEventHandler, Messaging.BatchConfirmedHandler>();
         services.AddScoped<IFulfillmentService, FulfillmentService>();
+        services.AddScoped<IFulfillmentIncidents, FulfillmentIncidents>();
 
         return services;
     }

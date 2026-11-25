@@ -47,6 +47,9 @@ public static class FulfillmentErrors
     public const string ConcurrencyConflict = "fulfillment.ticket.concurrency_conflict";
     public const string IdempotencyRequired = "fulfillment.idempotency.required";
     public const string IdempotencyConflict = "fulfillment.idempotency.conflict";
+    public const string IncidentNotFound = "fulfillment.incident.not_found";
+    public const string IncidentPending = "fulfillment.incident.pending";
+    public const string IncidentAlreadyDecided = "fulfillment.incident.already_decided";
 }
 
 public sealed class FulfillmentResult<T> where T : class
