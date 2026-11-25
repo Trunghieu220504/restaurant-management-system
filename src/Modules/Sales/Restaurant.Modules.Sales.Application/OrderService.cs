@@ -74,32 +74,39 @@ public sealed class OrderService(
         if (earlier is not null) return ServiceResult<BatchView>.Ok(ToView(order, earlier), replayed: true);
         if (order.TrangThai != OrderStatus.Open) return Fail<BatchView>(SalesErrors.OrderNotOpen);
 
-        // Priced against the order's own business day, so the sold-out flags of that day apply.
-        var priced = await menu.PriceAsync(new MenuPricingRequest(order.NgayBanId,
-            [.. command.Lines.Select((line, index) =>
+        var priced = await PriceBatchAsync(menu, order.NgayBanId, command.Lines, ct);
+        if (!priced.Succeeded) return Fail<BatchView>(priced.Error!, priced.LineErrors);
+        var added = order.AddBatch(command.Source, command.GuestGrantId, command.StaffId, command.RequestKey, priced.Value,
+            clock.GetUtcNow().UtcDateTime);
+        if (!added.Succeeded) return Fail<BatchView>(added.Error!);
+
+        var batch = added.Value!;
+        return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
+    }
+
+    internal static async Task<ServiceResult<IReadOnlyList<NewPortion>>> PriceBatchAsync(
+        IMenuPricing menu, Guid dayId, IReadOnlyList<BatchLine> lines, CancellationToken ct)
+    {
+        var priced = await menu.PriceAsync(new MenuPricingRequest(dayId,
+            [.. lines.Select((line, index) =>
                 new MenuLineSelection(index + 1, line.MenuItemId, line.VariantId, line.OptionIds ?? []))]), ct);
         if (!priced.IsValid)
-            return Fail<BatchView>(SalesErrors.BatchLineInvalid, [.. priced.Errors.Select(e => new LineError(e.LineNo, e.Code))]);
+            return Fail<IReadOnlyList<NewPortion>>(SalesErrors.BatchLineInvalid, [.. priced.Errors.Select(e => new LineError(e.LineNo, e.Code))]);
         var byLine = priced.Lines.GroupBy(x => x.LineNo).ToDictionary(x => x.Key, x => x.First());
-        if (priced.Lines.Count != command.Lines.Count || Enumerable.Range(1, command.Lines.Count).Any(n => !byLine.ContainsKey(n)))
-            return Fail<BatchView>(SalesErrors.PricingInconsistent);
+        if (priced.Lines.Count != lines.Count || Enumerable.Range(1, lines.Count).Any(n => !byLine.ContainsKey(n)))
+            return Fail<IReadOnlyList<NewPortion>>(SalesErrors.PricingInconsistent);
         // The snapshot stored on the portion (and later charged) must be of what was asked for, line by line.
-        if (command.Lines.Select((line, index) => (line, priced: byLine[index + 1])).Any(x => !Answers(x.line, x.priced)))
-            return Fail<BatchView>(SalesErrors.PricingInconsistent);
+        if (lines.Select((line, index) => (line, priced: byLine[index + 1])).Any(x => !Answers(x.line, x.priced)))
+            return Fail<IReadOnlyList<NewPortion>>(SalesErrors.PricingInconsistent);
 
-        var portions = command.Lines.Select((line, index) =>
+        var portions = lines.Select((line, index) =>
         {
             var p = byLine[index + 1];
             return new NewPortion(p.MenuItemId, p.VariantId, p.MenuItemName, p.VariantName, p.VariantPrice, p.Station, line.Note,
                 [.. p.Options.Select(o => new NewOption(o.OptionId, o.GroupId, o.GroupName, o.GroupKind, o.OptionName, o.Surcharge))]);
         }).ToList();
 
-        var added = order.AddBatch(command.Source, command.GuestGrantId, command.StaffId, command.RequestKey, portions,
-            clock.GetUtcNow().UtcDateTime);
-        if (!added.Succeeded) return Fail<BatchView>(added.Error!);
-
-        var batch = added.Value!;
-        return await SaveAndCommitAsync(tx, () => ServiceResult<BatchView>.Ok(ToView(order, batch)), ct);
+        return ServiceResult<IReadOnlyList<NewPortion>>.Ok(portions);
     }
 
     /// <summary>True when the priced line is for the same dish, variant and options as the requested one.</summary>
@@ -206,7 +213,7 @@ public sealed class OrderService(
         return gate.IsOpen ? null : gate.ErrorCode ?? SalesDayErrorCodes.DayNotOpen;
     }
 
-    private static async Task<ServiceResult<T>> SaveAndCommitAsync<T>(
+    internal static async Task<ServiceResult<T>> SaveAndCommitAsync<T>(
         IOrderTransaction tx, Func<ServiceResult<T>> success, CancellationToken ct) where T : class
     {
         try

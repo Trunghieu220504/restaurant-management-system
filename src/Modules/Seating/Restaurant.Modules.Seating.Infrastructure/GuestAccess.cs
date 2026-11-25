@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using Restaurant.Shared.Contracts;
 namespace Restaurant.Modules.Seating.Infrastructure;
 
 internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock, IBusinessDayDirectory days,
-    IBusinessAudit audit) : IGuestAccess
+    IBusinessAudit audit) : IGuestAccess, IGuestGrants
 {
     private static byte[]? Hash(string? text)
     {
@@ -125,16 +126,47 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock, IBusi
 
     public async Task<SeatingResult<GuestSession>> CheckAsync(string token, CancellationToken ct)
     {
+        var result = await ResolveAsync(token, ct);
+        return result.Value is { } grant
+            ? SeatingResult<GuestSession>.Ok(new(grant.TableName, grant.ExpiresAt, true))
+            : SeatingResult<GuestSession>.Fail(result.Error!);
+    }
+
+    public async Task<SeatingResult<GuestGrant>> ResolveAsync(string token, CancellationToken ct)
+    {
         var hash = Hash(token);
-        if (hash is null) return SeatingResult<GuestSession>.Fail("qr.token.invalid");
+        if (hash is null) return SeatingResult<GuestGrant>.Fail("qr.token.invalid");
         var row = await (from g in db.Grants
                          join s in db.Sessions on g.PhienSuDungId equals s.Id
                          join t in db.Tables on s.BanHienTaiId equals t.Id
                          where g.TokenHash == hash
-                         select new { g.HetHanLuc, g.ThuHoiLuc, s.DongLuc, t.Ten }).SingleOrDefaultAsync(ct);
-        if (row is null) return SeatingResult<GuestSession>.Fail("qr.token.invalid");
-        if (row.ThuHoiLuc is not null || row.DongLuc is not null) return SeatingResult<GuestSession>.Fail("qr.token.revoked");
-        if (row.HetHanLuc <= clock.GetUtcNow().UtcDateTime) return SeatingResult<GuestSession>.Fail("qr.token.expired");
-        return SeatingResult<GuestSession>.Ok(new(row.Ten, DateTime.SpecifyKind(row.HetHanLuc, DateTimeKind.Utc)));
+                         select new { g.Id, g.PhienSuDungId, s.NgayBanId, g.HetHanLuc, g.ThuHoiLuc, s.DongLuc, t.Ten })
+            .SingleOrDefaultAsync(ct);
+        if (row is null) return SeatingResult<GuestGrant>.Fail("qr.token.invalid");
+        var error = GrantError(row.HetHanLuc, row.ThuHoiLuc, row.DongLuc);
+        return error is null
+            ? SeatingResult<GuestGrant>.Ok(new(row.Id, row.PhienSuDungId, row.NgayBanId, row.Ten,
+                DateTime.SpecifyKind(row.HetHanLuc, DateTimeKind.Utc)))
+            : SeatingResult<GuestGrant>.Fail(error);
     }
+
+    public async Task<string?> LockAsync(string token, Guid grantId, long sessionId, DbTransaction transaction, CancellationToken ct)
+    {
+        var hash = Hash(token);
+        if (hash is null) return "qr.token.invalid";
+        await using var seating = new SeatingDbContext(new DbContextOptionsBuilder<SeatingDbContext>()
+            .UseSqlServer(transaction.Connection!).Options);
+        await seating.Database.UseTransactionAsync(transaction, ct);
+        var row = await seating.Sessions.FromSqlInterpolated(
+                $"SELECT * FROM seating.PhienSuDung WITH (UPDLOCK) WHERE Id={sessionId}")
+            .AsNoTracking().SingleOrDefaultAsync(ct);
+        if (row is null || row.DongLuc is not null) return "qr.token.revoked";
+        var current = await seating.Grants.AsNoTracking().SingleOrDefaultAsync(
+            g => g.Id == grantId && g.PhienSuDungId == sessionId && g.TokenHash == hash, ct);
+        return current is null ? "qr.token.invalid" : GrantError(current.HetHanLuc, current.ThuHoiLuc, row.DongLuc);
+    }
+
+    private string? GrantError(DateTime expiry, DateTime? revoked, DateTime? closed) =>
+        revoked is not null || closed is not null ? "qr.token.revoked"
+        : expiry <= clock.GetUtcNow().UtcDateTime ? "qr.token.expired" : null;
 }

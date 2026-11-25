@@ -29,9 +29,9 @@ public static class SalesEndpoints
             if (!Guid.TryParse(requestKey, out var key) || key == Guid.Empty)
                 return Results.Problem(statusCode: 400, title: "sales.idempotency.required",
                     extensions: new Dictionary<string, object?> { ["code"] = "sales.idempotency.required" });
-            var source = request.Source == BatchSource.Guest
-                ? request with { OrderId = orderId, RequestKey = key }
-                : request with { OrderId = orderId, StaffId = actor, GuestGrantId = null, RequestKey = key };
+            if (request.Source == BatchSource.Guest)
+                return Reply(ServiceResult<BatchView>.Fail(SalesErrors.InputInvalid), 201);
+            var source = request with { OrderId = orderId, StaffId = actor, GuestGrantId = null, RequestKey = key };
             return Reply(await service.AddBatchAsync(source, ct), 201, value => $"/api/sales/orders/{value.OrderId}/batches/{value.Number}");
         }).WithName("SalesAddBatch").WithDescription("Requires a UUID Idempotency-Key header; repeated requests replay the original batch.")
             .Produces<BatchView>(201).Produces<BatchView>(200).ProducesProblem(400).ProducesProblem(404).ProducesProblem(409);

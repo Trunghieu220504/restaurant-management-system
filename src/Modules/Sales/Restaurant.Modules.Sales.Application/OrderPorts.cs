@@ -34,6 +34,8 @@ public interface IOrderTransaction : IAsyncDisposable
     /// <summary>Id of the open order of a table session, or null when the session has none.</summary>
     Task<long?> FindOpenOrderIdBySessionAsync(long sessionId, CancellationToken ct);
 
+    Task<GuestBatchReceipt?> FindGuestBatchAsync(GuestSalesSession session, Guid requestKey, CancellationToken ct);
+
     /// <summary>The next human-readable order code (<c>MaDon</c>), unique over all orders.</summary>
     Task<string> NextOrderCodeAsync(CancellationToken ct);
 
