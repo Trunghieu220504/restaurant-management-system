@@ -81,13 +81,21 @@ public sealed partial class BillingLedger
                 if (row.SoTien > billBefore.Payments.Single(p => p.Id == row.ThanhToanId).Amount - claimed) return new(null, Excess);
             }
             var reference = input.Reference?.Trim();
-            if (reference?.Length > 150 || reference?.Any(c => c < 32 || c > 126) == true ||
-                (next == "THANH_CONG" && row.PhuongThuc == "CHUYEN_KHOAN" && string.IsNullOrEmpty(reference)))
+            if (reference?.Length > 150 || reference?.Any(c => c < 32 || c > 126) == true)
+                return new(null, Invalid);
+            if (next == "THANH_CONG" && row.PhuongThuc == "CHUYEN_KHOAN" &&
+                string.IsNullOrEmpty(reference) && string.IsNullOrWhiteSpace(row.MaChiTra))
                 return new(null, Invalid);
             row.TrangThai = next;
-            if (action is RefundAction.Approve or RefundAction.Reject) row.NguoiDuyetId = actor;
-            if (action is RefundAction.BeginPayout or RefundAction.Unknown or RefundAction.Success) row.NguoiChiId ??= actor;
-            if (reference is { Length: > 0 }) row.MaChiTra = reference;
+            if (action is RefundAction.Approve or RefundAction.Reject)
+            {
+                row.NguoiDuyetId = actor;
+            }
+            else
+            {
+                if (action is RefundAction.BeginPayout or RefundAction.Unknown or RefundAction.Success) row.NguoiChiId ??= actor;
+                if (reference is { Length: > 0 }) row.MaChiTra = reference;
+            }
             if (next == "THANH_CONG")
             {
                 row.ChiLuc = DateTime.UtcNow;
