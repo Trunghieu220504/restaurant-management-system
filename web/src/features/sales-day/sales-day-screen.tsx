@@ -44,6 +44,7 @@ export function SalesDayScreen({
     const [error, setError] = useState("");
     const [date, setDate] = useState(() => displayDate(localBusinessDate()));
     const [cash, setCash] = useState<number | null>(0);
+    const [countedCash, setCountedCash] = useState<number | null>(null);
     const [differenceReason, setDifferenceReason] = useState("");
     const [lateClose, setLateClose] = useState(false);
     const [lateReason, setLateReason] = useState("");
@@ -52,19 +53,48 @@ export function SalesDayScreen({
         null,
     );
     const busy = useRef(false);
+    const closingDay = useRef<string | null>(null);
+    const closeRequest = useRef<{ payload: string; key: string } | null>(null);
+    const [currentUnavailable, setCurrentUnavailable] = useState(false);
 
     const loadCurrent = useCallback(
         async (signal?: AbortSignal) => {
+            setCurrentUnavailable(true);
+            setChecklist(null);
+            setPreview(null);
             const value = await api.current(signal);
+            if (signal?.aborted) return;
             setDay(value);
-            if (value) {
+            setCurrentUnavailable(false);
+            const nextDay = value?.status === "CHO_CHOT" ? value.id : null;
+            if (closingDay.current !== nextDay) {
+                closingDay.current = nextDay;
+                setCountedCash(null);
+                setDifferenceReason("");
+                setLateClose(false);
+                setLateReason("");
+            }
+            if (value && canManage) {
                 const next = await api.checklist(value.id, signal);
+                if (signal?.aborted) return;
+                if (next.status !== value.status) {
+                    setCurrentUnavailable(true);
+                    throw new SalesDayError(
+                        409,
+                        "salesday.close.invalid_transition",
+                    );
+                }
                 setChecklist(next);
-                if (next.status === "CHO_CHOT")
-                    setPreview(await api.settlementPreview(value.id));
-            } else setChecklist(null);
+                if (next.status === "CHO_CHOT") {
+                    const settlement = await api.settlementPreview(
+                        value.id,
+                        signal,
+                    );
+                    if (!signal?.aborted) setPreview(settlement);
+                }
+            }
         },
-        [api],
+        [api, canManage],
     );
     useEffect(() => {
         const controller = new AbortController();
@@ -93,6 +123,7 @@ export function SalesDayScreen({
             !isoDate(date) ||
             cash === null ||
             loading ||
+            currentUnavailable ||
             day
         )
             return;
@@ -119,15 +150,19 @@ export function SalesDayScreen({
         }
     }
     async function changeClose(cancel: boolean) {
-        if (!day || busy.current) return;
+        if (!day || !canManage || currentUnavailable || loading || busy.current)
+            return;
         busy.current = true;
         setPending(true);
         setError("");
         try {
-            if (cancel) await api.cancelClose(day.id, crypto.randomUUID());
-            else await api.beginClose(day.id, crypto.randomUUID());
+            const key = keyFor([day.id, cancel ? "cancel" : "begin"]);
+            if (cancel) await api.cancelClose(day.id, key);
+            else await api.beginClose(day.id, key);
+            closeRequest.current = null;
             await loadCurrent();
         } catch (e) {
+            await reconcileConflict(e);
             setError(describeError(e));
             if (e instanceof SalesDayError && e.blockers.length)
                 setChecklist((value) =>
@@ -138,27 +173,56 @@ export function SalesDayScreen({
             setPending(false);
         }
     }
+    function keyFor(input: unknown) {
+        const payload = JSON.stringify(input);
+        if (closeRequest.current?.payload !== payload) {
+            closeRequest.current = { payload, key: crypto.randomUUID() };
+        }
+        return closeRequest.current.key;
+    }
+    async function reconcileConflict(error: unknown) {
+        if (!(error instanceof SalesDayError) || error.status >= 500) return;
+        closeRequest.current = null;
+        if (error.status === 409 || error.status === 404) {
+            try {
+                const closedDay = day?.id;
+                await loadCurrent();
+                if (closedDay && error.code === "salesday.day.already_closed") {
+                    setSnapshot(await api.snapshot(closedDay));
+                }
+            } catch {
+                // Keep the command error visible.
+            }
+        }
+    }
     async function finalize() {
-        if (!day || !preview || cash === null || busy.current) return;
+        if (!day || finalizeDisabled || countedCash === null || busy.current)
+            return;
         busy.current = true;
         setPending(true);
         setError("");
         try {
+            const input = {
+                countedCash,
+                differenceReason: difference ? differenceReason.trim() : null,
+                lateClose,
+                lateReason: lateClose ? lateReason.trim() || null : null,
+            };
             const result = await api.finalize(
                 day.id,
-                {
-                    countedCash: cash,
-                    differenceReason: differenceReason.trim() || null,
-                    lateClose,
-                    lateReason: lateClose ? lateReason.trim() || null : null,
-                },
-                crypto.randomUUID(),
+                input,
+                keyFor([day.id, input]),
             );
+            closeRequest.current = null;
+            closingDay.current = null;
+            setCountedCash(null);
             setSnapshot(result);
+            setShowHistory(false);
             setDay(null);
             setChecklist(null);
             setPreview(null);
         } catch (e) {
+            await reconcileConflict(e);
             setError(describeError(e));
             if (e instanceof SalesDayError && e.blockers.length)
                 setChecklist((value) =>
@@ -181,9 +245,24 @@ export function SalesDayScreen({
         setShowHistory((value) => !value);
     }
     const status = day?.status;
-    const blockers = checklist?.blockers ?? [];
+    const blockers = preview?.blockers.length
+        ? preview.blockers
+        : (checklist?.blockers ?? []);
     const difference =
-        preview && cash !== null ? cash - Number(preview.expectedCash) : null;
+        preview && countedCash !== null
+            ? countedCash - Number(preview.expectedCash)
+            : null;
+    const finalizeDisabled =
+        !canManage ||
+        day?.status !== "CHO_CHOT" ||
+        loading ||
+        currentUnavailable ||
+        pending ||
+        blockers.length > 0 ||
+        !preview ||
+        countedCash === null ||
+        (difference !== 0 && !differenceReason.trim()) ||
+        (lateClose && !lateReason.trim());
     return (
         <section className={styles.page}>
             <header className={styles.heading}>
@@ -219,6 +298,8 @@ export function SalesDayScreen({
                     <div>
                         {loading ? (
                             "Đang tải…"
+                        ) : currentUnavailable ? (
+                            "Chưa xác minh được trạng thái ngày bán"
                         ) : status ? (
                             <StatusBadge
                                 tone={
@@ -264,7 +345,7 @@ export function SalesDayScreen({
                     </div>
                 </section>
             )}
-            {day && !loading ? (
+            {day && !loading && !currentUnavailable ? (
                 <dl className={styles.summary}>
                     <div>
                         <dt>Tiền đầu ngày</dt>
@@ -279,7 +360,7 @@ export function SalesDayScreen({
                         </dd>
                     </div>
                 </dl>
-            ) : !loading && canManage && !error ? (
+            ) : !loading && !currentUnavailable && canManage && !error ? (
                 <form className={styles.form} onSubmit={open}>
                     <h2>Mở ngày bán</h2>
                     <div className={styles.field}>
@@ -308,159 +389,174 @@ export function SalesDayScreen({
                     </Button>
                 </form>
             ) : null}
-            {day && canManage && checklist && status !== "DA_CHOT" && (
-                <section className={styles.closing}>
-                    <div className={styles.sectionHeading}>
-                        <div>
-                            <p className={styles.eyebrow}>ĐỐI SOÁT</p>
-                            <h2>Chốt ngày bán</h2>
+            {day &&
+                canManage &&
+                checklist &&
+                !loading &&
+                !currentUnavailable &&
+                status !== "DA_CHOT" && (
+                    <section className={styles.closing}>
+                        <div className={styles.sectionHeading}>
+                            <div>
+                                <p className={styles.eyebrow}>ĐỐI SOÁT</p>
+                                <h2>Chốt ngày bán</h2>
+                            </div>
+                            <StatusBadge
+                                tone={blockers.length ? "danger" : "success"}
+                            >
+                                {blockers.length
+                                    ? blockers.length + " điều kiện cần xử lý"
+                                    : "Đủ điều kiện"}
+                            </StatusBadge>
                         </div>
-                        <StatusBadge
-                            tone={blockers.length ? "danger" : "success"}
-                        >
-                            {blockers.length
-                                ? blockers.length + " điều kiện cần xử lý"
-                                : "Đủ điều kiện"}
-                        </StatusBadge>
-                    </div>
-                    {blockers.length > 0 && (
-                        <ul
-                            className={styles.blockers}
-                            aria-label="Điều kiện chặn"
-                        >
-                            {blockers.map((item) => (
-                                <li key={item.code}>
-                                    {describeBlocker(
-                                        item.code,
-                                        Number(item.count),
+                        {blockers.length > 0 && (
+                            <ul
+                                className={styles.blockers}
+                                aria-label="Điều kiện chặn"
+                            >
+                                {blockers.map((item) => (
+                                    <li key={item.code}>
+                                        {describeBlocker(
+                                            item.code,
+                                            Number(item.count),
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {status === "DANG_BAN" && (
+                            <Button
+                                disabled={pending || blockers.length > 0}
+                                onClick={() => changeClose(false)}
+                            >
+                                Yêu cầu chốt
+                            </Button>
+                        )}
+                        {status === "CHO_CHOT" && (
+                            <>
+                                <div className={styles.preview}>
+                                    {preview ? (
+                                        <>
+                                            <div>
+                                                <span>Tiền dự kiến</span>
+                                                <strong>
+                                                    {money(
+                                                        Number(
+                                                            preview.expectedCash,
+                                                        ),
+                                                    )}{" "}
+                                                    VND
+                                                </strong>
+                                            </div>
+                                            <div>
+                                                <span>Doanh thu ròng</span>
+                                                <strong>
+                                                    {money(
+                                                        Number(
+                                                            preview.netRevenue,
+                                                        ),
+                                                    )}{" "}
+                                                    VND
+                                                </strong>
+                                            </div>
+                                            <div>
+                                                <span>Giá vốn</span>
+                                                <strong>
+                                                    {preview.cost == null
+                                                        ? "Chưa xác định"
+                                                        : money(
+                                                              Number(
+                                                                  preview.cost,
+                                                              ),
+                                                          ) + " VND"}
+                                                </strong>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        "Chưa tải được đối soát. Hãy tải lại ngày bán."
                                     )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {status === "DANG_BAN" && (
-                        <Button
-                            disabled={pending}
-                            onClick={() => changeClose(false)}
-                        >
-                            Yêu cầu chốt
-                        </Button>
-                    )}
-                    {status === "CHO_CHOT" && (
-                        <>
-                            <div className={styles.preview}>
-                                {preview ? (
-                                    <>
-                                        <div>
-                                            <span>Tiền dự kiến</span>
-                                            <strong>
-                                                {money(
-                                                    Number(
-                                                        preview.expectedCash,
-                                                    ),
-                                                )}{" "}
-                                                VND
-                                            </strong>
-                                        </div>
-                                        <div>
-                                            <span>Doanh thu ròng</span>
-                                            <strong>
-                                                {money(
-                                                    Number(preview.netRevenue),
-                                                )}{" "}
-                                                VND
-                                            </strong>
-                                        </div>
-                                        <div>
-                                            <span>Giá vốn</span>
-                                            <strong>
-                                                {preview.cost == null
-                                                    ? "Chưa xác định"
-                                                    : money(
-                                                          Number(preview.cost),
-                                                      ) + " VND"}
-                                            </strong>
-                                        </div>
-                                    </>
-                                ) : (
-                                    "Đang tải đối soát…"
+                                </div>
+                                <div className={styles.field}>
+                                    <label htmlFor="counted-cash">
+                                        Tiền mặt kiểm đếm
+                                    </label>
+                                    <MoneyInput
+                                        id="counted-cash"
+                                        value={countedCash}
+                                        onChange={setCountedCash}
+                                        disabled={pending}
+                                    />
+                                </div>
+                                {difference !== null && (
+                                    <p>
+                                        Chênh lệch tiền mặt {money(difference)}{" "}
+                                        VND
+                                    </p>
                                 )}
-                            </div>
-                            <div className={styles.field}>
-                                <label htmlFor="counted-cash">
-                                    Tiền mặt kiểm đếm
+                                {difference !== null && difference !== 0 && (
+                                    <div className={styles.field}>
+                                        <label htmlFor="difference-reason">
+                                            Lý do chênh lệch
+                                        </label>
+                                        <textarea
+                                            id="difference-reason"
+                                            maxLength={1000}
+                                            value={differenceReason}
+                                            onChange={(e) =>
+                                                setDifferenceReason(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            disabled={pending}
+                                        />
+                                    </div>
+                                )}
+                                <label className={styles.checkbox}>
+                                    <input
+                                        type="checkbox"
+                                        checked={lateClose}
+                                        onChange={(e) =>
+                                            setLateClose(e.target.checked)
+                                        }
+                                        disabled={pending}
+                                    />{" "}
+                                    Chốt trễ
                                 </label>
-                                <MoneyInput
-                                    id="counted-cash"
-                                    value={cash}
-                                    onChange={setCash}
-                                    disabled={pending}
-                                />
-                            </div>
-                            {difference !== null && difference !== 0 && (
-                                <div className={styles.field}>
-                                    <label htmlFor="difference-reason">
-                                        Lý do chênh lệch
-                                    </label>
-                                    <textarea
-                                        id="difference-reason"
-                                        value={differenceReason}
-                                        onChange={(e) =>
-                                            setDifferenceReason(e.target.value)
-                                        }
+                                {lateClose && (
+                                    <div className={styles.field}>
+                                        <label htmlFor="late-reason">
+                                            Lý do chốt trễ
+                                        </label>
+                                        <textarea
+                                            id="late-reason"
+                                            maxLength={1000}
+                                            value={lateReason}
+                                            onChange={(e) =>
+                                                setLateReason(e.target.value)
+                                            }
+                                            disabled={pending}
+                                        />
+                                    </div>
+                                )}
+                                <div className={styles.actions}>
+                                    <Button
+                                        disabled={finalizeDisabled}
+                                        onClick={finalize}
+                                    >
+                                        Xác nhận chốt
+                                    </Button>
+                                    <Button
+                                        variant="outline"
                                         disabled={pending}
-                                    />
+                                        onClick={() => changeClose(true)}
+                                    >
+                                        Hủy yêu cầu chốt
+                                    </Button>
                                 </div>
-                            )}
-                            <label className={styles.checkbox}>
-                                <input
-                                    type="checkbox"
-                                    checked={lateClose}
-                                    onChange={(e) =>
-                                        setLateClose(e.target.checked)
-                                    }
-                                    disabled={pending}
-                                />{" "}
-                                Chốt trễ
-                            </label>
-                            {lateClose && (
-                                <div className={styles.field}>
-                                    <label htmlFor="late-reason">
-                                        Lý do chốt trễ
-                                    </label>
-                                    <textarea
-                                        id="late-reason"
-                                        value={lateReason}
-                                        onChange={(e) =>
-                                            setLateReason(e.target.value)
-                                        }
-                                        disabled={pending}
-                                    />
-                                </div>
-                            )}
-                            <div className={styles.actions}>
-                                <Button
-                                    disabled={
-                                        pending ||
-                                        blockers.length > 0 ||
-                                        cash === null
-                                    }
-                                    onClick={finalize}
-                                >
-                                    Xác nhận chốt
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    disabled={pending}
-                                    onClick={() => changeClose(true)}
-                                >
-                                    Hủy yêu cầu chốt
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </section>
-            )}
+                            </>
+                        )}
+                    </section>
+                )}
             {showHistory && (
                 <section className={styles.history}>
                     <h2>Lịch sử ngày đã chốt</h2>
