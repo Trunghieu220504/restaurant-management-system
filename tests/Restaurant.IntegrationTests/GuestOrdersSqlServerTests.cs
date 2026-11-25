@@ -33,7 +33,9 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
         var supplied = Environment.GetEnvironmentVariable("IDENTITY_TEST_SQLSERVER");
         if (string.IsNullOrWhiteSpace(supplied)) return;
         var connection = new SqlConnectionStringBuilder(supplied)
-            { InitialCatalog = "RestaurantDemo_" + Guid.NewGuid().ToString("N") }.ConnectionString;
+        {
+            InitialCatalog = "RestaurantDemo_" + Guid.NewGuid().ToString("N")
+        }.ConnectionString;
         var values = new Dictionary<string, string?>
         {
             ["ConnectionStrings:Restaurant"] = connection,
@@ -173,7 +175,9 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
     private async Task<HttpResponseMessage> SubmitAsync(HttpClient client, string? token, Guid key)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, GuestApi + "/batches")
-            { Content = JsonContent.Create(new { lines = new[] { line } }) };
+        {
+            Content = JsonContent.Create(new { lines = new[] { line } })
+        };
         request.Headers.Add("Idempotency-Key", key.ToString());
         if (token is not null) request.Headers.Authorization = new("Guest", token);
         return await client.SendAsync(request);
