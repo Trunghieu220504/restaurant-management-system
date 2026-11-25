@@ -125,6 +125,51 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
     }
 
     [SqlServerFact]
+    public async Task Confirming_a_batch_writes_one_outbox_event_and_replaying_the_decision_writes_no_duplicate_audit()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var commands = scope.ServiceProvider.GetRequiredService<IOrderCommands>();
+        var order = (await commands.CreateOrderAsync(new(OrderTypes.Takeaway, null, day, null, actor), default)).Value!;
+        var batch = (await commands.AddBatchAsync(new(order.Id, BatchSource.Staff, null, actor, Guid.NewGuid(),
+            [new BatchLine(Guid.NewGuid(), Guid.NewGuid(), [], null)]), default)).Value!;
+
+        Assert.True((await commands.ConfirmBatchAsync(new(order.Id, batch.Number, actor), default)).Succeeded);
+        var replay = await commands.ConfirmBatchAsync(new(order.Id, batch.Number, actor), default);
+        Assert.False(replay.Succeeded);
+        Assert.Equal(SalesErrors.BatchNotPending, replay.Error);
+
+        var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+        Assert.Equal(1, await sales.Set<Restaurant.Modules.Sales.Infrastructure.Messaging.OutboxEntry>()
+            .CountAsync(x => x.Type == "sales.batch_confirmed" && x.AggregateId == batch.BatchId.ToString()));
+        var audit = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
+        Assert.Equal(1, await audit.Entries.CountAsync(x => x.Action == "sales.batch.confirmed" && x.EntityId == batch.BatchId.ToString()));
+    }
+
+    [SqlServerFact]
+    public async Task Pricing_change_refuses_confirmation_without_state_outbox_or_audit_changes()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var commands = scope.ServiceProvider.GetRequiredService<IOrderCommands>();
+        var order = (await commands.CreateOrderAsync(new(OrderTypes.Takeaway, null, day, null, actor), default)).Value!;
+        var batch = (await commands.AddBatchAsync(new(order.Id, BatchSource.Staff, null, actor, Guid.NewGuid(),
+            [new BatchLine(Guid.NewGuid(), Guid.NewGuid(), [], null)]), default)).Value!;
+
+        var menu = Assert.IsType<MenuStub>(scope.ServiceProvider.GetRequiredService<IMenuPricing>());
+        menu.Price = 60000;
+        var beforeAudit = await scope.ServiceProvider.GetRequiredService<AuditDbContext>().Entries.CountAsync();
+        var result = await commands.ConfirmBatchAsync(new(order.Id, batch.Number, actor), default);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(SalesErrors.PricingChanged, result.Error);
+        var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+        var stored = await sales.Batches.AsNoTracking().SingleAsync(x => x.Id == batch.BatchId);
+        Assert.Equal(BatchStatus.Pending, stored.TrangThai);
+        Assert.Equal(0, await sales.Set<Restaurant.Modules.Sales.Infrastructure.Messaging.OutboxEntry>()
+            .CountAsync(x => x.AggregateId == batch.BatchId.ToString()));
+        Assert.Equal(beforeAudit, await scope.ServiceProvider.GetRequiredService<AuditDbContext>().Entries.CountAsync());
+    }
+
+    [SqlServerFact]
     public async Task Seating_and_guest_commands_use_real_atomic_audit_without_storing_access_secrets()
     {
         await using var scope = services!.CreateAsyncScope();
@@ -182,6 +227,32 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
     }
 
     [SqlServerFact]
+    public async Task Audit_failure_rolls_back_batch_decision_and_staged_outbox_event()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var commands = scope.ServiceProvider.GetRequiredService<IOrderCommands>();
+        var order = (await commands.CreateOrderAsync(new(OrderTypes.Takeaway, null, day, null, actor), default)).Value!;
+        var batch = (await commands.AddBatchAsync(new(order.Id, BatchSource.Staff, null, actor, Guid.NewGuid(),
+            [new BatchLine(Guid.NewGuid(), Guid.NewGuid(), [], null)]), default)).Value!;
+
+        var failingServices = new ServiceCollection();
+        failingServices.AddSingleton<IConfiguration>(services!.GetRequiredService<IConfiguration>());
+        failingServices.AddLogging().AddRestaurantModules();
+        failingServices.AddSingleton<IMenuPricing>(new MenuStub());
+        failingServices.AddScoped<IBusinessAudit, FailingAudit>();
+        await using var failingProvider = failingServices.BuildServiceProvider();
+        await using var failingScope = failingProvider.CreateAsyncScope();
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => failingScope.ServiceProvider
+            .GetRequiredService<IOrderCommands>().ConfirmBatchAsync(new(order.Id, batch.Number, actor), default));
+        Assert.Equal("audit unavailable", failure.Message);
+        var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+        Assert.Equal(BatchStatus.Pending, await sales.Batches.AsNoTracking()
+            .Where(x => x.Id == batch.BatchId).Select(x => x.TrangThai).SingleAsync());
+        Assert.Equal(0, await sales.Set<Restaurant.Modules.Sales.Infrastructure.Messaging.OutboxEntry>()
+            .CountAsync(x => x.AggregateId == batch.BatchId.ToString()));
+    }
+
+    [SqlServerFact]
     public async Task Delayed_confirmation_for_cancelled_closed_order_is_acknowledged_without_ticket_or_audit()
     {
         await using var sales = scopeSales();
@@ -220,6 +291,12 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
         services!.GetRequiredService<IConfiguration>().GetConnectionString("Restaurant"),
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", "audit")).Options);
 
+    private sealed class FailingAudit : IBusinessAudit
+    {
+        public Task AppendAsync(BusinessAuditEntry entry, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("audit unavailable");
+    }
+
     private sealed class TestBatchConfirmedHandler(FulfillmentDbContext db, IFulfillmentIncidentContext context,
         TimeProvider clock)
     {
@@ -248,7 +325,9 @@ public sealed class BusinessAuditSqlServerTests : IAsyncLifetime
 
     private sealed class MenuStub : IMenuPricing
     {
+        public long Price { get; set; } = 50000;
+
         public Task<MenuPricingResult> PriceAsync(MenuPricingRequest request, CancellationToken ct) => Task.FromResult(new MenuPricingResult(
-            request.Lines.Select(x => new PricedMenuLine(x.LineNo, x.MenuItemId, "Soup", x.VariantId, "Bowl", 50000, "BEP", [], 50000)).ToArray(), []));
+            request.Lines.Select(x => new PricedMenuLine(x.LineNo, x.MenuItemId, "Soup", x.VariantId, "Bowl", Price, "BEP", [], Price)).ToArray(), []));
     }
 }

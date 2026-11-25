@@ -85,6 +85,48 @@ public sealed class PhuongWeekSixSqlServerTests : DayLedgerSqlFixture
     }
 
     [SqlServerFact]
+    public async Task Confirming_a_bank_refund_reuses_the_reference_saved_during_payout()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+        var ledger = scope.ServiceProvider.GetRequiredService<IBillingLedger>();
+        var invoice = new HoaDon { DonHangId = 43, NgayBanLapId = day, MaHoaDon = "HD43", TaoLuc = DateTime.UtcNow };
+        db.Add(invoice);
+        await db.SaveChangesAsync();
+        db.Add(new DongHoaDon { HoaDonId = invoice.Id, ChiTietDonId = 8, TenMonChot = "Tea", ThanhTienGoc = 100 });
+        await db.SaveChangesAsync();
+
+        var collection = await ledger.CollectAsync(invoice.Id, new(day, "CHUYEN_KHOAN", 100, null, "IN-43"), actor, Guid.NewGuid(), default);
+        Assert.Null(collection.Error);
+        var payment = collection.ResourceId!.Value;
+        Assert.Null((await ledger.DecideAsync(invoice.Id, payment, new(day), true, actor, Guid.NewGuid(), default)).Error);
+        var request = await ledger.RequestRefundAsync(payment, new(day, 60, "Customer request"), actor, Guid.NewGuid(), default);
+        Assert.Null(request.Error);
+        var refund = request.ResourceId!.Value;
+        Task<MoneyResult> Change(RefundAction action, string? reference = null, Guid? key = null) =>
+            ledger.ChangeRefundAsync(refund, action, new(day, reference), actor, key ?? Guid.NewGuid(), default);
+
+        Assert.Null((await Change(RefundAction.Approve)).Error);
+        Assert.Equal("billing.input.invalid", (await Change(RefundAction.Success)).Error);
+        Assert.Null((await Change(RefundAction.Unknown, "OUT-43")).Error);
+        Assert.Equal("billing.input.invalid", (await Change(RefundAction.ConfirmPaid, "INVALID\u001fTEST")).Error);
+        Assert.Equal("CHO_DOI_SOAT", Assert.Single(await ledger.RefundsAsync(invoice.Id, default)).Status);
+
+        var confirmationKey = Guid.NewGuid();
+        Assert.Null((await Change(RefundAction.ConfirmPaid, key: confirmationKey)).Error);
+        Assert.True((await Change(RefundAction.ConfirmPaid, key: confirmationKey)).Replayed);
+        var row = Assert.Single(await ledger.RefundsAsync(invoice.Id, default));
+        Assert.Equal("THANH_CONG", row.Status);
+        Assert.Equal("OUT-43", row.Reference);
+        var bill = (await ledger.FindAsync(invoice.Id, default))!;
+        Assert.Equal(40, bill.NetCollected);
+        var receipt = Assert.Single(bill.Documents, document => document.Kind == "PHIEU_HOAN");
+        var json = await ledger.DocumentAsync(receipt.Id, default);
+        using var document = System.Text.Json.JsonDocument.Parse(json!);
+        Assert.Equal("OUT-43", document.RootElement.GetProperty("refund").GetProperty("reference").GetString());
+    }
+
+    [SqlServerFact]
     public async Task Replacing_a_posted_receipt_and_adjusting_stock_are_audited_once_and_flow_into_report()
     {
         await using var scope = services!.CreateAsyncScope();
