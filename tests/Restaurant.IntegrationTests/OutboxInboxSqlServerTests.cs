@@ -42,6 +42,7 @@ public sealed class OutboxInboxSqlServerTests : IAsyncLifetime
             .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString })
             .Build());
         services.AddSalesModule();
+        services.AddSingleton<IBusinessAudit>(TestBusinessAudit.Instance);
         provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<SalesDbContext>().Database.MigrateAsync();

@@ -1,13 +1,16 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Seating.Infrastructure;
 
-internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGuestAccess
+internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock, IBusinessDayDirectory days,
+    IBusinessAudit audit) : IGuestAccess
 {
     private static byte[]? Hash(string? text)
     {
@@ -22,13 +25,28 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
 
     private Task<PhienSuDung?> LockSession(long id, CancellationToken ct) =>
         db.Sessions.FromSqlInterpolated($"SELECT * FROM seating.PhienSuDung WITH (UPDLOCK) WHERE Id={id}")
+            .AsNoTracking()
             .SingleOrDefaultAsync(ct);
 
     public async Task<SeatingResult<GuestInvite>> InviteAsync(long session, Guid actor, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // The day is immutable; look it up without taking the session update lock first.
+        var dayId = await db.Sessions.AsNoTracking().Where(x => x.Id == session)
+            .Select(x => (Guid?)x.NgayBanId).SingleOrDefaultAsync(ct);
+        if (dayId is null) return SeatingResult<GuestInvite>.Fail(SeatingErrors.SessionClosed);
+        bool dayOpen;
+        try
+        {
+            dayOpen = await days.RequireOpenAsync(tx.GetDbTransaction(), dayId.Value, ct);
+        }
+        catch (TimeoutException)
+        {
+            return SeatingResult<GuestInvite>.Fail(SeatingErrors.DayNotOpen);
+        }
         var row = await LockSession(session, ct);
         if (row is null || row.DongLuc is not null) return SeatingResult<GuestInvite>.Fail(SeatingErrors.SessionClosed);
+        if (!dayOpen) return SeatingResult<GuestInvite>.Fail(SeatingErrors.DayNotOpen);
         var locator = await db.Tables.Where(t => t.Id == row.BanHienTaiId).Select(t => t.MaQrCongKhai).SingleAsync(ct);
         var bytes = RandomNumberGenerator.GetBytes(32);
         var hash = SHA256.HashData(bytes);
@@ -38,6 +56,8 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
             INSERT INTO seating.MaThamGiaPhien (MaHash, PhienSuDungId, NguoiCapId, TaoLuc, HetHanLuc)
             VALUES ({hash},{session},{actor},{now.UtcDateTime},{expiry.UtcDateTime})
             """, ct);
+        await audit.AppendAsync(new("Seating", "qr.invite", "PhienSuDung", SeatingRules.Number(row.Id),
+            actor, row.NgayBanId), ct);
         await tx.CommitAsync(ct);
         return SeatingResult<GuestInvite>.Ok(new(locator, WebEncoders.Base64UrlEncode(bytes), expiry));
     }
@@ -55,12 +75,31 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
             SELECT PhienSuDungId,HetHanLuc,DaDungLuc,ThuHoiLuc FROM seating.MaThamGiaPhien WHERE MaHash={hash}
             """).SingleOrDefaultAsync(ct);
         if (invite is null) return SeatingResult<GuestToken>.Fail(invalid);
+        var dayId = await db.Sessions.AsNoTracking().Where(x => x.Id == invite.PhienSuDungId)
+            .Select(x => (Guid?)x.NgayBanId).SingleOrDefaultAsync(ct);
+        if (dayId is null) return SeatingResult<GuestToken>.Fail(invalid);
+        bool dayOpen;
+        try
+        {
+            dayOpen = await days.RequireOpenAsync(tx.GetDbTransaction(), dayId.Value, ct);
+        }
+        catch (TimeoutException)
+        {
+            return SeatingResult<GuestToken>.Fail(SeatingErrors.DayNotOpen);
+        }
         var session = await LockSession(invite.PhienSuDungId, ct);
+        // A close or another exchange may have completed while we waited for the locks.
+        invite = await db.Database.SqlQuery<Invitation>($"""
+            SELECT PhienSuDungId,HetHanLuc,DaDungLuc,ThuHoiLuc FROM seating.MaThamGiaPhien WHERE MaHash={hash}
+            """).SingleOrDefaultAsync(ct);
+        if (invite is null) return SeatingResult<GuestToken>.Fail(invalid);
         if (session is null || session.DongLuc is not null || invite.ThuHoiLuc is not null) return SeatingResult<GuestToken>.Fail(invalid);
         var tableCode = await db.Tables.Where(t => t.Id == session.BanHienTaiId).Select(t => t.MaQrCongKhai).SingleAsync(ct);
         if (request.TableCode != tableCode) return SeatingResult<GuestToken>.Fail(invalid);
         var now = clock.GetUtcNow();
         if (invite.HetHanLuc <= now.UtcDateTime) return SeatingResult<GuestToken>.Fail("qr.code.expired");
+        if (invite.DaDungLuc is not null) return SeatingResult<GuestToken>.Fail("qr.code.used");
+        if (!dayOpen) return SeatingResult<GuestToken>.Fail(SeatingErrors.DayNotOpen);
         var used = await db.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE seating.MaThamGiaPhien SET DaDungLuc={now.UtcDateTime}
             WHERE MaHash={hash} AND DaDungLuc IS NULL AND ThuHoiLuc IS NULL
@@ -68,15 +107,18 @@ internal sealed class GuestAccess(SeatingDbContext db, TimeProvider clock) : IGu
         if (used != 1) return SeatingResult<GuestToken>.Fail("qr.code.used");
         var bytes = RandomNumberGenerator.GetBytes(32);
         var expiry = now.AddHours(4);
-        db.Grants.Add(new QuyenTruyCapKhach
+        var grant = new QuyenTruyCapKhach
         {
             Id = Guid.NewGuid(),
             PhienSuDungId = session.Id,
             TokenHash = SHA256.HashData(bytes),
             TaoLuc = now.UtcDateTime,
             HetHanLuc = expiry.UtcDateTime
-        });
+        };
+        db.Grants.Add(grant);
         await db.SaveChangesAsync(ct);
+        await audit.AppendAsync(new("Seating", "qr.exchange", "QuyenTruyCapKhach", grant.Id.ToString("D"),
+            BusinessDayId: session.NgayBanId, ResolveActor: false), ct);
         await tx.CommitAsync(ct);
         return SeatingResult<GuestToken>.Ok(new(WebEncoders.Base64UrlEncode(bytes), expiry));
     }

@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Seating.Infrastructure;
 
-public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
+public sealed class SeatingCatalog(SeatingDbContext db, IBusinessAudit audit) : ISeatingCatalog
 {
     private static AreaDto Map(KhuVuc a) => new(a.Id, a.Ma, a.Ten, a.HoatDong, SeatingRules.EncodeVersion(a.Version));
 
@@ -28,6 +29,7 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
             return SeatingResult<AreaDto>.Fail(SeatingErrors.AreaCodeConflict);
         var area = new KhuVuc { Ma = code, Ten = name, HoatDong = true };
         db.Areas.Add(area);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
             await db.SaveChangesAsync(ct);
@@ -36,6 +38,8 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
         {
             return SeatingResult<AreaDto>.Fail(SeatingErrors.AreaCodeConflict);
         }
+        await audit.AppendAsync(new("Seating", "area.create", "KhuVuc", SeatingRules.Number(area.Id)), ct);
+        await tx.CommitAsync(ct);
         return SeatingResult<AreaDto>.Ok(Map(area));
     }
 
@@ -51,8 +55,14 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
             if (!area.HoatDong) return SeatingResult<AreaDto>.Fail(SeatingErrors.AreaInactive);
             if (!area.Version.AsSpan().SequenceEqual(version))
                 return SeatingResult<AreaDto>.Fail(SeatingErrors.ConcurrencyConflict);
+            if (string.Equals(area.Ten, name, StringComparison.Ordinal))
+            {
+                await tx.CommitAsync(ct);
+                return SeatingResult<AreaDto>.Ok(Map(area));
+            }
             area.Ten = name;
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Seating", "area.update", "KhuVuc", SeatingRules.Number(area.Id)), ct);
             await tx.CommitAsync(ct);
             return SeatingResult<AreaDto>.Ok(Map(area));
         });
@@ -73,6 +83,7 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
                 return SeatingResult<AreaDto>.Fail(SeatingErrors.AreaHasActiveTables);
             area.HoatDong = false;
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Seating", "area.archive", "KhuVuc", SeatingRules.Number(area.Id)), ct);
             await tx.CommitAsync(ct);
             return SeatingResult<AreaDto>.Ok(Map(area));
         });
@@ -99,6 +110,7 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
             };
             db.Tables.Add(table);
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Seating", "table.create", "Ban", SeatingRules.Number(table.Id)), ct);
             await tx.CommitAsync(ct);
             return SeatingResult<TableDto>.Ok(Map(table));
         });
@@ -115,6 +127,11 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
             if (!table.HoatDong) return SeatingResult<TableDto>.Fail(SeatingErrors.TableInactive);
             if (!table.Version.AsSpan().SequenceEqual(version))
                 return SeatingResult<TableDto>.Fail(SeatingErrors.ConcurrencyConflict);
+            if (request.AreaId == table.KhuVucId && string.Equals(table.Ten, name, StringComparison.Ordinal))
+            {
+                await tx.CommitAsync(ct);
+                return SeatingResult<TableDto>.Ok(Map(table));
+            }
             if (request.AreaId != table.KhuVucId)
             {
                 var area = await db.LockAreaAsync(request.AreaId, ct);
@@ -124,6 +141,7 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
             }
             table.Ten = name;
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Seating", "table.update", "Ban", SeatingRules.Number(table.Id)), ct);
             await tx.CommitAsync(ct);
             return SeatingResult<TableDto>.Ok(Map(table));
         });
@@ -144,6 +162,7 @@ public sealed class SeatingCatalog(SeatingDbContext db) : ISeatingCatalog
                 return SeatingResult<TableDto>.Fail(SeatingErrors.TableInUse);
             table.HoatDong = false;
             await db.SaveChangesAsync(ct);
+            await audit.AppendAsync(new("Seating", "table.archive", "Ban", SeatingRules.Number(table.Id)), ct);
             await tx.CommitAsync(ct);
             return SeatingResult<TableDto>.Ok(Map(table));
         });

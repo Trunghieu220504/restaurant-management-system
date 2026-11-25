@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Domain;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Seating.Infrastructure;
 
@@ -18,7 +19,8 @@ public sealed class SeatingSessions(
     SeatingDbContext db,
     IBusinessDayDirectory days,
     ISessionClosureGuard closureGuard,
-    TimeProvider clock) : ISeatingSessions
+    TimeProvider clock,
+    IBusinessAudit audit) : ISeatingSessions
 {
     private const string Done = "HOAN_TAT";
 
@@ -38,7 +40,7 @@ public sealed class SeatingSessions(
             return Task.FromResult(SeatingResult<SessionDto>.Fail(SeatingErrors.InputInvalid));
         return RunAsync("CHUYEN_BAN", actor, key,
             $"transfer|{SeatingRules.Number(sessionId)}|{SeatingRules.Number(request.ToTableId)}|{reason}",
-            token => TransferCoreAsync(sessionId, request.ToTableId, reason, actor, token), ct);
+            token => TransferCoreAsync(sessionId, request.ToTableId, reason, actor, token), ct, reason);
     }
 
     public Task<SeatingResult<SessionDto>> CloseAsync(long sessionId, Guid actor, Guid key, CancellationToken ct)
@@ -145,7 +147,7 @@ public sealed class SeatingSessions(
 
     private async Task<SeatingResult<SessionDto>> RunAsync(
         string operation, Guid actor, Guid key, string payload,
-        Func<CancellationToken, Task<SeatingResult<PhienSuDung>>> action, CancellationToken ct)
+        Func<CancellationToken, Task<SeatingResult<PhienSuDung>>> action, CancellationToken ct, string? reason = null)
     {
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         // Second pass only happens when a concurrent request with the same key committed first.
@@ -179,6 +181,8 @@ public sealed class SeatingSessions(
                     CreatedAt = Now()
                 });
                 await db.SaveChangesAsync(ct);
+                await audit.AppendAsync(new("Seating", operation, "PhienSuDung", SeatingRules.Number(session.Id),
+                    actor, session.NgayBanId, reason), ct);
                 await tx.CommitAsync(ct);
                 return SeatingResult<SessionDto>.Ok(Map(session));
             }

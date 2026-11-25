@@ -43,6 +43,7 @@ public static class ModuleRegistration
         services.AddSalesModule();
         services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
+        services.AddScoped<Restaurant.Modules.Fulfillment.Application.IFulfillmentIncidentContext, FulfillmentIncidentContext>();
         services.AddSignalR();
         services.AddSingleton<OperationsConnections>();
         services.AddScoped<Restaurant.Modules.Fulfillment.Application.IOperationsSnapshot, OperationsSnapshotReader>();
@@ -70,6 +71,8 @@ public static class ModuleRegistration
         services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
         services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, BusinessDayDirectory>();
         services.AddAuditModule();
+        services.AddHttpContextAccessor();
+        services.AddScoped<Restaurant.Shared.Contracts.IBusinessAudit, BusinessAudit>();
         services.AddReportingModule();
         services.AddScoped<Restaurant.Modules.Reporting.Application.IBusinessReports, BusinessReports>();
         services.AddHostedService<OutboxDispatcherService>();
