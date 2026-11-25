@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Restaurant.Modules.Fulfillment.Domain;
+using Restaurant.Modules.Fulfillment.Infrastructure;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
 using Restaurant.Shared.SqlServer;
 using Xunit;
@@ -37,9 +38,39 @@ public sealed class FulfillmentSqlServerTests : IAsyncLifetime
         if (new SqlConnectionStringBuilder(connectionString).InitialCatalog != databaseName ||
             !databaseName.StartsWith("RestaurantFulfillmentTest_", StringComparison.Ordinal))
             throw new InvalidOperationException("Unsafe test database cleanup target.");
-        SqlConnection.ClearAllPools();
+        SqlTestDatabase.ClearPool(connectionString);
         await using var db = CreateContext();
         await db.Database.EnsureDeletedAsync();
+    }
+
+    [SqlServerFact]
+    public async Task Concurrent_delivery_is_recorded_once_and_cancelled_tickets_cannot_be_served()
+    {
+        await using var db = CreateContext();
+        var ticket = PhieuCheBien.CreateInitial(42, Stations.Kitchen, Now).Value!;
+        var cancelled = PhieuCheBien.CreateInitial(43, Stations.Kitchen, Now).Value!;
+        db.Tickets.AddRange(ticket, cancelled);
+        await db.SaveChangesAsync();
+        var service = new FulfillmentService(db, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance);
+        var started = await service.StartAsync(ticket.Id, Stations.Kitchen, Convert.ToBase64String(ticket.Version), Guid.NewGuid(), Staff, default);
+        Assert.True(started.Succeeded);
+        var ready = await service.ReadyAsync(ticket.Id, Stations.Kitchen, started.Value!.Version, Guid.NewGuid(), Staff, default);
+        Assert.True(ready.Succeeded);
+        async Task<bool> Deliver()
+        {
+            await using var request = CreateContext();
+            return (await new FulfillmentService(request, TimeProvider.System, TestFulfillmentContext.Instance, TestBusinessAudit.Instance).DeliverAsync(ticket.Id, Stations.Kitchen,
+                ready.Value!.Version, Guid.NewGuid(), Staff, default)).Succeeded;
+        }
+        Assert.Single(await Task.WhenAll(Deliver(), Deliver()), success => success);
+        Assert.Equal(1, await db.Requests.CountAsync(r => r.Operation == "GIAO_MON" && r.TicketId == ticket.Id));
+        var stop = await service.CancelAsync(cancelled.Id, Stations.Kitchen, Convert.ToBase64String(cancelled.Version), Guid.NewGuid(), Staff, default);
+        Assert.True(stop.Succeeded);
+        var refused = await service.DeliverAsync(cancelled.Id, Stations.Kitchen, stop.Value!.Version, Guid.NewGuid(), Staff, default);
+        Assert.Equal(FulfillmentErrors.AlreadyProcessed, refused.Error);
+        await using var verify = CreateContext();
+        Assert.Equal(TicketStatus.Cancelled, (await verify.Tickets.SingleAsync(t => t.Id == cancelled.Id)).TrangThai);
+        Assert.Equal(0, await verify.Requests.CountAsync(r => r.Operation == "GIAO_MON" && r.TicketId == cancelled.Id));
     }
 
     // ---- domain factories (no database) ----

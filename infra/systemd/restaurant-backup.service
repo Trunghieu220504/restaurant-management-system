@@ -1,0 +1,10 @@
+[Unit]
+Description=Restaurant encrypted SQL backup to private R2
+After=docker.service network-online.target
+Requires=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/restaurant/backup.sh
+UMask=0077
+TimeoutStartSec=30min
+Nice=10

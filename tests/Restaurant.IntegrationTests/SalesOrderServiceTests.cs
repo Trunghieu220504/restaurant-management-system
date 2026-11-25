@@ -47,7 +47,7 @@ public sealed class SalesOrderServiceTests
             .AddVariant(Tea, TeaVariant, "Large", 45000)
             .AddOption(Tea, Pearl, CatalogId.Of(60), "Toppings", OptionGroupKinds.Topping, "Pearl", 5000)
             .AddOption(Tea, Sugar, CatalogId.Of(61), "Sugar", OptionGroupKinds.Option, "50%", 0);
-        service = new OrderService(store, sessions, gate, menu, new FixedClock(Now));
+        service = new OrderService(store, sessions, gate, menu, new FakeInvoiceCharging(), new FixedClock(Now));
     }
 
     // ---- create order ----
@@ -367,7 +367,7 @@ public sealed class SalesOrderServiceTests
     public async Task A_menu_answer_that_misses_a_line_is_not_trusted()
     {
         var order = await OpenOrderAsync();
-        var short1 = new OrderService(store, sessions, gate, new ShortPricing(), new FixedClock(Now));
+        var short1 = new OrderService(store, sessions, gate, new ShortPricing(), new FakeInvoiceCharging(), new FixedClock(Now));
 
         var result = await short1.AddBatchAsync(Add(order, Line(Pho, PhoRegular), Line(Pho, PhoLarge)), default);
 
@@ -401,7 +401,7 @@ public sealed class SalesOrderServiceTests
                 .AddOption(Tea, Sugar, CatalogId.Of(61), "Sugar", OptionGroupKinds.Option, "50%", 0)
                 .PriceAsync(new MenuPricingRequest(Guid.NewGuid(), [new MenuLineSelection(1, asked.MenuItemId, asked.VariantId, asked.OptionIds ?? [])]), default))
                 .Lines.Single();
-            var service2 = new OrderService(store, sessions, gate, new FixedPricing(change(honest)), new FixedClock(Now));
+            var service2 = new OrderService(store, sessions, gate, new FixedPricing(change(honest)), new FakeInvoiceCharging(), new FixedClock(Now));
 
             var result = await service2.AddBatchAsync(Add(order, asked), default);
 
@@ -429,7 +429,7 @@ public sealed class SalesOrderServiceTests
         var order = await OpenOrderAsync();
         var added = await service.AddBatchAsync(Add(order, Line(Pho, PhoRegular)), default);
         var changed = new FakeMenuPricing().AddDish(Pho, "Pho", Stations.Kitchen).AddVariant(Pho, PhoRegular, "Regular", 65000);
-        var repriced = new OrderService(store, sessions, gate, changed, new FixedClock(Now));
+        var repriced = new OrderService(store, sessions, gate, changed, new FakeInvoiceCharging(), new FixedClock(Now));
 
         var result = await repriced.ConfirmBatchAsync(new ConfirmBatchCommand(order, added.Value!.Number, Staff), default);
 

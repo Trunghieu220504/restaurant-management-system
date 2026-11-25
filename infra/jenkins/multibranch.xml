@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject plugin="workflow-multibranch">
+  <actions/>
+  <description>Hai249: build/test develop and the reviewed Hai delivery branch. No credentials for untrusted pull requests.</description>
+  <properties/>
+  <sources class="jenkins.branch.MultiBranchProject$BranchSourceList">
+    <data>
+      <jenkins.branch.BranchSource>
+        <source class="jenkins.plugins.git.GitSCMSource" plugin="git">
+          <id>restaurant-management-hai249</id>
+          <remote>https://github.com/Trunghieu220504/restaurant-management-system.git</remote>
+          <credentialsId/>
+          <traits>
+            <jenkins.plugins.git.traits.BranchDiscoveryTrait/>
+            <jenkins.scm.impl.trait.RegexSCMHeadFilterTrait>
+              <regex>develop|feature/hai-week7-delivery-20261124</regex>
+            </jenkins.scm.impl.trait.RegexSCMHeadFilterTrait>
+          </traits>
+        </source>
+        <strategy class="jenkins.branch.DefaultBranchPropertyStrategy">
+          <properties class="empty-list"/>
+        </strategy>
+      </jenkins.branch.BranchSource>
+    </data>
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+  </sources>
+  <factory class="org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory">
+    <owner class="org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject" reference="../.."/>
+    <scriptPath>Jenkinsfile</scriptPath>
+  </factory>
+  <orphanedItemStrategy class="com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy">
+    <pruneDeadBranches>true</pruneDeadBranches>
+    <daysToKeep>14</daysToKeep>
+    <numToKeep>10</numToKeep>
+  </orphanedItemStrategy>
+  <triggers>
+    <com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger>
+      <spec>H/5 * * * *</spec>
+      <interval>300000</interval>
+    </com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger>
+  </triggers>
+</org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject>
