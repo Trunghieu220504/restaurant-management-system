@@ -81,7 +81,11 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
                         created ? order.NguoiTaoId : null, order.NgayBanId), ct);
                 foreach (var (batch, created) in batches)
                 {
-                    var day = orders.First(x => x.Order.Id == batch.DonHangId).Order.NgayBanId;
+                    var day = await db.Orders.AsNoTracking()
+                        .Where(x => x.Id == batch.DonHangId)
+                        .Select(x => (Guid?)x.NgayBanId)
+                        .SingleOrDefaultAsync(ct)
+                        ?? throw new InvalidOperationException($"Order {batch.DonHangId} was not found for batch audit.");
                     var action = created ? "sales.batch.added" : batch.TrangThai switch
                     {
                         BatchStatus.Confirmed => "sales.batch.confirmed",
