@@ -85,9 +85,15 @@ public sealed partial class BillingLedger
                 (next == "THANH_CONG" && row.PhuongThuc == "CHUYEN_KHOAN" && string.IsNullOrEmpty(reference)))
                 return new(null, Invalid);
             row.TrangThai = next;
-            if (action is RefundAction.Approve or RefundAction.Reject) row.NguoiDuyetId = actor;
-            if (action is RefundAction.BeginPayout or RefundAction.Unknown or RefundAction.Success) row.NguoiChiId ??= actor;
-            if (reference is { Length: > 0 }) row.MaChiTra = reference;
+            if (action is RefundAction.Approve or RefundAction.Reject)
+            {
+                row.NguoiDuyetId = actor;
+            }
+            else
+            {
+                if (action is RefundAction.BeginPayout or RefundAction.Unknown or RefundAction.Success) row.NguoiChiId ??= actor;
+                if (reference is { Length: > 0 }) row.MaChiTra = reference;
+            }
             if (next == "THANH_CONG")
             {
                 row.ChiLuc = DateTime.UtcNow;
