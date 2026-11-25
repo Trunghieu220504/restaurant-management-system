@@ -112,6 +112,9 @@ public sealed class SeatingSqlServerTests : IAsyncLifetime
             new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
         services.AddSingleton<TimeProvider>(clock);
         services.AddSeatingModule();
+        services.AddSingleton<IBusinessAudit>(TestBusinessAudit.Instance);
+        services.AddSingleton<IBusinessDayDirectory>(new SeatingTestDayDirectory(
+            Guid.Parse("22222222-2222-2222-2222-222222222222")));
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var access = scope.ServiceProvider.GetRequiredService<IGuestAccess>();
