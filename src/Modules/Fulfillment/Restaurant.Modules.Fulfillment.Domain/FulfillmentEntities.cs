@@ -57,6 +57,33 @@ public sealed class PhieuCheBien
     public FulfillmentResult<PhieuCheBien> Cancel(Guid actor, DateTime now) =>
         Transition(TicketStatus.Cancelled, actor, now);
 
+    public FulfillmentResult<PhieuCheBien> ResolveIncident(SuCoMon incident, Guid actor, DateTime now)
+    {
+        if (actor == Guid.Empty || now.Kind != DateTimeKind.Utc || incident.Id <= 0 ||
+            incident.PhieuCheBienId != Id || incident.TrangThai != IncidentStatus.Approved ||
+            TrangThai is TicketStatus.Failed or TicketStatus.Cancelled)
+            return FulfillmentResult<PhieuCheBien>.Fail(FulfillmentErrors.InvalidTransition);
+        if (incident.QuyetDinh == IncidentDecision.Remake)
+        {
+            if (Lan == int.MaxValue) return FulfillmentResult<PhieuCheBien>.Fail(FulfillmentErrors.InputInvalid);
+            TrangThai = TicketStatus.Failed;
+            return FulfillmentResult<PhieuCheBien>.Ok(new PhieuCheBien
+            {
+                ChiTietDonId = ChiTietDonId,
+                Lan = Lan + 1,
+                TramChot = TramChot,
+                PhieuGocId = Id,
+                SuCoNguonId = incident.Id,
+                TaoLuc = now,
+                TrangThai = TicketStatus.New
+            });
+        }
+        if (incident.QuyetDinh is not (IncidentDecision.CancelBookkeepingOnly or IncidentDecision.CancelWithObligationAdjustment))
+            return FulfillmentResult<PhieuCheBien>.Fail(FulfillmentErrors.InputInvalid);
+        TrangThai = TicketStatus.Cancelled;
+        return FulfillmentResult<PhieuCheBien>.Ok(this);
+    }
+
     private FulfillmentResult<PhieuCheBien> Transition(string target, Guid actor, DateTime now)
     {
         if (actor == Guid.Empty || now.Kind != DateTimeKind.Utc)
@@ -120,11 +147,26 @@ public sealed class SuCoMon
     public Guid KhoaYeuCau { get; private set; }
     public byte[] Version { get; private set; } = [];
 
+    public FulfillmentResult<SuCoMon> Decide(string? decision, string? reason, Guid actor, DateTime now)
+    {
+        if (TrangThai != IncidentStatus.Pending) return FulfillmentResult<SuCoMon>.Fail(FulfillmentErrors.IncidentAlreadyDecided);
+        var clean = reason?.Trim();
+        if (actor == Guid.Empty || now.Kind != DateTimeKind.Utc || string.IsNullOrEmpty(clean) || clean.Length > 1000 ||
+            decision is not null && !IncidentDecision.All.Contains(decision))
+            return FulfillmentResult<SuCoMon>.Fail(FulfillmentErrors.InputInvalid);
+        TrangThai = decision is null ? IncidentStatus.Rejected : IncidentStatus.Approved;
+        QuyetDinh = decision;
+        LyDoDuyet = clean;
+        NguoiDuyetId = actor;
+        DuyetLuc = now;
+        return FulfillmentResult<SuCoMon>.Ok(this);
+    }
+
     public static FulfillmentResult<SuCoMon> Report(long ticketId, string? reason, Guid reporter, Guid requestKey, DateTime now)
     {
         var clean = reason?.Trim();
         if (ticketId <= 0 || string.IsNullOrEmpty(clean) || clean.Length > 1000 ||
-            reporter == Guid.Empty || requestKey == Guid.Empty)
+            reporter == Guid.Empty || requestKey == Guid.Empty || now.Kind != DateTimeKind.Utc)
             return FulfillmentResult<SuCoMon>.Fail(FulfillmentErrors.InputInvalid);
         return FulfillmentResult<SuCoMon>.Ok(new SuCoMon
         {

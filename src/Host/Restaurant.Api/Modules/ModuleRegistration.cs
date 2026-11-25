@@ -43,6 +43,7 @@ public static class ModuleRegistration
         services.AddSalesModule();
         services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
+        services.AddScoped<Restaurant.Modules.Fulfillment.Application.IFulfillmentIncidentContext, FulfillmentIncidentContext>();
         services.AddSignalR();
         services.AddSingleton<OperationsConnections>();
         services.AddScoped<Restaurant.Modules.Fulfillment.Application.IOperationsSnapshot, OperationsSnapshotReader>();
