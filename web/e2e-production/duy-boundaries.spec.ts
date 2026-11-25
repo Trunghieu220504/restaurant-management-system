@@ -20,11 +20,7 @@ test("production kitchen never displays fixture tickets as real operations", asy
     await expect(
         page.getByRole("heading", { name: "Phiếu chế biến" }),
     ).toBeVisible();
-    await expect(
-        page
-            .getByRole("status")
-            .filter({ hasText: "Chưa kết nối được nguồn phiếu chế biến." }),
-    ).toBeVisible();
+    await expect(page.getByText(/Phiếu #/)).toHaveCount(0);
     await expect(
         page.getByRole("button", { name: "Phiếu mới", exact: true }),
     ).toHaveCount(0);

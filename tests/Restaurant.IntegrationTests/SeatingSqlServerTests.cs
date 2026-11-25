@@ -101,6 +101,53 @@ public sealed class SeatingSqlServerTests : IAsyncLifetime
     }
 
     [SqlServerFact]
+    public async Task Qr_expiry_revocation_and_a_reopened_table_never_resurrect_an_old_grant()
+    {
+        await SeedTablesAsync();
+        await using var db = CreateContext();
+        await OpenAsync(db);
+        var clock = new GuestClock(DateTimeOffset.UtcNow);
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
+        services.AddSingleton<TimeProvider>(clock);
+        services.AddSeatingModule();
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var access = scope.ServiceProvider.GetRequiredService<IGuestAccess>();
+        Assert.Equal("qr.code.invalid", (await access.ExchangeAsync(new("qr-1", "qr-1"), default)).Error);
+        var expired = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        clock.Now = clock.Now.AddMinutes(11);
+        Assert.Equal("qr.code.expired", (await access.ExchangeAsync(new("qr-1", expired.JoinCode), default)).Error);
+
+        var revokedInvite = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        await db.Database.ExecuteSqlRawAsync("UPDATE seating.MaThamGiaPhien SET ThuHoiLuc=SYSUTCDATETIME()");
+        Assert.Equal("qr.code.invalid", (await access.ExchangeAsync(new("qr-1", revokedInvite.JoinCode), default)).Error);
+        var invite = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        Assert.Equal("qr.code.invalid", (await access.ExchangeAsync(new("qr-2", invite.JoinCode), default)).Error);
+        var token = (await access.ExchangeAsync(new("qr-1", invite.JoinCode), default)).Value!;
+        clock.Now = clock.Now.AddHours(4).AddSeconds(1);
+        Assert.Equal("qr.token.expired", (await access.CheckAsync(token.Token, default)).Error);
+
+        var currentInvite = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        var current = (await access.ExchangeAsync(new("qr-1", currentInvite.JoinCode), default)).Value!;
+        await db.Database.ExecuteSqlRawAsync("UPDATE seating.QuyenTruyCapKhach SET ThuHoiLuc=SYSUTCDATETIME()");
+        Assert.Equal("qr.token.revoked", (await access.CheckAsync(current.Token, default)).Error);
+
+        var finalInvite = (await access.InviteAsync(1, Guid.NewGuid(), default)).Value!;
+        var finalToken = (await access.ExchangeAsync(new("qr-1", finalInvite.JoinCode), default)).Value!;
+        await db.Database.ExecuteSqlRawAsync("UPDATE seating.PhienSuDung SET DongLuc=SYSUTCDATETIME(),NguoiDongId=NguoiMoId WHERE Id=1");
+        await OpenAsync(db);
+        Assert.Equal("qr.token.revoked", (await access.CheckAsync(finalToken.Token, default)).Error);
+    }
+
+    private sealed class GuestClock(DateTimeOffset now) : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = now;
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    [SqlServerFact]
     public async Task Concurrent_opens_allow_exactly_one_active_session()
     {
         await SeedTablesAsync();
