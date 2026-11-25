@@ -182,9 +182,12 @@ public sealed class CatalogEndpointTests
         builder.Services.AddSingleton<IStaffPortions>(new StubPortions());
         builder.Services.AddAuthentication("CatalogTest").AddScheme<AuthenticationSchemeOptions, TestAuthentication>("CatalogTest", _ => { });
         builder.Services.AddAuthorization();
+        builder.Services.AddRateLimiter(options => options.AddPolicy("qr-read", _ =>
+            System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("catalog-test")));
         var app = builder.Build();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter();
         app.MapCatalogEndpoints();
         app.MapSalesEndpoints();
         await app.StartAsync();

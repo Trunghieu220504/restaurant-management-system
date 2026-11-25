@@ -53,7 +53,10 @@ export interface SalesDayApi {
     checklist(dayId: string, signal?: AbortSignal): Promise<CloseChecklist>;
     beginClose(dayId: string, key: string): Promise<CloseChecklist>;
     cancelClose(dayId: string, key: string): Promise<CloseChecklist>;
-    settlementPreview(dayId: string): Promise<SettlementPreview>;
+    settlementPreview(
+        dayId: string,
+        signal?: AbortSignal,
+    ): Promise<SettlementPreview>;
     finalize(
         dayId: string,
         input: FinalizeDayInput,
@@ -142,7 +145,11 @@ export function createSalesDayApi(
             throw new SalesDayError(
                 response.status,
                 body.code ?? body.title ?? "unknown",
-                Array.isArray(body.blockers) ? body.blockers : [],
+                Array.isArray(body.blockers)
+                    ? body.blockers
+                    : Array.isArray(body.checklist?.blockers)
+                      ? body.checklist.blockers
+                      : [],
             );
         }
         const body = await response.text();
@@ -176,7 +183,8 @@ export function createSalesDayApi(
                 method: "POST",
                 headers: { "Idempotency-Key": key },
             }),
-        settlementPreview: (dayId) => send(`${dayId}/settlement-preview`),
+        settlementPreview: (dayId, signal) =>
+            send(`${dayId}/settlement-preview`, { signal }),
         finalize: (dayId, input, key) =>
             send(`${dayId}/finalize`, {
                 method: "POST",
