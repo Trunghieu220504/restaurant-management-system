@@ -1,0 +1,32 @@
+name: Release tooling
+on:
+  pull_request:
+    branches: [develop, main]
+    paths: ['Jenkinsfile', 'scripts/release/**', 'infra/**', '.github/workflows/release-tooling.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Evidence gates and monitor thresholds
+        run: python3 -m unittest discover -s scripts/release -p 'test_*.py'
+      - name: Bash syntax
+        run: |
+          for file in scripts/release/*.sh; do bash -n "$file"; done
+      - name: Reject unsupported forced SSH commands
+        run: |
+          for command in '' 'bash' 'deploy main' 'deploy 0123456' 'deploy abc;id'; do
+            set +e
+            SSH_ORIGINAL_COMMAND="$command" bash scripts/release/ssh-dispatch.sh
+            result=$?
+            set -e
+            test "$result" -eq 2
+          done
+      - name: ShellCheck
+        run: shellcheck -P SCRIPTDIR scripts/release/*.sh

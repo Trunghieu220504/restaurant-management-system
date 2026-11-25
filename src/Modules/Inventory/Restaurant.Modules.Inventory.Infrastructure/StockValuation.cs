@@ -24,9 +24,8 @@ public static class StockValuation
         var adjustments = await db.Set<DieuChinhTon>().Where(a => a.NgayBanId == day).GroupBy(a => a.NguyenLieuId)
             .Select(g => new { Id = g.Key, Quantity = g.Sum(a => a.SoLuongChuan), Value = g.Sum(a => a.GiaTriDieuChinh) })
             .ToDictionaryAsync(x => x.Id, ct);
-        var counts = await (from k in db.Set<KiemKeTon>()
+        var counts = await (from k in StockCounts.RelevantForDay(db, day)
                             join i in db.Set<NguyenLieu>() on k.NguyenLieuId equals i.Id
-                            where k.NgayBanId == day
                             select new { Count = k, Unit = i.DonViChuanId }).AsNoTracking().ToListAsync(ct);
         var lines = new List<StockValuationLine>();
         foreach (var row in counts)

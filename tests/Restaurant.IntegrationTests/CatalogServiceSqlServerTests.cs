@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Restaurant.Modules.Catalog.Application;
+using Restaurant.Modules.Catalog.Contracts;
 using Restaurant.Modules.Catalog.Domain;
 using Restaurant.Modules.Catalog.Infrastructure;
 using Restaurant.Modules.Catalog.Infrastructure.Persistence;
@@ -31,7 +32,7 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
         if (!databaseName.StartsWith("RestaurantCatalogApiTest_", StringComparison.Ordinal) ||
             new SqlConnectionStringBuilder(connectionString).InitialCatalog != databaseName)
             throw new InvalidOperationException("Unsafe test database cleanup target.");
-        SqlConnection.ClearAllPools();
+        SqlTestDatabase.ClearPool(connectionString);
         await using var db = NewContext();
         await db.Database.EnsureDeletedAsync();
     }
@@ -251,6 +252,27 @@ public sealed class CatalogServiceSqlServerTests : IAsyncLifetime
             }
             return await base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
         }
+    }
+
+    [SqlServerFact]
+    public async Task Sales_pricing_rejects_a_foreign_variant_or_unassigned_option_on_real_SQL()
+    {
+        var seeded = await SeedAsync();
+        await using var db = NewContext();
+        var menu = new CatalogMenu(db);
+        var other = Ok(await menu.CreateItemAsync(new(seeded.Group.Id, "OTHER", "Other", "BAR", new("STD", "Standard", 1000)), default));
+        var pricing = new MenuPricing(db);
+        var day = Guid.NewGuid();
+        var variant = Assert.Single(other.Variants);
+        var wrongVariant = await pricing.PriceAsync(new(day, [new(1, seeded.Item.Id, variant.Id, [])]), default);
+        Assert.Equal(CatalogErrorCodes.VariantNotOwned, Assert.Single(wrongVariant.Errors).Code);
+        Assert.Empty(wrongVariant.Lines);
+        var wrongOption = await pricing.PriceAsync(new(day, [new(1, other.Id, variant.Id, [seeded.Option.Id])]), default);
+        Assert.Equal(CatalogErrorCodes.OptionNotAllowed, Assert.Single(wrongOption.Errors).Code);
+        Assert.Empty(wrongOption.Lines);
+        var valid = await pricing.PriceAsync(new(day, [new(1, seeded.Item.Id, seeded.Variant.Id, [seeded.Option.Id])]), default);
+        Assert.Empty(valid.Errors);
+        Assert.Equal(80000, Assert.Single(valid.Lines).UnitPrice);
     }
 
     private static T Ok<T>(CatalogResult<T> result)

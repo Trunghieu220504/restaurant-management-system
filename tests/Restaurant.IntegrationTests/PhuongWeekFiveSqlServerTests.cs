@@ -27,6 +27,32 @@ namespace Restaurant.IntegrationTests;
 public sealed class PhuongWeekFiveSqlServerTests : DayLedgerSqlFixture
 {
     [SqlServerFact]
+    public async Task An_archived_ingredient_with_carried_stock_remains_countable()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var p = scope.ServiceProvider;
+        var (item, unit) = await MaterialAsync(p, "ARCHIVED");
+        await PurchaseAsync(p, item, unit, 10, 5);
+        await ApproveAsync(p, item, 4);
+        await BeginAsync(p);
+        var closing = await p.GetRequiredService<IDaySettlement>().FinalizeAsync(day, new(500, null, false, null), actor, Guid.NewGuid(), default);
+        Assert.Null(closing.Error);
+        var inventory = p.GetRequiredService<InventoryDbContext>();
+        // Simulate legacy archived inventory; current API correctly refuses this structural change.
+        await inventory.Database.ExecuteSqlInterpolatedAsync($"UPDATE inventory.NguyenLieu SET LuuTru=1 WHERE Id={item}");
+        var next = await p.GetRequiredService<IBusinessDays>().OpenAsync(new(new(2026, 12, 11), 500), actor, Guid.NewGuid(), default);
+        Assert.Null(next.Error);
+        var counts = p.GetRequiredService<IStockCounts>();
+        var row = Assert.Single(await counts.ListAsync(next.Day!.Id, default));
+        Assert.Equal(item, row.IngredientId);
+        Assert.Equal(4, row.OpeningQuantity);
+        Assert.Null((await counts.SaveAsync(next.Day.Id, item, 3, row.Version, false, actor, default)).Error);
+        var edited = Assert.Single(await counts.ListAsync(next.Day.Id, default));
+        Assert.Null((await counts.SaveAsync(next.Day.Id, item, null, edited.Version, true, actor, default)).Error);
+        Assert.Equal(3, Assert.Single(await counts.ListAsync(next.Day.Id, default)).Approved);
+    }
+
+    [SqlServerFact]
     public async Task Zero_quantity_with_residual_value_blocks_freeze_and_new_draft_invalidates_approval()
     {
         await using var scope = services!.CreateAsyncScope();

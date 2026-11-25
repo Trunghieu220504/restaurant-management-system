@@ -1,0 +1,9 @@
+[Unit]
+Description=Restaurant HTTPS disk memory and backup-age checks
+After=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/restaurant/monitor.py
+EnvironmentFile=-/etc/restaurant/monitor.env
+TimeoutStartSec=90
+UMask=0077
