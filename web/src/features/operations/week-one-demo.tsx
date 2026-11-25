@@ -20,7 +20,11 @@ import {
     type SoundState,
 } from "@/lib/sound/notification-sound";
 import { SalesDayScreen } from "@/features/sales-day/sales-day-screen";
-import { type BusinessDay, type SalesDayApi } from "@/features/sales-day/api";
+import {
+    createSalesDayApi,
+    type BusinessDay,
+    type SalesDayApi,
+} from "@/features/sales-day/api";
 import { createDemoSalesDayApi } from "@/features/sales-day/demo-api";
 
 const initialDay: BusinessDay = {
@@ -106,21 +110,9 @@ export function WeekOneDemo({ startedAt }: { startedAt: string }) {
                 : { ...initialDay, status: scenario as BusinessDay["status"] };
         return createDemoSalesDayApi(current, scenario);
     }, [scenario]);
-    const liveApi = useMemo<SalesDayApi>(
-        () => ({
-            async current(signal) {
-                const { createSalesDayApi } =
-                    await import("@/features/sales-day/api");
-                return createSalesDayApi(() => token).current(signal);
-            },
-            async open(input, key) {
-                const { createSalesDayApi } =
-                    await import("@/features/sales-day/api");
-                return createSalesDayApi(() => token).open(input, key);
-            },
-        }),
-        [token],
-    );
+    const liveApi = useMemo<SalesDayApi>(() => {
+        return createSalesDayApi(() => token);
+    }, [token]);
     return (
         <main className="mx-auto max-w-5xl space-y-10 p-4 sm:p-8">
             <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-5">
