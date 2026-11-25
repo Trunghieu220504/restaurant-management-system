@@ -150,8 +150,11 @@ test("public QR at 360px keeps a private draft and sends no orders", async ({
 }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     const api: string[] = [];
+    const menuCredentials: (string | undefined)[] = [];
     page.on("request", (r) => {
         if (new URL(r.url()).pathname.startsWith("/api/")) api.push(r.url());
+        if (new URL(r.url()).pathname === "/api/public/menu")
+            menuCredentials.push(r.headers().authorization);
     });
     await mockPublicMenu(page);
     await page.route("**/api/public/guest-access/exchange", async (r) => {
@@ -187,7 +190,12 @@ test("public QR at 360px keeps a private draft and sends no orders", async ({
     expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(360);
-    expect(api.map((url) => new URL(url).pathname).sort()).toEqual([
+    await expect
+        .poll(() => menuCredentials.includes("Guest test-guest"))
+        .toBe(true);
+    expect(
+        [...new Set(api.map((url) => new URL(url).pathname))].sort(),
+    ).toEqual([
         "/api/public/guest-access/exchange",
         "/api/public/guest-access/session",
         "/api/public/menu",

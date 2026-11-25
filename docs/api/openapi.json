@@ -2095,6 +2095,7 @@
         "tags": [
           "Catalog"
         ],
+        "description": "Read-only public menu. If Authorization: Guest <session token> is supplied, the host requires an active Seating grant. Menu access alone never grants ordering rights. Responses are not cached.",
         "operationId": "CatalogPublicMenu",
         "responses": {
           "200": {
@@ -2103,6 +2104,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicMenu"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

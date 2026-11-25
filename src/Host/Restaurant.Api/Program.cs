@@ -61,6 +61,7 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseGuestMenuAccess();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
