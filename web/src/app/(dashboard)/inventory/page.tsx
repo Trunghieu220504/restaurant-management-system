@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/auth-provider";
+import { usePermissions } from "@/components/permission-provider";
+import { StockAdjustment } from "@/features/inventory/stock-adjustment";
+import { LiveQueryScope } from "@/lib/realtime/live-query";
 
 interface Ingredient {
     id: string;
@@ -83,6 +87,10 @@ const initialIngredients: Ingredient[] = [
 ];
 
 export default function InventoryPage() {
+    const { user } = useAuth();
+    const { can } = usePermissions();
+    const canAdjust =
+        user?.roles.includes("Manager") && can("inventory.adjustments.approve");
     const [activeTab, setActiveTab] = useState<
         "STOCK" | "IMPORT" | "COUNT" | "ADJUST"
     >("STOCK");
@@ -156,7 +164,9 @@ export default function InventoryPage() {
                     },
                     { key: "IMPORT", label: "Phiếu nhập hàng" },
                     { key: "COUNT", label: "Số đếm tồn cuối ngày" },
-                    { key: "ADJUST", label: "Điều chỉnh tồn" },
+                    ...(canAdjust
+                        ? [{ key: "ADJUST", label: "Điều chỉnh tồn" }]
+                        : []),
                 ].map((tab) => (
                     <button
                         key={tab.key}
@@ -367,51 +377,10 @@ export default function InventoryPage() {
                 </div>
             )}
 
-            {/* Tab Content: Stock adjustments (UC24) */}
-            {activeTab === "ADJUST" && (
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 text-xs">
-                    <h3 className="font-bold text-gray-900 text-sm">
-                        Điều chỉnh tồn kho ở ngày hiện tại
-                    </h3>
-                    <p className="text-gray-500">
-                        Dành cho Quản lý điều chỉnh sai số hao hụt, hỏng hóc
-                        hoặc thừa thiếu trong ngày chưa chốt.
-                    </p>
-                    <div className="space-y-3 pt-2">
-                        <div>
-                            <label className="block font-semibold mb-1">
-                                Chọn nguyên liệu điều chỉnh:
-                            </label>
-                            <select className="w-full p-2 border rounded-lg bg-white">
-                                {ingredients.map((i) => (
-                                    <option key={i.id} value={i.id}>
-                                        {i.name} (Tồn: {i.stockQty} {i.unit})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-1">
-                                Lý do điều chỉnh (Bắt buộc):
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="VD: Hao hụt sơ chế, vỡ hỏng..."
-                                className="w-full p-2 border rounded-lg"
-                            />
-                        </div>
-                        <button
-                            onClick={() =>
-                                toast.success(
-                                    "Đã ghi nhận phiếu điều chỉnh tồn kho.",
-                                )
-                            }
-                            className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm"
-                        >
-                            Xác nhận điều chỉnh
-                        </button>
-                    </div>
-                </div>
+            {activeTab === "ADJUST" && user && canAdjust && (
+                <LiveQueryScope key={user.id}>
+                    <StockAdjustment />
+                </LiveQueryScope>
             )}
 
             {/* Modal: Lập phiếu nhập kho (UC22) */}
