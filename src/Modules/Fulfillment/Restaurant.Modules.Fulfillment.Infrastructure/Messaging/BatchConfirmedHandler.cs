@@ -5,12 +5,13 @@ using Restaurant.Modules.Sales.Contracts;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
 using Restaurant.Shared.Contracts;
 using Restaurant.Shared.SqlServer;
+using Restaurant.Modules.Fulfillment.Application;
 
 namespace Restaurant.Modules.Fulfillment.Infrastructure.Messaging;
 
 internal sealed class BatchConfirmedHandler(
     FulfillmentDbContext db,
-    TimeProvider clock) : IIntegrationEventHandler
+    TimeProvider clock, IFulfillmentIncidentContext businessContext, IBusinessAudit audit) : IIntegrationEventHandler
 {
     public const string EventName = "sales.batch_confirmed";
     public const string ConsumerName = "fulfillment.tickets";
@@ -36,6 +37,9 @@ internal sealed class BatchConfirmedHandler(
         var tickets = new List<PhieuCheBien>();
         foreach (var portion in envelope.Payload.Portions)
         {
+            var error = await businessContext.RequireOpenAsync(transaction.GetDbTransaction(), portion.PortionId, cancellationToken);
+            if (error == "sales.portion.cancelled") continue;
+            if (error is not null) throw new InvalidOperationException(error);
             var result = PhieuCheBien.CreateInitial(portion.PortionId, portion.Station, envelope.OccurredAt.UtcDateTime);
             if (!result.Succeeded)
                 throw new InvalidOperationException($"Invalid confirmed portion {portion.PortionId}: {result.Error}.");
@@ -47,6 +51,9 @@ internal sealed class BatchConfirmedHandler(
         await db.SaveChangesAsync(cancellationToken);
         foreach (var ticket in tickets) TicketEvents.Stage(db, ticket, clock.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
+        foreach (var ticket in tickets)
+            await audit.AppendAsync(new("Fulfillment", "fulfillment.ticket.created", "PhieuCheBien",
+                ticket.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), ResolveActor: false), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 }

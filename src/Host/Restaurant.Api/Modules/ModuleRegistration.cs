@@ -71,6 +71,8 @@ public static class ModuleRegistration
         services.AddScoped<IBusinessDayDirectory, BusinessDayDirectory>();
         services.AddScoped<Restaurant.Modules.Sales.Application.IStaffPortionDay, BusinessDayDirectory>();
         services.AddAuditModule();
+        services.AddHttpContextAccessor();
+        services.AddScoped<Restaurant.Shared.Contracts.IBusinessAudit, BusinessAudit>();
         services.AddReportingModule();
         services.AddScoped<Restaurant.Modules.Reporting.Application.IBusinessReports, BusinessReports>();
         services.AddHostedService<OutboxDispatcherService>();

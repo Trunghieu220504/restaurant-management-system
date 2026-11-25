@@ -44,7 +44,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
     private (SeatingCatalog Catalog, SeatingSessions Sessions, SeatingDbContext Db) NewServices()
     {
         var db = NewContext();
-        return (new SeatingCatalog(db), new SeatingSessions(db, days, guard, TimeProvider.System), db);
+        return (new SeatingCatalog(db, TestBusinessAudit.Instance), new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance), db);
     }
 
     private async Task<long> CreateAreaAsync(string code = "A")
@@ -167,7 +167,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         Assert.Null(grant.ThuHoiLuc);
         Assert.Equal(session.Id, grant.PhienSuDungId);
         await using var reopen = NewContext();
-        var again = await new SeatingSessions(reopen, days, guard, TimeProvider.System).OpenAsync(t1, Staff, Guid.NewGuid(), default);
+        var again = await new SeatingSessions(reopen, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(t1, Staff, Guid.NewGuid(), default);
         Assert.Null(again.Error);
     }
 
@@ -186,7 +186,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         async Task<string?> Try(long target, string reason = "Move")
         {
             await using var inner = NewContext();
-            return (await new SeatingSessions(inner, days, guard, TimeProvider.System)
+            return (await new SeatingSessions(inner, days, guard, TimeProvider.System, TestBusinessAudit.Instance)
                 .TransferAsync(s1.Id, new TransferRequest(target, reason), Staff, Guid.NewGuid(), default)).Error;
         }
 
@@ -198,7 +198,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         Assert.Equal(SeatingErrors.SessionNotFound, (await sessions.TransferAsync(9999, new TransferRequest(t2, "x"), Staff, Guid.NewGuid(), default)).Error);
 
         await using var closing = NewContext();
-        Assert.Null((await new SeatingSessions(closing, days, guard, TimeProvider.System).CloseAsync(s1.Id, Staff, Guid.NewGuid(), default)).Error);
+        Assert.Null((await new SeatingSessions(closing, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(s1.Id, Staff, Guid.NewGuid(), default)).Error);
         Assert.Equal(SeatingErrors.SessionClosed, await Try(t2));
         await using var check = NewContext();
         Assert.Empty(check.Transfers);
@@ -246,11 +246,11 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
 
         guard.Blocked = false;
         await using var second = NewContext();
-        Assert.Null((await new SeatingSessions(second, days, guard, TimeProvider.System).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
+        Assert.Null((await new SeatingSessions(second, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
         await using var third = NewContext();
-        Assert.Equal(SeatingErrors.SessionClosed, (await new SeatingSessions(third, days, guard, TimeProvider.System).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
+        Assert.Equal(SeatingErrors.SessionClosed, (await new SeatingSessions(third, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
         await using var fourth = NewContext();
-        Assert.Equal(SeatingErrors.SessionNotFound, (await new SeatingSessions(fourth, days, guard, TimeProvider.System).CloseAsync(9999, Staff, Guid.NewGuid(), default)).Error);
+        Assert.Equal(SeatingErrors.SessionNotFound, (await new SeatingSessions(fourth, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(9999, Staff, Guid.NewGuid(), default)).Error);
     }
 
     [SqlServerFact]
@@ -263,7 +263,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         async Task<SeatingResult<SessionDto>> Open(long table, Guid actor)
         {
             await using var db = NewContext();
-            return await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(table, actor, key, default);
+            return await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, actor, key, default);
         }
 
         var first = await Open(t1, Staff);
@@ -287,7 +287,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(async _ =>
         {
             await using var db = NewContext();
-            return await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(table, Staff, key, default);
+            return await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, Staff, key, default);
         }));
         Assert.All(results, r => Assert.True(r.Error is null || r.Error == SeatingErrors.TableOccupied));
         Assert.Contains(results, r => r.Error is null);
@@ -304,11 +304,11 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         var occupant = await OpenOkAsync(table);
         var key = Guid.NewGuid();
         await using (var db = NewContext())
-            Assert.Equal(SeatingErrors.TableOccupied, (await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(table, Staff, key, default)).Error);
+            Assert.Equal(SeatingErrors.TableOccupied, (await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, Staff, key, default)).Error);
         await using (var db = NewContext())
-            Assert.Null((await new SeatingSessions(db, days, guard, TimeProvider.System).CloseAsync(occupant.Id, Staff, Guid.NewGuid(), default)).Error);
+            Assert.Null((await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(occupant.Id, Staff, Guid.NewGuid(), default)).Error);
         await using (var db = NewContext())
-            Assert.Null((await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(table, Staff, key, default)).Error);
+            Assert.Null((await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, Staff, key, default)).Error);
     }
 
     [SqlServerFact]
@@ -320,11 +320,11 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
 
         days.Open = false;
         await using (var db = NewContext())
-            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(t2, Staff, Guid.NewGuid(), default)).Error);
+            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(t2, Staff, Guid.NewGuid(), default)).Error);
         await using (var db = NewContext())
-            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System).TransferAsync(session.Id, new TransferRequest(t2, "x"), Staff, Guid.NewGuid(), default)).Error);
+            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).TransferAsync(session.Id, new TransferRequest(t2, "x"), Staff, Guid.NewGuid(), default)).Error);
         await using (var db = NewContext())
-            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
+            Assert.Equal(SeatingErrors.DayNotOpen, (await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).CloseAsync(session.Id, Staff, Guid.NewGuid(), default)).Error);
         Assert.Equal(1, await OpenSessionCountAsync(t1));
         Assert.Equal(0, await OpenSessionCountAsync(t2));
     }
@@ -347,7 +347,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         var writer = Task.Run(async () =>
         {
             await using var db = NewContext();
-            return await new SeatingSessions(db, days, guard, TimeProvider.System).OpenAsync(table, Staff, Guid.NewGuid(), default);
+            return await new SeatingSessions(db, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, Staff, Guid.NewGuid(), default);
         });
         await Task.Delay(1500);
         Assert.False(writer.IsCompleted, "The writer must wait while the day is locked exclusively.");
@@ -370,7 +370,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         var listed = (await catalog.ListTablesAsync(default)).Single();
         Assert.Null((await catalog.ArchiveTableAsync(table, new ArchiveRequest(listed.Version), default)).Error);
         await using var next = NewContext();
-        Assert.Equal(SeatingErrors.TableInactive, (await new SeatingSessions(next, days, guard, TimeProvider.System).OpenAsync(table, Staff, Guid.NewGuid(), default)).Error);
+        Assert.Equal(SeatingErrors.TableInactive, (await new SeatingSessions(next, days, guard, TimeProvider.System, TestBusinessAudit.Instance).OpenAsync(table, Staff, Guid.NewGuid(), default)).Error);
     }
 
     [SqlServerFact]
@@ -393,7 +393,7 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
 
         // A stale version is refused; the fresh one is accepted and changes the version.
         await using var stale = NewContext();
-        var staleCatalog = new SeatingCatalog(stale);
+        var staleCatalog = new SeatingCatalog(stale, TestBusinessAudit.Instance);
         var renamed = (await catalog.UpdateAreaAsync(area.Id, new UpdateAreaRequest("Terrace", area.Version), default)).Value!;
         Assert.NotEqual(area.Version, renamed.Version);
         Assert.Equal(SeatingErrors.ConcurrencyConflict, (await staleCatalog.UpdateAreaAsync(area.Id, new UpdateAreaRequest("Late", area.Version), default)).Error);
@@ -402,14 +402,14 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         // An area with active tables cannot be archived; once they are archived it can.
         Assert.Equal(SeatingErrors.AreaHasActiveTables, (await catalog.ArchiveAreaAsync(area.Id, new ArchiveRequest(renamed.Version), default)).Error);
         await using var tableDb = NewContext();
-        var tableCatalog = new SeatingCatalog(tableDb);
+        var tableCatalog = new SeatingCatalog(tableDb, TestBusinessAudit.Instance);
         foreach (var t in await tableCatalog.ListTablesAsync(default))
             Assert.Null((await tableCatalog.ArchiveTableAsync(t.Id, new ArchiveRequest(t.Version), default)).Error);
         await using var areaDb = NewContext();
-        var archived = await new SeatingCatalog(areaDb).ArchiveAreaAsync(area.Id, new ArchiveRequest(renamed.Version), default);
+        var archived = await new SeatingCatalog(areaDb, TestBusinessAudit.Instance).ArchiveAreaAsync(area.Id, new ArchiveRequest(renamed.Version), default);
         Assert.False(archived.Value!.Active);
         await using var late = NewContext();
-        Assert.Equal(SeatingErrors.AreaInactive, (await new SeatingCatalog(late).CreateTableAsync(new CreateTableRequest(area.Id, "T3", "x"), default)).Error);
+        Assert.Equal(SeatingErrors.AreaInactive, (await new SeatingCatalog(late, TestBusinessAudit.Instance).CreateTableAsync(new CreateTableRequest(area.Id, "T3", "x"), default)).Error);
     }
 
     [SqlServerFact]
@@ -440,12 +440,12 @@ public sealed class SeatingServiceSqlServerTests : IAsyncLifetime
         var areaB = (await catalog.CreateAreaAsync(new CreateAreaRequest("B", "B"), default)).Value!;
         var table = (await catalog.CreateTableAsync(new CreateTableRequest(areaA.Id, "T1", "T1"), default)).Value!;
         await using var archiveDb = NewContext();
-        Assert.Null((await new SeatingCatalog(archiveDb).ArchiveAreaAsync(areaB.Id, new ArchiveRequest(areaB.Version), default)).Error);
+        Assert.Null((await new SeatingCatalog(archiveDb, TestBusinessAudit.Instance).ArchiveAreaAsync(areaB.Id, new ArchiveRequest(areaB.Version), default)).Error);
         await using var moveDb = NewContext();
         Assert.Equal(SeatingErrors.AreaInactive,
-            (await new SeatingCatalog(moveDb).UpdateTableAsync(table.Id, new UpdateTableRequest(areaB.Id, "T1", table.Version), default)).Error);
+            (await new SeatingCatalog(moveDb, TestBusinessAudit.Instance).UpdateTableAsync(table.Id, new UpdateTableRequest(areaB.Id, "T1", table.Version), default)).Error);
         await using var okDb = NewContext();
-        var renamed = await new SeatingCatalog(okDb).UpdateTableAsync(table.Id, new UpdateTableRequest(areaA.Id, "Renamed", table.Version), default);
+        var renamed = await new SeatingCatalog(okDb, TestBusinessAudit.Instance).UpdateTableAsync(table.Id, new UpdateTableRequest(areaA.Id, "Renamed", table.Version), default);
         Assert.Equal("Renamed", renamed.Value!.Name);
         Assert.Equal(table.PublicQrCode, renamed.Value.PublicQrCode);
     }

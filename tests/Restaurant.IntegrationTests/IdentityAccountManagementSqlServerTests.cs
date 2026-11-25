@@ -32,6 +32,7 @@ public sealed class IdentityAccountManagementSqlServerTests : IAsyncLifetime
         factory = new Factory(new SqlConnectionStringBuilder(supplied) { InitialCatalog = databaseName }.ConnectionString);
         await using var scope = factory.Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.GetConnectionString()!);
         var manager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<Guid>>>();
         foreach (var (name, roles) in new (string, string[])[]
         {

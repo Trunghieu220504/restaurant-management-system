@@ -45,6 +45,7 @@ public sealed class PhuongWeekThreeSqlServerTests : IAsyncLifetime
         await using var scope = services.CreateAsyncScope();
         var days = scope.ServiceProvider.GetRequiredService<SalesDayDbContext>();
         await days.Database.MigrateAsync();
+        await BusinessAuditTestSupport.MigrateAsync(days.Database.GetConnectionString()!);
         await scope.ServiceProvider.GetRequiredService<BillingDbContext>().Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
         days.Add(new BusinessDay { Id = day, BusinessDate = new(2026, 11, 23), OpenedBy = actor, OpenedAt = DateTimeOffset.UtcNow, RequestKey = Guid.NewGuid() });
