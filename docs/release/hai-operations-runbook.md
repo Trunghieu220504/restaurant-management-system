@@ -4,6 +4,10 @@ Nguồn công việc: PDF phân công cập nhật 17/11/2026 và `docs/phan-con
 
 ## Jenkins
 
+Job `restaurant-deployment/staging` đã triển khai thành công `8470387` qua SSH ở build #2. Build #4 kiểm thử và tải `5f63861` lên VPS. Sau khi quản trị VPS duyệt SHA, helper áp dụng gói đó và kiểm tra migration, readiness và revision của hai image. Quy trình staging này dùng gói image qua SSH. Quy trình xuất image lên GHCR thuộc job `restaurant-management`.
+
+Khi Jenkins báo đã tải gói nhưng SHA chưa được duyệt, quản trị VPS thêm đúng SHA vào danh sách phê duyệt của helper. Gọi lại helper để áp dụng gói đã được kiểm tra. Lịch sử build giữ kết quả của lần chạy ban đầu. Chi tiết job nằm tại [hướng dẫn Jenkins staging](hai-jenkins-auto-deploy.md).
+
 `Jenkinsfile` dùng Multibranch Pipeline và agent Linux mang label `restaurant-linux`. Agent cần Git, .NET SDK trong `global.json`, Node 22/npm, Python 3, Docker/Compose, OpenSSL, Gitleaks đã kiểm checksum. Không chạy build trên controller. Agent đang được cấp Docker socket cho job tin cậy này; không dùng agent này cho repository/PR không tin cậy. Controller hiện chạy trong container Docker `jenkins` trên máy Windows. Đã khởi động lại và tạo node `restaurant-linux` với 1 executor, container `restaurant-jenkins-agent` và volume riêng `restaurant-jenkins-agent-work`. Agent Linux thực hiện Docker và Bash; SQL test chia sẻ network namespace của agent để kết nối loopback, không mở SQL ra mạng ngoài.
 
 Job `restaurant-management` đã được tạo từ `infra/jenkins/multibranch.xml`, Script Path `Jenkinsfile`, chỉ quét `develop` và nhánh giao việc `feature/hai-week7-delivery-20261124`. Sau merge, bỏ nhánh giao việc khỏi regex. Poll mỗi 5 phút được cấu hình trong pipeline. Giới hạn job và quyền sửa Jenkinsfile/credentials cho người duy trì; **không cấp credential folder này cho PR từ fork hoặc nhánh không tin cậy**. PR có thể chạy GitHub Actions không có secret. Điều kiện `when` là điều phối pipeline, không thay thế phân quyền Jenkins.
@@ -64,13 +68,13 @@ Cài hai unit `restaurant-backup.*` vào `/etc/systemd/system`, `systemctl daemo
 
 `monitor.py` kiểm disk >80%, RAM >90%, backup quá 26 giờ và HTTPS smoke. Cài `restaurant-monitor.*`; lỗi trả exit 1 và ghi journal. Có unit test kích hoạt từng ngưỡng, không lấp đầy đĩa thật. Cần nối trạng thái failed tới kênh cảnh báo nhóm bằng hệ thống được chủ repo cung cấp; hiện **chưa gửi thông báo ra ngoài**.
 
-`/hubs/` trong Nginx chuyển WebSocket Upgrade, không buffer, timeout 3600 giây. Chỉ có cấu hình chưa chứng minh backend đã có hub. Khi Hiếu merge hub thật, chạy:
+`/hubs/` trong Nginx chuyển WebSocket Upgrade, không buffer, timeout 3600 giây. Trình duyệt đã xác thực và kết nối qua WebSocket trên staging `5f63861`. Runner của repo dùng một phiên Staff và duy trì 50 kết nối. Trong thư mục `web`, đặt `HAI_STAGING_CREDENTIAL_FILE` trỏ đến file tài khoản staging riêng rồi chạy:
 
 ```bash
-k6 run --summary-export artifacts/release/signalr.json scripts/release/signalr.k6.js
+node scripts/hai-signalr-soak.mjs
 ```
 
-Biến riêng: `BASE_URL` HTTPS origin và `SIGNALR_ACCESS_TOKEN`. Kịch bản mở 50 kết nối SignalR/JSON, negotiate thật, handshake, ping và giữ 30 phút; rớt sớm bị fail. Không thay thế đo p95 sự kiện đến UI ≤2 giây hoặc thử âm thanh trên thiết bị thật.
+Kết quả nằm ở `artifacts/release/staging-signalr-30min.json`. Runner dùng WebSocket, đăng ký nhận sự kiện, đọc snapshot và xác thực lại khi kết nối lại. Đo p95 sự kiện đến UI ≤2 giây và kiểm âm thanh trên thiết bị thật nằm trong kịch bản nghiệm thu riêng.
 
 `hot-flows.k6.js` yêu cầu `FLOW_FILE` riêng, `ALLOW_TEST_WRITES=true`, `BASE_URL`, `LOAD_USERNAME`, `LOAD_PASSWORD`. Fixture mô tả các bước login/order/confirm/payment đúng API của commit đang test, các bước cleanup/đóng đơn nếu có; không dùng dữ liệu kinh doanh thật. Mỗi bước có `operation`, `path`, `method`, `body`, `statuses`, `extract`; giá trị body `$name` lấy từ biến, `{name}` trong path lấy từ response trước. Không có fixture mẫu giả làm thật. Ngưỡng từng thao tác p95 <500 ms và không request sai; tải mặc định 2 VU/1 phút cần điều chỉnh theo rate limit và tài khoản riêng.
 

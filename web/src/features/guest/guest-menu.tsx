@@ -157,6 +157,7 @@ export function GuestMenu({ tableCode }: { tableCode: string }) {
 
                 <Link
                     href="/login"
+                    prefetch={false}
                     className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1"
                 >
                     <User size={13} />

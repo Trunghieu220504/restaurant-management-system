@@ -1,4 +1,13 @@
-# Tiến độ công việc của Hải — cập nhật 25/11/2026 14:46 UTC+7
+# Tiến độ công việc của Hải — 25/11/2026
+
+## Staging và nghiệm thu tuần 7
+
+- `https://staging.quanlynh.id.vn` chạy frontend và backend `5f638610c0a76b78d13d41ed111deaa41926bb27`. Jenkins build #4 đã kiểm thử, đóng gói và tải đúng SHA lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã tải.
+- VPS đã sao lưu có CHECKSUM, khôi phục vào cơ sở dữ liệu riêng, áp dụng migration hai lượt và kiểm tra readiness của cả hai phiên bản API trên bản khôi phục. Sau triển khai, HTTPS, đăng nhập, refresh, `/orders` và WebSocket xác thực đều đạt.
+- Bản QR đạt ma trận **17/17** với 493 integration test và 5 architecture test trên SQL Server. Browser staging đã gửi một đợt QR thật, xác nhận và theo dõi, chuyển bàn giữ quyền, giao món, đóng đơn và đóng phiên thu hồi quyền. Đơn thử `DH-0002` có giá 0 đ. Hai bàn thử đã được lưu trữ và món dùng cho lượt kiểm thử đã được ngừng bán.
+- Hướng dẫn theo vai trò, tình trạng UAT và các hạng mục vận hành còn mở được ghi trong [hồ sơ bàn giao tuần 7](hai-uat-and-handoff.md).
+
+## Các mốc chuẩn bị trước khi triển khai staging
 
 **Đã tiếp tục làm việc. Đích bàn giao là frontend/backend thật trên VPS; chưa triển khai bản mới vì thiếu quyền sudo không tương tác.** Không dùng bản local làm kết quả bàn giao server.
 
@@ -194,3 +203,16 @@ M	web/src/lib/api/generated/schema.d.ts
 ```
 
 Giữ stash cũ `Hai249: pending isolated demo seed and staging hardening`, không pop mù. Checkout riêng sửa #105 nằm trong `artifacts/hai-pr105-review`; branch fix đã push. Bản tiến độ trước lượt này được giữ tại `artifacts/hai-server-candidate/progress-before-resume.md`. Hai file tiến độ được đồng bộ local; tài liệu checkpoint này chưa commit/push, source release vẫn pin `b2e15e5`.
+
+## Mốc Jenkins trước khi cài helper CI — 25/11/2026
+
+- Jenkins hiện có đã khởi động tại http://localhost:8080, restart policy unless-stopped; agent restaurant-linux online. Không cài bản Jenkins trùng hoặc xóa volume cấu hình.
+- Tạo job riêng restaurant-deployment/staging; Jenkins validate pipeline thành công. Credential SSH riêng nằm trong folder đó, known_hosts lấy từ host key đã tin cậy. Không lưu mật khẩu sudo vào Jenkins.
+- Pipeline chuẩn bị checkout develop hoặc SHA duyệt → SQL/backend → web lint/format/unit/build → audit/secret gate → migration/image bất biến → SSH upload/deploy → HTTPS smoke. Chưa có lượt CD thành công; chưa bật được quyền remote cho khóa CI.
+- Fetch mới: develop e71521d, #105 đã merge. Đã tích hợp vào nhánh fix/hai-2.5-jenkins-auto-deploy; commit 8470387, tác giả/committer Hai249, đã push.
+- Tìm được lỗi installer trước: Compose trên VPS trả networks.internal=null; code cũ kiểm !=null nên preflight dừng. Đổi sang has("internal"), bổ sung test hồi quy và thông báo lỗi không in secret.
+- Linux release tests 12/12 và helper rollback checks 6/6 PASS; Bash/ShellCheck PASS. Đây là test công cụ, không thay kiểm chứng deploy thật.
+- Bộ xét duyệt tự động từ chối bước cài khóa CI + helper root-owned + sudo NOPASSWD có argument wildcard trên VPS; cần Hải đồng ý rõ phạm vi quyền. Không thực hiện bootstrap, không vượt chặn bằng đường khác.
+- Bản quyền cần duyệt: artifacts/hai-jenkins-cd/QUYEN-CAN-DUYET.txt. Bộ cài local: artifacts/hai-jenkins-cd/bootstrap/install-ci.sh và SHA256SUMS. Chưa upload/cài bootstrap này lên VPS.
+- Quyền dự kiến chỉ cho upload/deploy SHA, không shell/SFTP/forwarding; helper xác minh SHA current develop hoặc root-approved. Helper có thể dùng Docker, backup, migration staging và đổi API/web/Nginx/rollback; lỗi có thể ảnh hưởng downtime/schema staging. Không mở quyền production.
+- Chờ đồng ý cho quyền trên; sau đó cài bootstrap, chạy pipeline trên revision đã duyệt và xác minh frontend/backend thật qua HTTPS. Server mới CHƯA được tuyên bố deploy thành công.
