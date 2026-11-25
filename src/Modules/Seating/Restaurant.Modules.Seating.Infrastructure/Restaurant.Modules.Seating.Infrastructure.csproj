@@ -7,6 +7,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../Shared/Restaurant.Shared.Contracts/Restaurant.Shared.Contracts.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Seating.Domain/Restaurant.Modules.Seating.Domain.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Seating.Application/Restaurant.Modules.Seating.Application.csproj" />
     <ProjectReference Include="../Restaurant.Modules.Seating.Contracts/Restaurant.Modules.Seating.Contracts.csproj" />

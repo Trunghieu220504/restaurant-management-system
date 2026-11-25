@@ -6,10 +6,13 @@ using Restaurant.Modules.Fulfillment.Application;
 using Restaurant.Modules.Fulfillment.Domain;
 using Restaurant.Modules.Fulfillment.Infrastructure.Persistence;
 using Restaurant.Modules.Fulfillment.Infrastructure.Messaging;
+using Microsoft.EntityFrameworkCore.Storage;
+using Restaurant.Shared.Contracts;
 
 namespace Restaurant.Modules.Fulfillment.Infrastructure;
 
-public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clock) : IFulfillmentService
+public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clock,
+    IFulfillmentIncidentContext businessContext, IBusinessAudit audit) : IFulfillmentService
 {
     public async Task<IReadOnlyList<TicketView>> QueueAsync(string station, CancellationToken ct)
     {
@@ -57,6 +60,10 @@ public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clo
                     return FulfillmentResult<TicketView>.Ok(ToView(replay));
                 }
 
+                var reference = await db.Tickets.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+                if (reference is null) return FulfillmentResult<TicketView>.Fail(FulfillmentErrors.TicketNotFound);
+                var dayError = await businessContext.RequireOpenAsync(tx.GetDbTransaction(), reference.ChiTietDonId, ct);
+                if (dayError is not null) return FulfillmentResult<TicketView>.Fail(dayError);
                 var ticket = await db.Tickets.FromSqlInterpolated(
                     $"SELECT * FROM fulfillment.PhieuCheBien WITH (UPDLOCK,HOLDLOCK) WHERE Id={id}").SingleOrDefaultAsync(ct);
                 if (ticket is null) return FulfillmentResult<TicketView>.Fail(FulfillmentErrors.TicketNotFound);
@@ -79,6 +86,8 @@ public sealed class FulfillmentService(FulfillmentDbContext db, TimeProvider clo
                     CreatedAt = clock.GetUtcNow().UtcDateTime
                 });
                 await db.SaveChangesAsync(ct);
+                await audit.AppendAsync(new("Fulfillment", "fulfillment.ticket." + operation.ToLowerInvariant(),
+                    "PhieuCheBien", ticket.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), actor), ct);
                 await tx.CommitAsync(ct);
                 return FulfillmentResult<TicketView>.Ok(ToView(ticket));
             }

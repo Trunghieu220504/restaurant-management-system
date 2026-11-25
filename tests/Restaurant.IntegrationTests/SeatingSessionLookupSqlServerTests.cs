@@ -43,7 +43,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
     private async Task<long> CreateTableAsync(string code, string name)
     {
         await using var db = NewContext();
-        var catalog = new SeatingCatalog(db);
+        var catalog = new SeatingCatalog(db, TestBusinessAudit.Instance);
         var area = await catalog.CreateAreaAsync(new CreateAreaRequest("A" + code, "Area " + code), default);
         Assert.Null(area.Error);
         var table = await catalog.CreateTableAsync(new CreateTableRequest(area.Value!.Id, code, name), default);
@@ -54,7 +54,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
     private async Task<SessionDto> OpenAsync(long tableId)
     {
         await using var db = NewContext();
-        var sessions = new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System);
+        var sessions = new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System, TestBusinessAudit.Instance);
         var result = await sessions.OpenAsync(tableId, Staff, Guid.NewGuid(), default);
         Assert.Null(result.Error);
         return result.Value!;
@@ -105,7 +105,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
         var session = await OpenAsync(table);
         await using (var db = NewContext())
         {
-            var closed = await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System)
+            var closed = await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System, TestBusinessAudit.Instance)
                 .CloseAsync(session.Id, Staff, Guid.NewGuid(), default);
             Assert.Null(closed.Error);
         }
@@ -125,7 +125,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
         var session = await OpenAsync(oldTable);
         await using (var db = NewContext())
         {
-            var moved = await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System)
+            var moved = await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System, TestBusinessAudit.Instance)
                 .TransferAsync(session.Id, new TransferRequest(newTable, "Customer request"), Staff, Guid.NewGuid(), default);
             Assert.Null(moved.Error);
         }
@@ -142,7 +142,7 @@ public sealed class SeatingSessionLookupSqlServerTests : IAsyncLifetime
         var table = await CreateTableAsync("T1", "Table 1");
         var first = await OpenAsync(table);
         await using (var db = NewContext())
-            Assert.Null((await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System)
+            Assert.Null((await new SeatingSessions(db, days, new OpenGuard(), TimeProvider.System, TestBusinessAudit.Instance)
                 .CloseAsync(first.Id, Staff, Guid.NewGuid(), default)).Error);
         var second = await OpenAsync(table);
 

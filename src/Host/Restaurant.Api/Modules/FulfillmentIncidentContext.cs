@@ -20,9 +20,12 @@ public sealed class FulfillmentIncidentContext : IFulfillmentIncidentContext
                                select new { order.Id, order.NgayBanId }).SingleOrDefaultAsync(ct);
         if (reference is null) return "sales.portion.not_found";
         var day = await new SqlSalesDayGate(() => transaction).RequireOpenAsync(reference.NgayBanId, ct);
-        if (!day.IsOpen) return day.ErrorCode;
         var locked = await sales.Orders.FromSqlInterpolated(
             $"SELECT * FROM sales.DonHang WITH (UPDLOCK,HOLDLOCK) WHERE Id={reference.Id}").SingleAsync(ct);
+        var portionStatus = await sales.Portions.Where(x => x.Id == portionId).Select(x => x.TrangThai).SingleAsync(ct);
+        // A delayed confirmation can outlive a cancellation and order closure. It must be acknowledged without new work.
+        if (portionStatus == "DA_HUY") return "sales.portion.cancelled";
+        if (!day.IsOpen) return day.ErrorCode;
         return locked.TrangThai == "MO" ? null : "sales.order.not_open";
     }
 

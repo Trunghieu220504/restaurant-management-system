@@ -9,6 +9,7 @@ using Restaurant.Modules.Identity.Domain;
 using Restaurant.Modules.Identity.Infrastructure;
 using Restaurant.Modules.Identity.Infrastructure.Initialization;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
+using Restaurant.Shared.Contracts;
 using Xunit;
 
 namespace Restaurant.IntegrationTests;
@@ -176,6 +177,7 @@ public sealed class IdentitySqlServerTests : IAsyncLifetime
             new Dictionary<string, string?> { ["ConnectionStrings:Restaurant"] = connectionString }).Build());
         services.AddLogging();
         services.AddIdentityModule();
+        services.AddSingleton<IBusinessAudit>(TestBusinessAudit.Instance);
         services.AddScoped<AdminBootstrapper>();
         if (interceptor is not null)
         {
