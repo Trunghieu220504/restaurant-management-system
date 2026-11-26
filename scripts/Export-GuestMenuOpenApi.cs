@@ -33,7 +33,8 @@ session["get"]!["description"] = "Requires the session-scoped Authorization: Gue
 session["get"]!["responses"]!["401"] ??= new JsonObject { ["description"] = "Unauthorized" };
 session["get"]!["responses"]!["429"] ??= new JsonObject { ["description"] = "Too Many Requests" };
 committed["paths"]!["/api/public/guest-access/session"] = session;
-foreach (var path in new[] { "/api/public/guest-access/batches", "/api/public/guest-access/batches/{id}" })
+foreach (var path in new[] { "/api/public/guest-access/batches", "/api/public/guest-access/batches/{id}",
+    "/api/public/guest-access/batches/{id}/cancel" })
     committed["paths"]![path] = actual["paths"]![path]!.DeepClone();
 foreach (var name in new[] { "GuestSession", "GuestBatchRequest", "GuestBatchReceipt", "BatchLine" })
     committed["components"]!["schemas"]![name] = actual["components"]!["schemas"]![name]!.DeepClone();

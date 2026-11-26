@@ -36,6 +36,9 @@ public interface IOrderTransaction : IAsyncDisposable
 
     Task<GuestBatchReceipt?> FindGuestBatchAsync(GuestSalesSession session, Guid requestKey, CancellationToken ct);
 
+    /// <summary>Order of a batch that this guest grant submitted in this session, or null for any other batch.</summary>
+    Task<long?> FindGuestBatchOrderIdAsync(GuestSalesSession session, long batchId, CancellationToken ct);
+
     /// <summary>The next human-readable order code (<c>MaDon</c>), unique over all orders.</summary>
     Task<string> NextOrderCodeAsync(CancellationToken ct);
 

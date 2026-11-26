@@ -68,6 +68,37 @@ public sealed class GuestOrderService(IOrderStore store, ISalesDayGate days, IGu
             ServiceResult<GuestBatchReceipt>.Ok(GuestBatchReceipt.From(batch.Id, batch.TrangThai)), ct);
     }
 
+    /// <summary>
+    /// Lets the guest withdraw a batch they sent while it still waits for staff (ADR-02 section 5). Locks are taken in
+    /// the same order as <see cref="SubmitAsync"/>: business day, guest session, then order. A batch staff already
+    /// decided on is refused, and cancelling twice returns the same receipt.
+    /// </summary>
+    public async Task<ServiceResult<GuestBatchReceipt>> CancelAsync(string token, long batchId, CancellationToken ct)
+    {
+        var access = await sessions.FindAsync(token, ct);
+        if (access.Value is not { } session) return ServiceResult<GuestBatchReceipt>.Fail(access.Error!);
+
+        await using var tx = await store.BeginAsync(ct);
+        var day = await days.RequireOpenAsync(session.BusinessDayId, ct);
+        if (!day.IsOpen) return ServiceResult<GuestBatchReceipt>.Fail(day.ErrorCode ?? SalesDayErrorCodes.DayNotOpen);
+
+        var error = await sessions.LockAsync(token, session, ct);
+        if (error is not null) return ServiceResult<GuestBatchReceipt>.Fail(error);
+
+        // Another guest's or another session's batch looks the same as a missing one, like tracking does.
+        if (await tx.FindGuestBatchOrderIdAsync(session, batchId, ct) is not { } orderId ||
+            await tx.LockOrderAsync(orderId, ct) is not { } order ||
+            order.Dots.SingleOrDefault(batch => batch.Id == batchId) is not { } target)
+            return ServiceResult<GuestBatchReceipt>.Fail(SalesErrors.BatchNotFound);
+        if (target.TrangThai == BatchStatus.Cancelled)
+            return ServiceResult<GuestBatchReceipt>.Ok(GuestBatchReceipt.From(batchId, target.TrangThai), replayed: true);
+
+        var cancelled = order.CancelBatch(target.SoDot);
+        if (!cancelled.Succeeded) return ServiceResult<GuestBatchReceipt>.Fail(cancelled.Error!);
+        return await OrderService.SaveAndCommitAsync(tx,
+            () => ServiceResult<GuestBatchReceipt>.Ok(GuestBatchReceipt.From(batchId, target.TrangThai)), ct);
+    }
+
     private static Guid ScopeKey(Guid grant, Guid requestKey)
     {
         Span<byte> input = stackalloc byte[32];

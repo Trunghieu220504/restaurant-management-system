@@ -12,6 +12,7 @@ using Restaurant.Api.Configuration;
 using Restaurant.Modules.Catalog.Application;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
 using Restaurant.Modules.Sales.Application;
+using Restaurant.Modules.Sales.Domain;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
@@ -101,6 +102,61 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
     }
 
     [SqlServerFact]
+    public async Task Guest_cancels_only_its_own_pending_batch_and_never_one_staff_already_decided()
+    {
+        var session = await OpenAsync("HAI_DEMO_01");
+        var otherSession = await OpenAsync("HAI_DEMO_02");
+        var owner = await GuestAsync(session);
+        var sameTable = await GuestAsync(session);
+        var elsewhere = await GuestAsync(otherSession);
+        using var client = factory!.CreateClient();
+        var pending = await SubmitReceiptAsync(client, owner.Token);
+
+        using (var anonymous = await CancelAsync(client, null, pending.Id))
+            Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        using (var locator = await CancelAsync(client, owner.TableCode, pending.Id))
+            Assert.Equal(HttpStatusCode.Unauthorized, locator.StatusCode);
+        // A batch of another guest or another session is indistinguishable from a missing one.
+        foreach (var stranger in new[] { sameTable.Token, elsewhere.Token })
+        {
+            using var denied = await CancelAsync(client, stranger, pending.Id);
+            Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
+        }
+        Assert.Equal("CHO_XAC_NHAN", (await TrackReceiptAsync(client, owner.Token, pending.Id)).Status);
+
+        using var cancelled = await CancelAsync(client, owner.Token, pending.Id);
+        Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);
+        Assert.Equal(new GuestBatchReceipt(pending.Id, "DA_HUY"), await cancelled.Content.ReadFromJsonAsync<GuestBatchReceipt>());
+        using var again = await CancelAsync(client, owner.Token, pending.Id);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.Equal("DA_HUY", (await TrackReceiptAsync(client, owner.Token, pending.Id)).Status);
+
+        var confirmed = await SubmitReceiptAsync(client, owner.Token);
+        var rejected = await SubmitReceiptAsync(client, owner.Token);
+        await using (var scope = Services.CreateAsyncScope())
+        {
+            var commands = scope.ServiceProvider.GetRequiredService<IOrderCommands>();
+            var sales = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+            var batches = await sales.Batches.AsNoTracking().ToListAsync();
+            var orderId = batches.Select(x => x.DonHangId).Distinct().Single();
+            Assert.Null((await commands.ConfirmBatchAsync(new(orderId, BatchNumber(batches, confirmed.Id), manager), default)).Error);
+            Assert.Null((await commands.RejectBatchAsync(new(orderId, BatchNumber(batches, rejected.Id), manager, "Het mon"), default)).Error);
+            var withdrawnPortions = await sales.Portions.AsNoTracking()
+                .Where(x => x.DotGoiMonId == long.Parse(pending.Id)).ToListAsync();
+            Assert.NotEmpty(withdrawnPortions);
+            Assert.All(withdrawnPortions, portion => Assert.Equal("DA_HUY", portion.TrangThai));
+        }
+        foreach (var (receipt, expected) in new[] { (confirmed, "DA_XAC_NHAN"), (rejected, "DA_TU_CHOI") })
+        {
+            using var late = await CancelAsync(client, owner.Token, receipt.Id);
+            Assert.Equal(HttpStatusCode.Conflict, late.StatusCode);
+            using var problem = JsonDocument.Parse(await late.Content.ReadAsStringAsync());
+            Assert.Equal("sales.batch.not_pending", problem.RootElement.GetProperty("code").GetString());
+            Assert.Equal(expected, (await TrackReceiptAsync(client, owner.Token, receipt.Id)).Status);
+        }
+    }
+
+    [SqlServerFact]
     public async Task Expired_and_revoked_grants_cannot_submit_and_close_cannot_race_past_submission()
     {
         var unused = await OpenAsync("HAI_DEMO_01");
@@ -117,10 +173,14 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
         using var client = factory!.CreateClient();
         using var expiredResult = await SubmitAsync(client, expired.Token, Guid.NewGuid());
         await AssertUnauthorizedAsync(expiredResult, "qr.token.expired");
+        using var expiredCancel = await CancelAsync(client, expired.Token, "1");
+        await AssertUnauthorizedAsync(expiredCancel, "qr.token.expired");
         var revoked = await GuestAsync(unused);
         Assert.Null((await CloseAsync(unused)).Error);
         using var revokedResult = await SubmitAsync(client, revoked.Token, Guid.NewGuid());
         await AssertUnauthorizedAsync(revokedResult, "qr.token.revoked");
+        using var revokedCancel = await CancelAsync(client, revoked.Token, "1");
+        await AssertUnauthorizedAsync(revokedCancel, "qr.token.revoked");
 
         var active = await OpenAsync("HAI_DEMO_02");
         var guest = await GuestAsync(active);
@@ -179,6 +239,30 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
             Content = JsonContent.Create(new { lines = new[] { line } })
         };
         request.Headers.Add("Idempotency-Key", key.ToString());
+        if (token is not null) request.Headers.Authorization = new("Guest", token);
+        return await client.SendAsync(request);
+    }
+
+    private async Task<GuestBatchReceipt> SubmitReceiptAsync(HttpClient client, string token)
+    {
+        using var response = await SubmitAsync(client, token, Guid.NewGuid());
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<GuestBatchReceipt>())!;
+    }
+
+    private static async Task<GuestBatchReceipt> TrackReceiptAsync(HttpClient client, string token, string id)
+    {
+        using var response = await TrackAsync(client, token, id);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<GuestBatchReceipt>())!;
+    }
+
+    private static int BatchNumber(IEnumerable<DotGoiMon> batches, string id) =>
+        batches.Single(x => x.Id == long.Parse(id)).SoDot;
+
+    private static async Task<HttpResponseMessage> CancelAsync(HttpClient client, string? token, string id)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, GuestApi + "/batches/" + id + "/cancel");
         if (token is not null) request.Headers.Authorization = new("Guest", token);
         return await client.SendAsync(request);
     }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Restaurant.Modules.Sales.Application;
 using Restaurant.Modules.Sales.Domain;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
+using Restaurant.Modules.SalesDay.Contracts;
 using Restaurant.Modules.Seating.Application;
 
 namespace Restaurant.Api.Modules;
@@ -72,6 +73,25 @@ internal static class GuestOrders
             return batch is null ? Problem(SalesErrors.BatchNotFound, 404) : Results.Ok(GuestBatchReceipt.From(batch.Id, batch.TrangThai));
         }).RequireRateLimiting("qr-read").WithName("GuestTrackBatch").Produces<GuestBatchReceipt>()
             .ProducesProblem(401).ProducesProblem(404).ProducesProblem(429);
+
+        batches.MapPost("/{id:long}/cancel", async (long id, HttpContext http, [FromServices] GuestOrderService service,
+            CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            if (Token(http) is not { } token) return Problem("qr.token.missing", 401);
+            var result = await service.CancelAsync(token, id, ct);
+            if (result.Value is { } receipt) return Results.Ok(receipt);
+            var status = result.Error switch
+            {
+                "qr.token.invalid" or "qr.token.expired" or "qr.token.revoked" => 401,
+                SalesErrors.BatchNotFound => 404,
+                SalesErrors.BatchNotPending or SalesErrors.OrderNotOpen or SalesErrors.OrderChanged or
+                    SalesDayErrorCodes.DayNotOpen => 409,
+                _ => 400
+            };
+            return Problem(result.Error!, status);
+        }).RequireRateLimiting("qr-submit").WithName("GuestCancelBatch").Produces<GuestBatchReceipt>()
+            .ProducesProblem(401).ProducesProblem(404).ProducesProblem(409).ProducesProblem(429);
     }
 
     private static string? Token(HttpContext http)

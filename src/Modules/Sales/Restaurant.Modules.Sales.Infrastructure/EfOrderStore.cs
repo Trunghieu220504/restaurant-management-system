@@ -44,6 +44,13 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
             return previous is null ? null : GuestBatchReceipt.From(previous.Id, previous.TrangThai);
         }
 
+        public Task<long?> FindGuestBatchOrderIdAsync(GuestSalesSession session, long batchId, CancellationToken ct) =>
+            (from batch in db.Batches.AsNoTracking()
+             join order in db.Orders.AsNoTracking() on batch.DonHangId equals order.Id
+             where batch.Id == batchId && batch.QuyenTruyCapKhachId == session.GrantId &&
+                 order.PhienSuDungId == session.SessionId
+             select (long?)order.Id).SingleOrDefaultAsync(ct);
+
         public async Task<string> NextOrderCodeAsync(CancellationToken ct)
         {
             var suffix = await db.Orders.AsNoTracking()
