@@ -2,10 +2,11 @@
 
 ## Staging và nghiệm thu tuần 7
 
-- [Staging](https://staging.quanlynh.id.vn) chạy frontend và backend `d56783acab07c789c57ede537737d4b4d5b42094` từ ngày 28/11/2026. Jenkins #7 đã kiểm thử và tải gói lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã kiểm checksum.
+- [Staging](https://staging.quanlynh.id.vn) chạy frontend và backend `de2f449b664a865c4faddaae1f0ae03414a257ad` từ ngày 28/11/2026. Jenkins #8 đã kiểm thử và tải gói lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã kiểm checksum.
 - VPS đã sao lưu có CHECKSUM, khôi phục vào cơ sở dữ liệu riêng, áp dụng migration hai lượt và kiểm tra readiness của cả hai phiên bản API trên bản khôi phục. Sau triển khai, HTTPS, đăng nhập, refresh, `/orders` và WebSocket xác thực đều đạt.
 - Trên `d56783a`, trình duyệt Chromium ở viewport 360 px gửi và theo dõi đơn QR `DH-0005`. Quyền theo phiên được giữ khi chuyển bàn và được thu hồi khi đóng phiên. Màn bar nhận phiếu mới, bắt đầu, sẵn sàng và giao món. Hai bàn thử đã được lưu trữ và món giá 0 đ dùng cho lượt kiểm thử đã được ngừng bán.
-- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Bản `d56783a` giảm JavaScript khởi động QR và sửa lỗi trùng mã đơn khi tạo đồng thời. Các check kiểm thử GitHub của SHA này đã đạt. Trong Jenkins #7, cùng SHA chạy đạt 494 integration test và 5 architecture test trên SQL Server cùng ma trận 17/17.
+- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Bản `de2f449` kế thừa tối ưu JavaScript và sửa cấp mã đơn của `d56783a`, đồng thời cô lập truy vấn thanh toán theo hóa đơn. GitHub CI đạt. Jenkins #8 đạt 495 integration test, 5 architecture test và ma trận 17/17.
+- Hồi quy staging trên `de2f449` đạt HTTPS, WebSocket, QR và k6. Bài tải thu tiền đạt đủ 56 phản hồi đúng trên tám lượt, 0 lỗi, p95 thu tiền 188 ms. Các hóa đơn thử đã được đối soát về số dư 0.
 - Hướng dẫn theo vai trò, tình trạng UAT và các hạng mục vận hành còn mở được ghi trong [hồ sơ bàn giao tuần 7](hai-uat-and-handoff.md).
 
 ## Đối chiếu GitHub
@@ -18,8 +19,8 @@
 | Mã | Đã kiểm chứng | Điều kiện hoàn tất |
 | --- | --- | --- |
 | HAI-4.1, HAI-4.3 | Soak 50 WebSocket/30 phút đạt trên `5f63861`. `d56783a` đạt reconnect và chống phát lại âm báo, p95 khoảng 1,42 giây trong hai phiên Chromium desktop | Kiểm nối lại, âm thanh và độ trễ trên iOS/Android thật |
-| HAI-5.1 | `d56783a` đạt 17/17 tiêu chí SQL Server | Chạy lại ma trận trên SHA được chọn để phát hành |
-| HAI-5.3, HAI-6.3 | Đã sao lưu cục bộ, thử khôi phục và API probe trong lần triển khai staging. Lighthouse trên `d56783a` đạt 98/100. Đo k6 staging phát hiện tranh chấp khi thu tiền | Triển khai bản sửa Billing và đo lại luồng ghi. Hai restore từ R2 kèm API probe và cảnh báo thực nhận |
+| HAI-5.1 | `de2f449` đạt 17/17 tiêu chí SQL Server | Chạy lại ma trận trên SHA được chọn để phát hành |
+| HAI-5.3, HAI-6.3 | Đã sao lưu cục bộ, thử khôi phục và API probe trong lần triển khai staging. Lighthouse trên `de2f449` đạt 98/100 và k6 đạt tất cả ngưỡng p95 dưới 500 ms | Hai restore từ R2 kèm API probe và cảnh báo thực nhận |
 | HAI-6.1, HAI-7.1 | Có kết quả kỹ thuật theo từng luồng và bảng ghi nhận 14 kịch bản | Người duyệt và nhóm chạy hai vòng UAT, ghi bằng chứng và ký nhận |
 | HAI-6.2, HAI-7.2 | Đã triển khai staging từ gói Jenkins theo SHA và diễn tập khôi phục image web ở demo. Kiểm cấu hình Compose production có project, volume SQL, database và JWT issuer riêng | Môi trường production riêng, nghiệm thu, release và diễn tập rollback bản phát hành |
 | HAI-7.3 | Có hướng dẫn thao tác theo vai trò và nội dung tập huấn | Nhóm tập huấn trên staging, ghi người tham dự, phản hồi và chủ xử lý |

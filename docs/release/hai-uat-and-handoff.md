@@ -1,6 +1,6 @@
 # UAT, thiết bị và bàn giao — Hải
 
-Chủ điều phối Hai249. Danh sách 14 kịch bản nằm ở mục 7 trong `docs/phan-cong-chi-tiet-7-tuan.md`. Staging đã triển khai `d56783a` ngày 28/11/2026. Lịch nghiệm thu theo kế hoạch là 16–17/12/2026 và 21–22/12/2026. Hai vòng đang chờ người duyệt chạy và ký nhận.
+Chủ điều phối Hai249. Danh sách 14 kịch bản nằm ở mục 7 trong `docs/phan-cong-chi-tiet-7-tuan.md`. Staging đã triển khai `de2f449` ngày 28/11/2026. Lịch nghiệm thu theo kế hoạch là 16–17/12/2026 và 21–22/12/2026. Hai vòng đang chờ người duyệt chạy và ký nhận.
 
 ## Hai vòng UAT
 
@@ -40,9 +40,11 @@ Ca kho và chốt ngày chạy trên một cơ sở dữ liệu demo mới. Sau 
 | Chrome Android thiết bị thật | 360px trở lên | QR, autoplay, nền/foreground, mất mạng | CẦN THIẾT BỊ |
 | Hai phiên Chromium desktop | 1024 × 768, 768 × 1024 | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | **Đạt trên `d56783a`**. Sáu đơn thử, 24 mẫu mỗi phiên, p95 từ lúc gửi API đến khi màn bar cập nhật lần lượt 1.414 và 1.415 ms |
 | SignalR qua HTTPS | 50 kết nối WebSocket | Giữ 50 kết nối và phục hồi phiên khi token hết hạn trong 30 phút | **Đạt trên staging `5f63861`** ngày 27/11. Cuối lượt còn đủ 50 kết nối, 100 lần nối lại qua hai lượt làm mới token, 0 lỗi |
-| Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | **Đạt trên `d56783a`** ngày 28/11. Ba lần đo có điểm hiệu năng 98, 98 và 94, điểm truy cập đều 100 |
+| Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | **Đạt trên `de2f449`** ngày 28/11. Cả ba lần đo đạt 98 điểm hiệu năng và 100 điểm truy cập |
 
 Frontend `d56783a` tải bộ xác thực và thông báo của nhân viên theo nhu cầu, đồng thời dừng tải trước trang đăng nhập ở luồng QR. So sánh ba lần cho mỗi image trên cùng demo Docker giảm dung lượng JavaScript trung vị từ 195.476 byte xuống 173.453 byte, khoảng 11%. Điểm hiệu năng demo từ 67 lên 68 và điểm truy cập vẫn 100. Sau triển khai, Lighthouse 13.6.0 đo trên staging bằng Chromium 360 × 800 theo phiên QR thực, xác thực thành công cả ba lần. Lần đo lại tắt chế độ giảm ưu tiên cửa sổ chạy nền của Chromium để công cụ hoàn tất. Hai lượt đo trước đó trên `5f63861` có trung vị hiệu năng 76 và 75. Bằng chứng mới nằm tại `artifacts/release/staging-d56783a-lighthouse-qr.json`.
+
+Lượt đo lại sau triển khai `de2f449` xác thực thành công cả ba phiên QR. Bằng chứng nằm tại `artifacts/release/staging-de2f449-lighthouse-qr.json`.
 
 Đo API đọc trên staging với hai luồng, 40 mẫu mỗi endpoint, không có lỗi HTTP. p95 là 93 ms cho thực đơn công khai, 54 ms cho sơ đồ bàn, 70 ms cho đơn đang mở và 62 ms cho snapshot phục vụ. Bằng chứng nằm tại `artifacts/release/staging-read-performance.json`.
 
@@ -50,7 +52,9 @@ Ngày 27/11, k6 trong demo ghi nhận một HTTP 409 khi tạo đơn đồng th�
 
 Ngày 28/11, k6 trên staging `d56783a` chạy hai luồng, tám lượt. p95 đăng nhập 314 ms, tạo đơn 102 ms và xác nhận 174 ms. Thu tiền có một HTTP 409 `billing.concurrency.conflict` và p95 5.088 ms. Đã đóng tám đơn thử, hoàn đủ 7.000 đ đã thu, đối soát tám hóa đơn đều có nghĩa vụ, số thực thu và số còn phải thu bằng 0, rồi kiểm món thử đã ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-d56783a-k6-report.json` và `artifacts/release/staging-d56783a-k6-cleanup.json`.
 
-Demo SQL Server với `READ_COMMITTED_SNAPSHOT OFF` tái hiện sáu deadlock trong 14 cặp nghiệp vụ đồng thời. Nhật ký SQL chỉ ra truy vấn chứng từ có thể quét khóa thanh toán của hóa đơn khác. Bản sửa dùng chỉ mục hiện có để đọc đúng thanh toán của từng hóa đơn. Chạy lại 14 cặp trên cơ sở dữ liệu demo mới với cùng chế độ khóa không còn lỗi. Bộ 16 ca SQL liên quan đạt, gồm ca thu tiền khi hóa đơn khác còn giữ giao dịch mở. Cần triển khai bản sửa và đo lại ngưỡng 500 ms trên staging.
+Demo SQL Server với `READ_COMMITTED_SNAPSHOT OFF` tái hiện sáu deadlock trong 14 cặp nghiệp vụ đồng thời. Nhật ký SQL chỉ ra truy vấn chứng từ có thể quét khóa thanh toán của hóa đơn khác. Bản sửa dùng chỉ mục hiện có để đọc đúng thanh toán của từng hóa đơn. Chạy lại 14 cặp trên cơ sở dữ liệu demo mới với cùng chế độ khóa không còn lỗi. Bộ 16 ca SQL liên quan đạt, gồm ca thu tiền khi hóa đơn khác còn giữ giao dịch mở.
+
+Sau deploy `de2f449`, chạy lại k6 trên staging với hai luồng và tám lượt. Cả 56 phản hồi đúng trạng thái mong đợi, không có 409. p95 đăng nhập 316 ms, tạo đơn 87 ms, xác nhận 149 ms và thu tiền 188 ms, đều dưới 500 ms. Đã đóng tám đơn thử, hoàn đủ 8.000 đ, đưa số dư từng hóa đơn thử về 0 và ngừng bán món thử. Bằng chứng nằm tại `artifacts/release/staging-de2f449-k6-report.json`.
 
 Lượt thử độc lập `DH-0004` lặp lại thành công luồng QR và chuyển bàn. Màn bar 1.024 × 768 nhận đủ phiếu mới, bắt đầu, sẵn sàng và loại phiếu khỏi hàng đợi sau khi giao. Đơn 0 đ, phiên đóng và dữ liệu thử đã được dọn bằng thao tác lưu trữ hoặc ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-qr-uat-realtime.json`.
 
@@ -61,6 +65,8 @@ Sau khi triển khai `d56783a`, HTTPS, đăng nhập, làm mới phiên, màn đ
 Lượt `DH-0014` trên `d56783a` kiểm thêm nối lại trên Chromium 1024 × 768. Sau khi bật âm thanh, phiếu mới phát một âm báo Web Audio. Trình duyệt mất kết nối khi bar bắt đầu món, sau đó khôi phục đúng một phiếu ở cột **Đang làm** và giữ nguyên số lần phát âm báo. Đơn, phiên và dữ liệu dùng riêng đã được dọn. Bằng chứng nằm tại `artifacts/release/staging-d56783a-qr-uat-reconnect.json`.
 
 Lượt đo hai phiên Chromium trên `d56783a` theo dõi cùng sáu đơn thử. Mỗi phiên ghi 24 cập nhật từ xác nhận, bắt đầu, sẵn sàng đến giao món. p95 được tính theo thứ hạng trên từng phiên, lần lượt 1.414 và 1.415 ms. Sáu đơn giá 0 đ đã đóng và món thử đã ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-d56783a-realtime-two-windows.json`.
+
+Sau khi triển khai `de2f449`, HTTPS, đăng nhập, làm mới phiên và WebSocket đều đạt. Lượt QR `DH-0021` xác nhận gửi đợt, theo dõi, chuyển bàn, giao món và thu hồi quyền khi đóng phiên. Đơn đã đóng, hai bàn thử được lưu trữ và món thử đã ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-de2f449-smoke.json`, `artifacts/release/staging-de2f449-browser-smoke.json` và `artifacts/release/staging-de2f449-qr-uat-realtime.json`.
 
 ## Thao tác nghiệm thu theo vai trò
 
@@ -91,8 +97,8 @@ S1: mất dữ liệu/an ninh/ngừng toàn bộ. S2: chặn luồng chính ho�
 | OPS-02 | Hạ tầng | P0 | R2 public images/private backup, token, lifecycle, hai restore/API probe | Hải/chủ tài khoản R2 | Upload/read/deny + hai drill thật |
 | OPS-03 | Hạ tầng | P0 | Chọn VPS production, DNS/cert/secret riêng và license SQL | Chủ repo/Hải | Production readiness + smoke |
 | QA-01 | Nghiệm thu | P0 | 14 UAT cả hai vòng, thiết bị thật, ký nhận | Hải/chủ repo/nhóm | Bằng chứng và không còn S1/S2 |
-| QA-02 | Kiểm thử | P1 | Tối ưu hiệu năng QR trên mobile và đo lại trên VPS | Hải | Đã đo 98/100 trên `d56783a`. Chạy lại khi SHA nghiệm thu thay đổi |
-| PERF-01 | Thanh toán | S2 | Thu tiền đồng thời gặp 409 trên `d56783a` | Hải | Hồi quy SQL và k6 staging trên SHA mới đều đạt |
+| QA-02 | Kiểm thử | P1 | Tối ưu hiệu năng QR trên mobile và đo lại trên VPS | Hải | Đã đo 98/100 trên `de2f449`. Chạy lại khi SHA nghiệm thu thay đổi |
+| PERF-01 | Thanh toán | S2 | Thu tiền đồng thời gặp 409 trên `d56783a` | Hải | Đã đóng trên `de2f449`. Hồi quy SQL và k6 staging đạt, p95 thu tiền 188 ms |
 | OPS-04 | Giám sát | P1 | Nối lỗi monitor/backup/deploy đến kênh nhóm được cấp | Hải | Alert thực nhận khi lỗi giả lập |
 | DOC-01 | Bàn giao | P1 | Hướng dẫn từng vai trò, tập huấn, phản hồi có người nhận | Hải điều phối; Duy/Bảo Anh/Phương | Biên bản tham dự và backlog |
 
