@@ -12,20 +12,24 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 | 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | Đã kiểm một món QR tại bar trên VPS. Luồng demo có bếp, bar và topping đã chạy lại | Chờ | Chờ |
 | 3 | QR gửi đợt, nhân viên xác nhận, khách theo dõi, đóng phiên thu hồi quyền | **Đạt trên staging**, trình duyệt Chromium 360 px và API thật | Chờ | Chờ |
 | 4 | Hoàn thành và giao từng phần, nối lại và kiểm âm thanh | Đã giao một phần QR trên VPS | Chờ | Chờ |
-| 5 | Thu nhiều lần, hai phương thức, tiền thừa và chặn thu dư | Ma trận SQL đạt phần thu đồng thời. Demo đã chạy thu tiền và đóng đơn trên SQL thật | Chờ | Chờ |
-| 6 | Gọi thêm sau thu đủ phát sinh số còn phải thu | Chờ chạy nghiệp vụ | Chờ | Chờ |
-| 7 | Miễn thu, đóng đơn, in chứng từ | Đã đóng đơn QR giá 0 đ trên VPS | Chờ | Chờ |
+| 5 | Thu nhiều lần, hai phương thức, tiền thừa và chặn thu dư | Demo đối soát đủ hai lần thu tiền mặt/chuyển khoản và trả lại 5.000 đ. Ma trận SQL đạt phần thu đồng thời | Chờ | Chờ |
+| 6 | Gọi thêm sau thu đủ phát sinh số còn phải thu | Demo xác nhận đợt mới và số còn phải thu tăng từ 0 lên 20.000 đ | Chờ | Chờ |
+| 7 | Miễn thu, đóng đơn, in chứng từ | Demo đã miễn thu, đọc chứng từ có số dư 0 và đóng đơn. Còn thao tác in trên thiết bị nghiệm thu | Chờ | Chờ |
 | 8 | Báo sự cố, duyệt làm lại, doanh thu không tăng | Có ca trình duyệt dùng API thật trên demo độc lập | Chờ | Chờ |
-| 9 | Hoàn một phần có duyệt và chặn vượt hạn mức | Ma trận SQL đạt phần đồng thời và hạn mức | Chờ | Chờ |
+| 9 | Hoàn một phần có duyệt và chặn vượt hạn mức | Demo chặn yêu cầu quá hạn mức bằng 409 và xác nhận khoản hoàn 5.000 đ sau khi Quản lý duyệt | Chờ | Chờ |
 | 10 | Chuyển bàn giữ quyền QR theo phiên | **Đạt trên staging**, giữ quyền xem đợt và hiển thị tên bàn đích | Chờ | Chờ |
-| 11 | Nhập kho, đếm bất thường, điều chỉnh có lý do | Chờ bộ dữ liệu kho thử | Chờ | Chờ |
-| 12 | Chốt bị chặn, chốt đồng thời, hủy chốt và tồn đầu ngày sau | Ma trận SQL đạt các ca đồng thời và rollback | Chờ | Chờ |
+| 11 | Nhập kho, đếm bất thường, điều chỉnh có lý do | Demo ghi sổ phiếu 10.000 đ, từ chối điều chỉnh thiếu lý do và từ chối cập nhật số đếm bằng phiên bản cũ | Chờ | Chờ |
+| 12 | Chốt bị chặn, chốt đồng thời, hủy chốt và tồn đầu ngày sau | Demo xác nhận số đếm chưa duyệt chặn chốt, hủy chốt mở lại ngày và chốt xong chuyển 8 đơn vị tồn sang ngày sau. Ma trận SQL đạt ca chốt đồng thời | Chờ | Chờ |
 | 13 | Phân quyền báo cáo, bếp/bar và Admin | Staff xem báo cáo và Kitchen bắt đầu phiếu bar đều nhận 403 trên VPS. Admin nhận 403 khi đọc sơ đồ bàn trên demo | Chờ | Chờ |
 | 14 | Đổi mật khẩu thu hồi phiên và giới hạn đăng nhập | Refresh HTTPS đạt. Đổi mật khẩu ở phiên thứ nhất làm access token và refresh token của phiên thứ hai trả 401 trên demo | Chờ | Chờ |
 
 Lượt QR ngày 25/11 tạo `DH-0002` với món 0 đ và hai bàn tách khỏi bàn người dùng đang thử. Sau khi giao món, đơn và phiên đã đóng. Hai bàn được lưu trữ và món thử ngừng bán. Bằng chứng kỹ thuật được lưu trong `artifacts/release/staging-qr-uat.json`.
 
 Hai luồng Playwright trên demo Docker dùng API và SQL Server thật đã chạy lại với ứng viên frontend, gồm gọi món đến đóng đơn và báo sự cố đến duyệt làm lại mà doanh thu không tăng. Ca đổi mật khẩu đã vô hiệu hóa tài khoản thử khi kết thúc. Bằng chứng gồm `artifacts/hai-live-demo/core-flow-evidence.json` và `artifacts/release/demo-identity-salesday-uat.json`.
+
+Ca Billing trên demo dùng API và SQL Server thật bao gồm hai phương thức thanh toán, phát sinh số phải thu, miễn thu, chứng từ, đóng đơn và hoàn tiền. Bằng chứng kỹ thuật nằm tại `artifacts/release/demo-billing-uat.json`.
+
+Ca kho và chốt ngày chạy trên một cơ sở dữ liệu demo mới. Sau khi nhập 10, điều chỉnh thêm 2 và kiểm đếm 8, bản xem trước ghi nhận sử dụng 4 và tồn cuối trị giá 8.000 đ. Ngày sau mở với đúng 8 đơn vị tồn và 8.000 đ giá trị. Bằng chứng nằm tại `artifacts/release/demo-stock-uat.json`.
 
 ## Ma trận thiết bị và realtime
 
@@ -35,17 +39,22 @@ Hai luồng Playwright trên demo Docker dùng API và SQL Server thật đã ch
 | Safari iOS thiết bị thật | 360px trở lên | QR, chặn autoplay, resume, dấu hiệu thị giác | CẦN THIẾT BỊ |
 | Chrome Android thiết bị thật | 360px trở lên | QR, autoplay, nền/foreground, mất mạng | CẦN THIẾT BỊ |
 | Hai trình duyệt | Theo màn | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | Trên VPS, bốn mẫu từ gọi API đến khi màn bar đổi là 2.018, 1.462, 930 và 932 ms. Cần thêm mẫu để đánh giá p95 |
+| SignalR qua HTTPS | 50 kết nối WebSocket | Giữ 50 kết nối và phục hồi phiên khi token hết hạn trong 30 phút | **Đạt trên staging `5f63861`** ngày 27/11. Cuối lượt còn đủ 50 kết nối, 100 lần nối lại qua hai lượt làm mới token, 0 lỗi |
 | Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | Hai lượt đo trên `5f63861` có trung vị hiệu năng 76 và 75, truy cập 100. Trung vị thời gian chặn luồng chính ở lượt đo chi tiết là 1.396 ms |
 
 Ứng viên frontend sau đó tải bộ xác thực và thông báo của nhân viên theo nhu cầu, đồng thời dừng tải trước trang đăng nhập ở luồng QR. So sánh ba lần cho mỗi image trên cùng demo Docker giảm dung lượng JavaScript trung vị từ 195.476 byte xuống 173.453 byte, khoảng 11%. Điểm hiệu năng demo từ 67 lên 68 và điểm truy cập vẫn 100. Cần đo lại trên staging trước khi nghiệm thu ngưỡng 80.
 
 Đo API đọc trên staging với hai luồng, 40 mẫu mỗi endpoint, không có lỗi HTTP. p95 là 93 ms cho thực đơn công khai, 54 ms cho sơ đồ bàn, 70 ms cho đơn đang mở và 62 ms cho snapshot phục vụ. Bằng chứng nằm tại `artifacts/release/staging-read-performance.json`. Đo tải luồng ghi gọi món, xác nhận và thu tiền còn mở.
 
-Ngày 27/11, k6 trong demo ghi nhận một HTTP 409 khi tạo đơn đồng thời. Bản sửa cấp mã đơn dưới khóa cấp phát của SQL Server và tính mã kế tiếp tại cơ sở dữ liệu. Ca hồi quy tám yêu cầu đồng thời đạt cùng 33 ca Sales/QR liên quan. Lượt đo sau sửa chạy đủ tám lần với 56/56 phản hồi đúng. Trong lượt đó, p95 xác nhận khoảng 2,86 giây và thu tiền 743 ms, vượt ngân sách 500 ms. Kết quả ghi tại `artifacts/release/demo-k6-summary.json`. Đo nghiệm thu luồng ghi trên staging còn mở.
+Ngày 27/11, k6 trong demo ghi nhận một HTTP 409 khi tạo đơn đồng thời. Bản sửa cấp mã đơn dưới khóa cấp phát của SQL Server và tính mã kế tiếp tại cơ sở dữ liệu. Ca hồi quy tám yêu cầu đồng thời đạt cùng 33 ca Sales/QR và nghiệp vụ liên quan. Hai lượt đo sau sửa đều chạy đủ tám lần với 56/56 phản hồi đúng. Ở lượt đầu, p95 xác nhận khoảng 2,86 giây và thu tiền 743 ms, vượt ngân sách 500 ms. Ở lượt sau khi hệ thống đã khởi động ổn định, p95 đăng nhập, tạo đơn, xác nhận và thu tiền lần lượt là 146, 19, 49 và 32 ms. Bằng chứng nằm ở `artifacts/release/demo-k6-after-cold-summary.json` và `artifacts/release/demo-k6-summary.json`. Đo nghiệm thu luồng ghi trên staging còn mở.
 
 Lượt thử độc lập `DH-0004` lặp lại thành công luồng QR và chuyển bàn. Màn bar 1.024 × 768 nhận đủ phiếu mới, bắt đầu, sẵn sàng và loại phiếu khỏi hàng đợi sau khi giao. Đơn 0 đ, phiên đóng và dữ liệu thử đã được dọn bằng thao tác lưu trữ hoặc ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-qr-uat-realtime.json`.
 
+Bằng chứng kiểm tra 50 kết nối WebSocket nằm tại `artifacts/release/staging-signalr-30min.json`.
+
 ## Thao tác nghiệm thu theo vai trò
+
+Trên staging, mở [màn Bàn](https://staging.quanlynh.id.vn/tables) bằng tài khoản Nhân viên hoặc Quản lý. Chọn **Bàn 5**, mở phiên nếu bàn đang trống rồi bấm **Mời khách qua QR**. Món **Trà đá kiểm thử QR** trong nhóm **Kiểm thử QR** đã được chuẩn bị để kiểm tra thực đơn và nút gửi món.
 
 - **Quản lý** mở ngày bán và chuẩn bị thực đơn trên môi trường thử. Duyệt sự cố, miễn thu và hoàn tiền trong các ca được phân công. Rà soát điều kiện chốt và đối chiếu báo cáo sau khi đóng ngày thử.
 - **Nhân viên** mở phiên trong **Bàn**, bấm **Mời khách qua QR**, rồi dùng **Đơn hàng** để xác nhận đợt, giao phần đã sẵn sàng và ghi nhận thanh toán.

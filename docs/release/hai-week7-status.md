@@ -1,17 +1,19 @@
-# Tiến độ công việc của Hải — 25/11/2026
+# Tiến độ công việc của Hải — 27/11/2026
 
 ## Staging và nghiệm thu tuần 7
 
 - `https://staging.quanlynh.id.vn` chạy frontend và backend `5f638610c0a76b78d13d41ed111deaa41926bb27`. Jenkins build #4 đã kiểm thử, đóng gói và tải đúng SHA lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã tải.
 - VPS đã sao lưu có CHECKSUM, khôi phục vào cơ sở dữ liệu riêng, áp dụng migration hai lượt và kiểm tra readiness của cả hai phiên bản API trên bản khôi phục. Sau triển khai, HTTPS, đăng nhập, refresh, `/orders` và WebSocket xác thực đều đạt.
 - Bản QR đạt ma trận **17/17** với 493 integration test và 5 architecture test trên SQL Server. Browser staging đã gửi một đợt QR thật, xác nhận và theo dõi, chuyển bàn giữ quyền, giao món, đóng đơn và đóng phiên thu hồi quyền. Đơn thử `DH-0002` có giá 0 đ. Hai bàn thử đã được lưu trữ và món dùng cho lượt kiểm thử đã được ngừng bán.
+- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Ứng viên `d56783a` giảm JavaScript khởi động QR và sửa lỗi trùng mã đơn khi tạo đồng thời. Các check kiểm thử GitHub của SHA này đã đạt. Trong Jenkins #7, cùng SHA chạy đạt 494 integration test và 5 architecture test trên SQL Server cùng ma trận 17/17.
+- Jenkins #7 đã tải gói `d56783a` lên VPS và kiểm checksum tại VPS đạt. Helper dừng ở cổng phê duyệt revision vì SHA này chưa được duyệt và chưa phải HEAD của `develop`. Sau khi operator duyệt, triển khai từ gói đã kiểm checksum.
 - Hướng dẫn theo vai trò, tình trạng UAT và các hạng mục vận hành còn mở được ghi trong [hồ sơ bàn giao tuần 7](hai-uat-and-handoff.md).
 
-## Các mốc chuẩn bị trước khi triển khai staging
+## Nhật ký chuẩn bị staging trước ngày 25/11/2026
 
-**Đã tiếp tục làm việc. Đích bàn giao là frontend/backend thật trên VPS; chưa triển khai bản mới vì thiếu quyền sudo không tương tác.** Không dùng bản local làm kết quả bàn giao server.
+Phần nhật ký dưới đây ghi tình trạng trước khi helper Jenkins được cài và bản QR `5f63861` được triển khai.
 
-## Điểm hiện tại
+## Điểm xuất phát
 
 - Repo: https://github.com/Trunghieu220504/restaurant-management-system
 - Đã fetch GitHub và tích hợp develop `f9fbeba` (QR session access, incidents/remake, sensitive-operation audit và UI của nhóm).
@@ -21,7 +23,7 @@
 - Commit mới đều có author/committer **Hai249** (`hoangphihai428@gmail.com`), không thêm đồng tác giả.
 - Không tự merge vào develop/main, không đổi ruleset, không gắn tag production.
 
-## GitHub vừa kiểm trực tiếp
+## Trạng thái GitHub ở mốc chuẩn bị
 
 | PR | Nhánh | Trạng thái |
 | --- | --- | --- |
@@ -66,7 +68,7 @@ PR #116/#117 đã được merge vào nhánh delivery, #119 đã merge vào UAT 
 - SHA256 installer: `a23cb2f7043a33b028f3c37d7d7f5b6e907221e95306a665a6b507cbc502d3ee`.
 - Gói và lệnh operator tại `artifacts/hai-server-candidate/`; bản hướng dẫn `docs/release/hai-staging-candidate.md`.
 
-## Bước cần Hải/operator thực hiện ngay trên VPS
+## Quy trình cài thủ công ở mốc chuẩn bị
 
 Sau SSH vào VPS bằng khóa đã dùng, chạy:
 
@@ -80,7 +82,7 @@ Sau khi operator báo cài thành công, tiếp tục bằng wrapper `sudo -n /u
 
 Khi apply: backup/VERIFYONLY → restore DB scratch → migration hai lượt → old/new API readiness → dừng writer → migration live → thay API/web/Nginx → pin proxy IP thực tế → smoke/revision; lỗi sau dừng writer sẽ khôi phục image cũ/config proxy và vẫn báo FAILED. SQL container/volume giữ nguyên; không seed/reset/restore đè dữ liệu.
 
-## Công việc tiếp theo và phần chưa hoàn tất
+## Danh sách công việc ở mốc chuẩn bị
 
 1. Operator cài helper bằng sudo; review/merge release theo quy trình nhóm rồi triển khai staging thật đúng SHA. Sau deploy kiểm browser HTTPS bằng tài khoản staging: login/refresh, gọi món, confirm, bếp/bar, giao, thu tiền/đóng đơn, incidents/remake và WebSocket. Không dùng tài khoản/dữ liệu demo để kết luận server đã hoàn tất.
 2. Phối hợp Hiếu hoàn thiện public guest ordering HIE-5.1; thêm test expiry/revocation/cross-session/race trước khi tăng matrix lên17/17.
