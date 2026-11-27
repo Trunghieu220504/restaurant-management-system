@@ -17,11 +17,11 @@
 
 | Mã | Đã kiểm chứng | Điều kiện hoàn tất |
 | --- | --- | --- |
-| HAI-4.1, HAI-4.3 | Soak 50 WebSocket/30 phút đạt trên `5f63861`. `d56783a` đạt handshake và bốn cập nhật màn bar | p95 sự kiện đến màn hình, kiểm nối lại và âm thanh trên iOS/Android thật |
+| HAI-4.1, HAI-4.3 | Soak 50 WebSocket/30 phút đạt trên `5f63861`. `d56783a` đạt reconnect và chống phát lại âm báo, p95 khoảng 1,42 giây trong hai phiên Chromium desktop | Kiểm nối lại, âm thanh và độ trễ trên iOS/Android thật |
 | HAI-5.1 | `d56783a` đạt 17/17 tiêu chí SQL Server | Chạy lại ma trận trên SHA được chọn để phát hành |
 | HAI-5.3, HAI-6.3 | Đã sao lưu cục bộ, thử khôi phục và API probe trong lần triển khai staging. Lighthouse trên `d56783a` đạt 98/100. Đo k6 staging phát hiện tranh chấp khi thu tiền | Triển khai bản sửa Billing và đo lại luồng ghi. Hai restore từ R2 kèm API probe và cảnh báo thực nhận |
 | HAI-6.1, HAI-7.1 | Có kết quả kỹ thuật theo từng luồng và bảng ghi nhận 14 kịch bản | Người duyệt và nhóm chạy hai vòng UAT, ghi bằng chứng và ký nhận |
-| HAI-6.2, HAI-7.2 | Đã triển khai staging từ gói Jenkins theo SHA và diễn tập khôi phục image web ở demo | Môi trường production riêng, nghiệm thu, release và diễn tập rollback bản phát hành |
+| HAI-6.2, HAI-7.2 | Đã triển khai staging từ gói Jenkins theo SHA và diễn tập khôi phục image web ở demo. Kiểm cấu hình Compose production có project, volume SQL, database và JWT issuer riêng | Môi trường production riêng, nghiệm thu, release và diễn tập rollback bản phát hành |
 | HAI-7.3 | Có hướng dẫn thao tác theo vai trò và nội dung tập huấn | Nhóm tập huấn trên staging, ghi người tham dự, phản hồi và chủ xử lý |
 
 ## Nhật ký chuẩn bị staging trước ngày 25/11/2026

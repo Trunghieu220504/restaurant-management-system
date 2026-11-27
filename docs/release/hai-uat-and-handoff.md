@@ -11,7 +11,7 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 | 1 | Mở ngày và chặn lần mở thứ hai | Demo từ chối lần mở thứ hai với 409 và giữ nguyên ngày đang mở | Chờ | Chờ |
 | 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | Đã kiểm một món QR tại bar trên VPS. Luồng demo có bếp, bar và topping đã chạy lại | Chờ | Chờ |
 | 3 | QR gửi đợt, nhân viên xác nhận, khách theo dõi, đóng phiên thu hồi quyền | **Đạt trên staging**, trình duyệt Chromium 360 px và API thật | Chờ | Chờ |
-| 4 | Hoàn thành và giao từng phần, nối lại và kiểm âm thanh | Đã giao một phần QR trên VPS | Chờ | Chờ |
+| 4 | Hoàn thành và giao từng phần, nối lại và kiểm âm thanh | Đã giao một phần QR trên VPS. Chromium desktop nhận một âm báo, phục hồi phiếu khi nối lại và không phát lại âm báo cũ | Chờ | Chờ |
 | 5 | Thu nhiều lần, hai phương thức, tiền thừa và chặn thu dư | Demo đối soát đủ hai lần thu tiền mặt/chuyển khoản và trả lại 5.000 đ. Ma trận SQL đạt phần thu đồng thời | Chờ | Chờ |
 | 6 | Gọi thêm sau thu đủ phát sinh số còn phải thu | Demo xác nhận đợt mới và số còn phải thu tăng từ 0 lên 20.000 đ | Chờ | Chờ |
 | 7 | Miễn thu, đóng đơn, in chứng từ | Demo đã miễn thu, đọc chứng từ có số dư 0 và đóng đơn. Còn thao tác in trên thiết bị nghiệm thu | Chờ | Chờ |
@@ -35,10 +35,10 @@ Ca kho và chốt ngày chạy trên một cơ sở dữ liệu demo mới. Sau 
 
 | Thiết bị/trình duyệt | Viewport | Cần thử | Trạng thái |
 | --- | --- | --- | --- |
-| Chrome desktop | 768px, 1024px | Nhân viên/bếp/bar, bật âm thanh, reconnect, dedup | HTTPS login, refresh, màn đơn và WebSocket đã đạt trên VPS |
+| Chromium desktop | 1024 × 768 | Nhân viên/bếp/bar, bật âm thanh, nối lại, chống trùng | Đăng nhập HTTPS, làm mới phiên, màn đơn và WebSocket đạt. Màn bar phục hồi đúng một phiếu sau khi mất kết nối và không phát lại âm báo |
 | Safari iOS thiết bị thật | 360px trở lên | QR, chặn autoplay, resume, dấu hiệu thị giác | CẦN THIẾT BỊ |
 | Chrome Android thiết bị thật | 360px trở lên | QR, autoplay, nền/foreground, mất mạng | CẦN THIẾT BỊ |
-| Hai trình duyệt | Theo màn | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | Trên VPS, bốn mẫu từ gọi API đến khi màn bar đổi là 2.018, 1.462, 930 và 932 ms. Cần thêm mẫu để đánh giá p95 |
+| Hai phiên Chromium desktop | 1024 × 768, 768 × 1024 | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | **Đạt trên `d56783a`**. Sáu đơn thử, 24 mẫu mỗi phiên, p95 từ lúc gửi API đến khi màn bar cập nhật lần lượt 1.414 và 1.415 ms |
 | SignalR qua HTTPS | 50 kết nối WebSocket | Giữ 50 kết nối và phục hồi phiên khi token hết hạn trong 30 phút | **Đạt trên staging `5f63861`** ngày 27/11. Cuối lượt còn đủ 50 kết nối, 100 lần nối lại qua hai lượt làm mới token, 0 lỗi |
 | Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | **Đạt trên `d56783a`** ngày 28/11. Ba lần đo có điểm hiệu năng 98, 98 và 94, điểm truy cập đều 100 |
 
@@ -57,6 +57,10 @@ Lượt thử độc lập `DH-0004` lặp lại thành công luồng QR và chu
 Bằng chứng kiểm tra 50 kết nối WebSocket nằm tại `artifacts/release/staging-signalr-30min.json`.
 
 Sau khi triển khai `d56783a`, HTTPS, đăng nhập, làm mới phiên, màn đơn và WebSocket đã đạt. Lượt thử `DH-0005` chạy lại luồng QR qua Chromium 360 px và chuyển bàn. Bốn cập nhật màn bar xuất hiện sau 1.686, 1.521, 918 và 937 ms. Đơn và phiên đã đóng, hai bàn được lưu trữ và món giá 0 đ được ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-d56783a-smoke.json`, `artifacts/release/staging-d56783a-browser-smoke.json` và `artifacts/release/staging-d56783a-qr-uat-realtime.json`.
+
+Lượt `DH-0014` trên `d56783a` kiểm thêm nối lại trên Chromium 1024 × 768. Sau khi bật âm thanh, phiếu mới phát một âm báo Web Audio. Trình duyệt mất kết nối khi bar bắt đầu món, sau đó khôi phục đúng một phiếu ở cột **Đang làm** và giữ nguyên số lần phát âm báo. Đơn, phiên và dữ liệu dùng riêng đã được dọn. Bằng chứng nằm tại `artifacts/release/staging-d56783a-qr-uat-reconnect.json`.
+
+Lượt đo hai phiên Chromium trên `d56783a` theo dõi cùng sáu đơn thử. Mỗi phiên ghi 24 cập nhật từ xác nhận, bắt đầu, sẵn sàng đến giao món. p95 được tính theo thứ hạng trên từng phiên, lần lượt 1.414 và 1.415 ms. Sáu đơn giá 0 đ đã đóng và món thử đã ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-d56783a-realtime-two-windows.json`.
 
 ## Thao tác nghiệm thu theo vai trò
 
