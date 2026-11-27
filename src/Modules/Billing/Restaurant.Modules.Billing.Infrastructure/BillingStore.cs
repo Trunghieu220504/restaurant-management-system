@@ -37,7 +37,12 @@ internal static class BillingStore
         var rows = await db.Set<DongHoaDon>().AsNoTracking().Where(x => x.HoaDonId == id).OrderBy(x => x.Id)
             .ToListAsync(ct);
         var lines = rows.Select(x => new BillLine(x.ChiTietDonId, Description(x), x.ThanhTienGoc)).ToArray();
-        var payments = await db.Set<ThanhToan>().Where(x => x.HoaDonId == id).OrderBy(x => x.Id)
+        // Lock-based READ COMMITTED can otherwise scan another invoice's uncommitted payment to satisfy the ordering.
+        // Seek the existing invoice index so this read stays on the invoice already locked by the caller.
+        var invoicePayments = db.Set<ThanhToan>().FromSqlInterpolated($"""
+            SELECT * FROM billing.ThanhToan WITH (FORCESEEK (IX_ThanhToan_HoaDonId (HoaDonId))) WHERE HoaDonId = {id}
+            """);
+        var payments = await invoicePayments.OrderBy(x => x.Id)
             .Select(x => new BillPayment(x.Id, x.PhuongThuc, x.SoTien, x.TienKhachDua, x.TienThua, x.MaThamChieuNganHang, x.TrangThai,
                 x.NgayBanId, x.NguoiThuId, x.TaoLuc, x.XacNhanLuc)).ToListAsync(ct);
         var waivers = await db.Set<MienThu>().Where(x => x.HoaDonId == id).OrderBy(x => x.Id)
@@ -46,8 +51,8 @@ internal static class BillingStore
             .Select(x => new BillDocument(x.Id, x.SoChungTu, x.Loai, x.TaoLuc)).ToListAsync(ct);
         var adjustments = await db.Set<DieuChinhNghiaVu>().Where(x => x.HoaDonId == id).SumAsync(x => x.SoTien, ct);
         var refunds = await (from refund in db.Set<HoanTien>()
-                             join payment in db.Set<ThanhToan>() on refund.ThanhToanId equals payment.Id
-                             where payment.HoaDonId == id && refund.TrangThai == "THANH_CONG"
+                             join payment in invoicePayments on refund.ThanhToanId equals payment.Id
+                             where refund.TrangThai == "THANH_CONG"
                              select refund.SoTien).SumAsync(ct);
         var obligation = Math.Max(0, lines.Sum(x => x.Amount) + adjustments - waivers.Sum(x => x.Amount));
         var net = payments.Where(x => x.Status == "THANH_CONG").Sum(x => x.Amount) - refunds;
