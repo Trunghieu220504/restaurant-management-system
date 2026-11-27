@@ -1,6 +1,6 @@
 # UAT, thiết bị và bàn giao — Hải
 
-Chủ điều phối Hai249. Danh sách 14 kịch bản nằm ở mục 7 trong `docs/phan-cong-chi-tiet-7-tuan.md`. Staging đã triển khai `5f63861` ngày 25/11/2026. Lịch nghiệm thu theo kế hoạch là 16–17/12/2026 và 21–22/12/2026. Hai vòng đang chờ người duyệt chạy và ký nhận.
+Chủ điều phối Hai249. Danh sách 14 kịch bản nằm ở mục 7 trong `docs/phan-cong-chi-tiet-7-tuan.md`. Staging đã triển khai `d56783a` ngày 28/11/2026. Lịch nghiệm thu theo kế hoạch là 16–17/12/2026 và 21–22/12/2026. Hai vòng đang chờ người duyệt chạy và ký nhận.
 
 ## Hai vòng UAT
 
@@ -40,9 +40,9 @@ Ca kho và chốt ngày chạy trên một cơ sở dữ liệu demo mới. Sau 
 | Chrome Android thiết bị thật | 360px trở lên | QR, autoplay, nền/foreground, mất mạng | CẦN THIẾT BỊ |
 | Hai trình duyệt | Theo màn | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | Trên VPS, bốn mẫu từ gọi API đến khi màn bar đổi là 2.018, 1.462, 930 và 932 ms. Cần thêm mẫu để đánh giá p95 |
 | SignalR qua HTTPS | 50 kết nối WebSocket | Giữ 50 kết nối và phục hồi phiên khi token hết hạn trong 30 phút | **Đạt trên staging `5f63861`** ngày 27/11. Cuối lượt còn đủ 50 kết nối, 100 lần nối lại qua hai lượt làm mới token, 0 lỗi |
-| Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | Hai lượt đo trên `5f63861` có trung vị hiệu năng 76 và 75, truy cập 100. Trung vị thời gian chặn luồng chính ở lượt đo chi tiết là 1.396 ms |
+| Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | **Đạt trên `d56783a`** ngày 28/11. Ba lần đo có điểm hiệu năng 98, 98 và 94, điểm truy cập đều 100 |
 
-Ứng viên frontend sau đó tải bộ xác thực và thông báo của nhân viên theo nhu cầu, đồng thời dừng tải trước trang đăng nhập ở luồng QR. So sánh ba lần cho mỗi image trên cùng demo Docker giảm dung lượng JavaScript trung vị từ 195.476 byte xuống 173.453 byte, khoảng 11%. Điểm hiệu năng demo từ 67 lên 68 và điểm truy cập vẫn 100. Cần đo lại trên staging trước khi nghiệm thu ngưỡng 80.
+Frontend `d56783a` tải bộ xác thực và thông báo của nhân viên theo nhu cầu, đồng thời dừng tải trước trang đăng nhập ở luồng QR. So sánh ba lần cho mỗi image trên cùng demo Docker giảm dung lượng JavaScript trung vị từ 195.476 byte xuống 173.453 byte, khoảng 11%. Điểm hiệu năng demo từ 67 lên 68 và điểm truy cập vẫn 100. Sau triển khai, Lighthouse 13.6.0 đo trên staging bằng Chromium 360 × 800 theo phiên QR thực, xác thực thành công cả ba lần. Lần đo lại tắt chế độ giảm ưu tiên cửa sổ chạy nền của Chromium để công cụ hoàn tất. Hai lượt đo trước đó trên `5f63861` có trung vị hiệu năng 76 và 75. Bằng chứng mới nằm tại `artifacts/release/staging-d56783a-lighthouse-qr.json`.
 
 Đo API đọc trên staging với hai luồng, 40 mẫu mỗi endpoint, không có lỗi HTTP. p95 là 93 ms cho thực đơn công khai, 54 ms cho sơ đồ bàn, 70 ms cho đơn đang mở và 62 ms cho snapshot phục vụ. Bằng chứng nằm tại `artifacts/release/staging-read-performance.json`. Đo tải luồng ghi gọi món, xác nhận và thu tiền còn mở.
 
@@ -51,6 +51,8 @@ Ngày 27/11, k6 trong demo ghi nhận một HTTP 409 khi tạo đơn đồng th�
 Lượt thử độc lập `DH-0004` lặp lại thành công luồng QR và chuyển bàn. Màn bar 1.024 × 768 nhận đủ phiếu mới, bắt đầu, sẵn sàng và loại phiếu khỏi hàng đợi sau khi giao. Đơn 0 đ, phiên đóng và dữ liệu thử đã được dọn bằng thao tác lưu trữ hoặc ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-qr-uat-realtime.json`.
 
 Bằng chứng kiểm tra 50 kết nối WebSocket nằm tại `artifacts/release/staging-signalr-30min.json`.
+
+Sau khi triển khai `d56783a`, HTTPS, đăng nhập, làm mới phiên, màn đơn và WebSocket đã đạt. Lượt thử `DH-0005` chạy lại luồng QR qua Chromium 360 px và chuyển bàn. Bốn cập nhật màn bar xuất hiện sau 1.686, 1.521, 918 và 937 ms. Đơn và phiên đã đóng, hai bàn được lưu trữ và món giá 0 đ được ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-d56783a-smoke.json`, `artifacts/release/staging-d56783a-browser-smoke.json` và `artifacts/release/staging-d56783a-qr-uat-realtime.json`.
 
 ## Thao tác nghiệm thu theo vai trò
 
@@ -74,7 +76,7 @@ S1: mất dữ liệu/an ninh/ngừng toàn bộ. S2: chặn luồng chính ho�
 | OPS-02 | Hạ tầng | P0 | R2 public images/private backup, token, lifecycle, hai restore/API probe | Hải/chủ tài khoản R2 | Upload/read/deny + hai drill thật |
 | OPS-03 | Hạ tầng | P0 | Chọn VPS production, DNS/cert/secret riêng và license SQL | Chủ repo/Hải | Production readiness + smoke |
 | QA-01 | Nghiệm thu | P0 | 14 UAT cả hai vòng, thiết bị thật, ký nhận | Hải/chủ repo/nhóm | Bằng chứng và không còn S1/S2 |
-| QA-02 | Kiểm thử | P1 | Tối ưu hiệu năng QR trên mobile và đo lại trên VPS | Hải | Lighthouse đạt ngưỡng 80/90 trên SHA nghiệm thu |
+| QA-02 | Kiểm thử | P1 | Tối ưu hiệu năng QR trên mobile và đo lại trên VPS | Hải | Đã đo 98/100 trên `d56783a`. Chạy lại khi SHA nghiệm thu thay đổi |
 | OPS-04 | Giám sát | P1 | Nối lỗi monitor/backup/deploy đến kênh nhóm được cấp | Hải | Alert thực nhận khi lỗi giả lập |
 | DOC-01 | Bàn giao | P1 | Hướng dẫn từng vai trò, tập huấn, phản hồi có người nhận | Hải điều phối; Duy/Bảo Anh/Phương | Biên bản tham dự và backlog |
 

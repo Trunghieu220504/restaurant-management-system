@@ -1,12 +1,11 @@
-# Tiến độ công việc của Hải — 27/11/2026
+# Tiến độ công việc của Hải — 28/11/2026
 
 ## Staging và nghiệm thu tuần 7
 
-- `https://staging.quanlynh.id.vn` chạy frontend và backend `5f638610c0a76b78d13d41ed111deaa41926bb27`. Jenkins build #4 đã kiểm thử, đóng gói và tải đúng SHA lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã tải.
+- [Staging](https://staging.quanlynh.id.vn) chạy frontend và backend `d56783acab07c789c57ede537737d4b4d5b42094` từ ngày 28/11/2026. Jenkins #7 đã kiểm thử và tải gói lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã kiểm checksum.
 - VPS đã sao lưu có CHECKSUM, khôi phục vào cơ sở dữ liệu riêng, áp dụng migration hai lượt và kiểm tra readiness của cả hai phiên bản API trên bản khôi phục. Sau triển khai, HTTPS, đăng nhập, refresh, `/orders` và WebSocket xác thực đều đạt.
-- Bản QR đạt ma trận **17/17** với 493 integration test và 5 architecture test trên SQL Server. Browser staging đã gửi một đợt QR thật, xác nhận và theo dõi, chuyển bàn giữ quyền, giao món, đóng đơn và đóng phiên thu hồi quyền. Đơn thử `DH-0002` có giá 0 đ. Hai bàn thử đã được lưu trữ và món dùng cho lượt kiểm thử đã được ngừng bán.
-- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Ứng viên `d56783a` giảm JavaScript khởi động QR và sửa lỗi trùng mã đơn khi tạo đồng thời. Các check kiểm thử GitHub của SHA này đã đạt. Trong Jenkins #7, cùng SHA chạy đạt 494 integration test và 5 architecture test trên SQL Server cùng ma trận 17/17.
-- Jenkins #7 đã tải gói `d56783a` lên VPS và kiểm checksum tại VPS đạt. Helper dừng ở cổng phê duyệt revision vì SHA này chưa được duyệt và chưa phải HEAD của `develop`. Sau khi operator duyệt, triển khai từ gói đã kiểm checksum.
+- Trên `d56783a`, trình duyệt Chromium ở viewport 360 px gửi và theo dõi đơn QR `DH-0005`. Quyền theo phiên được giữ khi chuyển bàn và được thu hồi khi đóng phiên. Màn bar nhận phiếu mới, bắt đầu, sẵn sàng và giao món. Hai bàn thử đã được lưu trữ và món giá 0 đ dùng cho lượt kiểm thử đã được ngừng bán.
+- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Bản `d56783a` giảm JavaScript khởi động QR và sửa lỗi trùng mã đơn khi tạo đồng thời. Các check kiểm thử GitHub của SHA này đã đạt. Trong Jenkins #7, cùng SHA chạy đạt 494 integration test và 5 architecture test trên SQL Server cùng ma trận 17/17.
 - Hướng dẫn theo vai trò, tình trạng UAT và các hạng mục vận hành còn mở được ghi trong [hồ sơ bàn giao tuần 7](hai-uat-and-handoff.md).
 
 ## Nhật ký chuẩn bị staging trước ngày 25/11/2026
