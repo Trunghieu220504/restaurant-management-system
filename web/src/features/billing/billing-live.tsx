@@ -1,317 +1,361 @@
 "use client";
-
-import { useState } from "react";
-import { Banknote, CreditCard, RefreshCw, ShieldCheck } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/components/permission-provider";
 import { MoneyInput, money } from "@/components/ops/controls";
 import {
     BillingApiError,
     createBillingApi,
-    type BillingInvoice,
     type BillingPaymentInput,
 } from "./api";
+import { RequestAttempts } from "./request-attempts";
 
-const amount = (value: number | string) => Number(value);
+export function BillingLive(
+    props: { orderId?: number; businessDayId?: string } = {},
+) {
+    if (!props.orderId)
+        return (
+            <p>
+                Chọn đơn tại{" "}
+                <Link href="/orders" className="underline">
+                    màn đơn hàng
+                </Link>{" "}
+                để thu tiền.
+            </p>
+        );
+    return <BillingWorkspace {...props} />;
+}
 
-export function BillingLive() {
-    const api = createBillingApi();
-    const [invoiceId, setInvoiceId] = useState("");
-    const [dayId, setDayId] = useState("");
-    const [invoice, setInvoice] = useState<BillingInvoice | null>(null);
+function BillingWorkspace({
+    orderId,
+    businessDayId,
+}: { orderId?: number; businessDayId?: string } = {}) {
+    const api = useMemo(() => createBillingApi(), []);
+    const { can } = usePermissions();
+    const attempts = useRef(new RequestAttempts());
+    const invoice = useQuery({
+        queryKey: ["billing-live", orderId],
+        queryFn: () => api.invoiceForOrder(orderId!),
+        enabled: !!orderId,
+        refetchInterval: 3000,
+        retry: false,
+    });
     const [method, setMethod] =
         useState<BillingPaymentInput["method"]>("TIEN_MAT");
-    const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
+    const [amount, setAmount] = useState<number | null>(null);
     const [tendered, setTendered] = useState<number | null>(null);
     const [reference, setReference] = useState("");
     const [waiver, setWaiver] = useState<number | null>(null);
     const [reason, setReason] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-
-    async function run(operation: () => Promise<unknown>) {
+    const [notice, setNotice] = useState("");
+    async function write(
+        operation: string,
+        payload: unknown,
+        action: (key: string) => Promise<unknown>,
+    ) {
+        if (busy) return;
+        const key = attempts.current.begin(operation, payload);
         setBusy(true);
         setError("");
+        setNotice("");
         try {
-            await operation();
-            if (invoiceId) setInvoice(await api.invoice(invoiceId));
+            await action(key);
+            attempts.current.complete(operation, key);
+            setNotice("Đã ghi nhận thành công.");
+            setAmount(null);
+            setTendered(null);
+            setWaiver(null);
+            await invoice.refetch();
         } catch (cause) {
+            const messages: Record<string, string> = {
+                "billing.amount.exceeds_available":
+                    "Số tiền vượt phần còn được phép thu hoặc miễn thu. Hãy tải lại hóa đơn.",
+                "billing.idempotency.conflict":
+                    "Yêu cầu đã được dùng cho nội dung khác. Kiểm tra lại trạng thái.",
+                "salesday.day.not_open": "Ngày bán không còn mở.",
+            };
             setError(
                 cause instanceof BillingApiError
-                    ? cause.code
-                    : "Không thể xử lý yêu cầu Billing.",
+                    ? (messages[cause.code] ??
+                          "Không thể ghi nhận. Hãy kiểm tra trạng thái và thử lại cùng nội dung nếu chưa rõ kết quả.")
+                    : "Mất kết nối. Kiểm tra hóa đơn trước khi thử lại; yêu cầu đang giữ mã chống trùng.",
             );
         } finally {
             setBusy(false);
         }
     }
-
-    const due = invoice ? amount(invoice.due) : 0;
-    return (
-        <section className="space-y-5" aria-label="Hóa đơn thật">
-            <header>
-                <h2 className="text-xl font-semibold">Hóa đơn và thu tiền</h2>
-                <p className="text-sm text-muted-foreground">
-                    Dữ liệu và thao tác được gửi tới Billing API
-                </p>
-            </header>
-            <form
-                className="grid gap-3 rounded border bg-white p-4 sm:grid-cols-[1fr_1fr_auto]"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    if (invoiceId)
-                        void run(async () =>
-                            setInvoice(await api.invoice(invoiceId)),
-                        );
-                }}
-            >
-                <label className="grid gap-1 text-sm">
-                    Mã hóa đơn
-                    <input
-                        required
-                        inputMode="numeric"
-                        className="min-h-11 rounded border p-2"
-                        value={invoiceId}
-                        onChange={(event) => setInvoiceId(event.target.value)}
-                    />
-                </label>
-                <label className="grid gap-1 text-sm">
-                    Mã ngày bán
-                    <input
-                        required
-                        className="min-h-11 rounded border p-2"
-                        value={dayId}
-                        onChange={(event) => setDayId(event.target.value)}
-                    />
-                </label>
-                <Button className="self-end" disabled={busy} type="submit">
-                    <RefreshCw size={16} /> Tải hóa đơn
-                </Button>
-            </form>
-            {error && (
-                <p
-                    role="alert"
-                    className="border-l-4 border-red-500 bg-red-50 p-3 text-sm"
+    if (!orderId)
+        return (
+            <p>
+                Chọn đơn tại{" "}
+                <Link href="/orders" className="underline">
+                    màn đơn hàng
+                </Link>{" "}
+                để thu tiền.
+            </p>
+        );
+    if (invoice.isLoading) return <p role="status">Đang tải hóa đơn…</p>;
+    if (
+        invoice.error instanceof BillingApiError &&
+        invoice.error.status === 404
+    )
+        return (
+            <p role="status">Xác nhận ít nhất một đợt món để lập hóa đơn.</p>
+        );
+    if (!invoice.data)
+        return (
+            <p role="alert">
+                Không tải được hóa đơn.{" "}
+                <Button
+                    variant="outline"
+                    onClick={() => void invoice.refetch()}
                 >
+                    Thử lại
+                </Button>
+            </p>
+        );
+    const bill = invoice.data;
+    const due = Number(bill.due);
+    return (
+        <section
+            className="space-y-4 rounded-xl border bg-white p-4"
+            aria-label="Hóa đơn và thu tiền"
+        >
+            <h2 className="text-xl font-semibold">Hóa đơn và thu tiền</h2>
+            <div className="grid grid-cols-3 gap-3">
+                <p>
+                    Tổng nghĩa vụ
+                    <strong className="block">
+                        {money(Number(bill.obligation))} VND
+                    </strong>
+                </p>
+                <p>
+                    Đã thu
+                    <strong className="block">
+                        {money(Number(bill.netCollected))} VND
+                    </strong>
+                </p>
+                <p>
+                    Còn phải thu
+                    <strong className="block" data-testid="invoice-due">
+                        {money(due)} VND
+                    </strong>
+                </p>
+            </div>
+            {error && (
+                <p role="alert" className="rounded bg-red-50 p-3">
                     {error}
                 </p>
             )}
-            {invoice && (
-                <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-3 rounded border bg-white p-4 sm:grid-cols-4">
-                        <span>
-                            Tổng
-                            <br />
-                            <strong>
-                                {money(amount(invoice.obligation))} VND
-                            </strong>
-                        </span>
-                        <span>
-                            Đã thu
-                            <br />
-                            <strong>
-                                {money(amount(invoice.netCollected))} VND
-                            </strong>
-                        </span>
-                        <span>
-                            Còn lại
-                            <br />
-                            <strong>{money(due)} VND</strong>
-                        </span>
-                        <span>
-                            Trạng thái
-                            <br />
-                            <strong>
-                                {invoice.paymentStatus ?? "CHƯA RÕ"}
-                            </strong>
-                        </span>
-                    </div>
-                    <form
-                        className="grid max-w-xl gap-3 rounded border bg-white p-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (!paymentAmount || !dayId) return;
-                            void run(() =>
-                                api.collect(
-                                    invoice.id,
-                                    {
-                                        businessDayId: dayId,
-                                        method,
-                                        amount: paymentAmount,
-                                        tendered:
-                                            method === "TIEN_MAT"
-                                                ? (tendered ?? undefined)
-                                                : undefined,
-                                        bankReference:
-                                            method === "CHUYEN_KHOAN"
-                                                ? reference
-                                                : undefined,
-                                    },
-                                    crypto.randomUUID(),
-                                ),
-                            );
-                        }}
-                    >
-                        <h3 className="font-semibold">Ghi nhận khoản thu</h3>
-                        <label className="grid gap-1 text-sm">
-                            Phương thức
-                            <select
-                                className="min-h-11 rounded border p-2"
-                                value={method}
-                                onChange={(event) =>
-                                    setMethod(
-                                        event.target
-                                            .value as BillingPaymentInput["method"],
-                                    )
-                                }
-                            >
-                                <option value="TIEN_MAT">Tiền mặt</option>
-                                <option value="CHUYEN_KHOAN">
-                                    Chuyển khoản
-                                </option>
-                            </select>
-                        </label>
-                        <label className="grid gap-1 text-sm">
-                            Số tiền
+            {notice && (
+                <p role="status" className="rounded bg-emerald-50 p-3">
+                    {notice}
+                </p>
+            )}
+            {can("billing.payments.collect") && (
+                <form
+                    className="grid gap-3 sm:grid-cols-2"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (!amount || !businessDayId) return;
+                        const input: BillingPaymentInput = {
+                            businessDayId,
+                            method,
+                            amount,
+                            tendered:
+                                method === "TIEN_MAT"
+                                    ? (tendered ?? undefined)
+                                    : undefined,
+                            bankReference:
+                                method === "CHUYEN_KHOAN"
+                                    ? reference
+                                    : undefined,
+                        };
+                        void write("collect", [bill.id, input], (key) =>
+                            api.collect(bill.id, input, key),
+                        );
+                    }}
+                >
+                    <label>
+                        Phương thức
+                        <select
+                            className="mt-1 min-h-11 w-full rounded border p-2"
+                            value={method}
+                            disabled={busy}
+                            onChange={(event) =>
+                                setMethod(
+                                    event.target
+                                        .value as BillingPaymentInput["method"],
+                                )
+                            }
+                        >
+                            <option value="TIEN_MAT">Tiền mặt</option>
+                            <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                        </select>
+                    </label>
+                    <label>
+                        Số tiền thu
+                        <MoneyInput
+                            id="live-payment-amount"
+                            value={amount}
+                            onChange={setAmount}
+                            disabled={busy}
+                        />
+                    </label>
+                    {method === "TIEN_MAT" ? (
+                        <label>
+                            Khách đưa
                             <MoneyInput
-                                id="live-payment-amount"
-                                value={paymentAmount}
-                                onChange={setPaymentAmount}
+                                id="live-tendered"
+                                value={tendered}
+                                onChange={setTendered}
                                 disabled={busy}
                             />
                         </label>
-                        {method === "TIEN_MAT" ? (
-                            <label className="grid gap-1 text-sm">
-                                Khách đưa
-                                <MoneyInput
-                                    id="live-tendered"
-                                    value={tendered}
-                                    onChange={setTendered}
-                                    disabled={busy}
-                                />
-                            </label>
-                        ) : (
-                            <label className="grid gap-1 text-sm">
-                                Mã tham chiếu
-                                <input
-                                    required
-                                    className="min-h-11 rounded border p-2"
-                                    value={reference}
-                                    onChange={(event) =>
-                                        setReference(event.target.value)
-                                    }
-                                />
-                            </label>
-                        )}
+                    ) : (
+                        <label>
+                            Mã tham chiếu
+                            <input
+                                required
+                                className="mt-1 min-h-11 w-full rounded border p-2"
+                                value={reference}
+                                disabled={busy}
+                                onChange={(event) =>
+                                    setReference(event.target.value)
+                                }
+                            />
+                        </label>
+                    )}
+                    <div className="flex flex-wrap items-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={busy || due <= 0}
+                            onClick={() => {
+                                setAmount(due);
+                                setTendered(due);
+                            }}
+                        >
+                            Điền số tiền còn lại
+                        </Button>
                         <Button
                             disabled={
-                                busy || !paymentAmount || paymentAmount > due
+                                busy ||
+                                !businessDayId ||
+                                !amount ||
+                                amount > due ||
+                                (method === "TIEN_MAT" &&
+                                    (tendered ?? 0) < amount)
                             }
                         >
-                            {method === "TIEN_MAT" ? (
-                                <Banknote size={16} />
-                            ) : (
-                                <CreditCard size={16} />
-                            )}
                             {busy ? "Đang xử lý…" : "Ghi nhận khoản thu"}
                         </Button>
-                    </form>
-                    <section
-                        className="space-y-3 rounded border bg-white p-4"
-                        aria-label="Lịch sử thanh toán"
+                    </div>
+                </form>
+            )}
+            <section aria-label="Lịch sử thanh toán">
+                <h3 className="font-semibold">Lịch sử thanh toán</h3>
+                {bill.payments.length === 0 && <p>Chưa có khoản thu.</p>}
+                {bill.payments.map((payment) => (
+                    <div
+                        key={String(payment.id)}
+                        className="flex flex-wrap items-center justify-between gap-2 border-b py-2"
                     >
-                        <h3 className="font-semibold">Lịch sử thanh toán</h3>
-                        {invoice.payments.map((payment) => (
-                            <div
-                                key={String(payment.id)}
-                                className="flex flex-wrap items-center justify-between gap-3 border-b py-2 text-sm"
-                            >
-                                <span>
-                                    {money(amount(payment.amount))} VND ·{" "}
-                                    {payment.method} · {payment.status}
-                                </span>
-                                {payment.status === "CHO_XAC_NHAN" && (
-                                    <div className="flex gap-2">
+                        <span>
+                            {money(Number(payment.amount))} VND ·{" "}
+                            {payment.method === "TIEN_MAT"
+                                ? "Tiền mặt"
+                                : "Chuyển khoản"}{" "}
+                            ·{" "}
+                            {payment.status === "THANH_CONG"
+                                ? "Thành công"
+                                : payment.status === "CHO_XAC_NHAN"
+                                  ? "Chờ xác nhận"
+                                  : "Đã hủy"}
+                        </span>
+                        {payment.status === "CHO_XAC_NHAN" &&
+                            can("billing.payments.collect") &&
+                            businessDayId && (
+                                <div className="flex gap-2">
+                                    {[true, false].map((confirm) => (
                                         <Button
-                                            disabled={busy}
-                                            onClick={() =>
-                                                void run(() =>
-                                                    api.decide(
-                                                        invoice.id,
-                                                        payment.id,
-                                                        dayId,
-                                                        true,
-                                                        crypto.randomUUID(),
-                                                    ),
-                                                )
-                                            }
-                                        >
-                                            Xác nhận
-                                        </Button>
-                                        <Button
+                                            key={String(confirm)}
                                             variant="outline"
                                             disabled={busy}
                                             onClick={() =>
-                                                void run(() =>
-                                                    api.decide(
-                                                        invoice.id,
-                                                        payment.id,
-                                                        dayId,
-                                                        false,
-                                                        crypto.randomUUID(),
-                                                    ),
+                                                void write(
+                                                    "transfer-" + payment.id,
+                                                    [businessDayId, confirm],
+                                                    (key) =>
+                                                        api.decide(
+                                                            bill.id,
+                                                            payment.id,
+                                                            businessDayId,
+                                                            confirm,
+                                                            key,
+                                                        ),
                                                 )
                                             }
                                         >
-                                            Hủy
+                                            {confirm
+                                                ? "Xác nhận chuyển khoản"
+                                                : "Hủy khoản chờ"}
                                         </Button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </section>
-                    <form
-                        className="grid max-w-xl gap-3 rounded border bg-white p-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (waiver && reason.trim())
-                                void run(() =>
-                                    api.waive(
-                                        invoice.id,
-                                        {
-                                            businessDayId: dayId,
-                                            amount: waiver,
-                                            reason,
-                                        },
-                                        crypto.randomUUID(),
-                                    ),
-                                );
-                        }}
-                    >
-                        <h3 className="font-semibold">
-                            <ShieldCheck className="mr-1 inline" size={16} />{" "}
-                            Miễn thu
-                        </h3>
+                                    ))}
+                                </div>
+                            )}
+                    </div>
+                ))}
+            </section>
+            {can("billing.waivers.approve") && due > 0 && (
+                <form
+                    className="grid gap-3 border-t pt-3"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (!waiver || !businessDayId || !reason.trim()) return;
+                        const input = {
+                            businessDayId,
+                            amount: waiver,
+                            reason: reason.trim(),
+                        };
+                        void write("waive", [bill.id, input], (key) =>
+                            api.waive(bill.id, input, key),
+                        );
+                    }}
+                >
+                    <h3 className="font-semibold">Miễn thu có lý do</h3>
+                    <label>
+                        Số tiền miễn thu
                         <MoneyInput
                             id="live-waiver"
                             value={waiver}
                             onChange={setWaiver}
                             disabled={busy}
                         />
+                    </label>
+                    <label>
+                        Lý do miễn thu
                         <textarea
                             required
-                            className="rounded border p-2"
-                            placeholder="Lý do miễn thu"
+                            className="w-full rounded border p-2"
                             value={reason}
+                            disabled={busy}
                             onChange={(event) => setReason(event.target.value)}
                         />
-                        <Button
-                            variant="outline"
-                            disabled={busy || !waiver || waiver > due}
-                        >
-                            Xác nhận miễn thu
-                        </Button>
-                    </form>
-                </div>
+                    </label>
+                    <Button
+                        variant="outline"
+                        disabled={
+                            busy || !waiver || waiver > due || !businessDayId
+                        }
+                    >
+                        Xác nhận miễn thu
+                    </Button>
+                </form>
             )}
         </section>
     );

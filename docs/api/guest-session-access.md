@@ -1,6 +1,6 @@
-# HIE-4.4: Guest session access
+# Guest session access and ordering
 
-The existing invitation/exchange implementation is reused. This change completes the read path and its verification.
+Guests exchange a table invitation for a grant that allows menu access, ordering and tracking within their table session.
 
 - Staff with seating.sessions.manage issues an invitation at POST /api/seating/sessions/{id}/guest-access.
 - The invitation is random 256-bit material, stored as a SHA-256 hash, valid for ten minutes, consumed once.
@@ -11,7 +11,11 @@ The existing invitation/exchange implementation is reused. This change completes
 - Menu and session reads share a 240/minute/IP limit, after trusted proxy resolution. Token rotation cannot allocate unlimited limiter partitions or bypass the limit. Exchange retains its existing IP/table limits.
 - Invalid token responses return 401 with qr.token.invalid/expired/revoked; rate rejection returns 429 with qr.rate.limited and Retry-After. Responses use no-store.
 
-The guest UI sends its validated read token to menu requests. It separately keeps the canSubmitOrders check;
-this change does not enable the HIE-5.1 ordering flow before that backend capability exists.
+The guest UI sends its validated grant to menu requests. A valid session response exposes `canSubmitOrders`.
+
+- `POST /api/public/guest-access/batches` accepts an `Authorization: Guest <token>` header, a UUID `Idempotency-Key`, and `lines` containing one entry per portion. Sales prices the selections for the session's business day and creates a batch in `CHO_XAC_NHAN`. It creates the table's order in the same transaction when needed.
+- `GET /api/public/guest-access/batches/{id}` returns `id` and `status` for the issuing guest grant. Other guests, including guests at the same table, receive 404. Invalid, expired and revoked grants receive 401.
+- Retries with the same key and grant return the existing receipt. The submission revalidates the grant while holding the session lock, which also protects session close. Staff can confirm or reject through the existing Sales endpoints.
+- Submission is limited to 30 requests per minute per IP and 50 portions per request. Tracking shares the existing QR read limit.
 
 No migration or new secret is needed. Existing QR codes and session grants remain compatible.

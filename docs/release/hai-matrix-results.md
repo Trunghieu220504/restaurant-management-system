@@ -1,25 +1,31 @@
-# Ma trận kiểm chứng SQL của Hải
+# Ma trận SQL của Hải — 25/11/2026
 
-Chạy SQL Server 2022 cục bộ: full suite 397 integration + 5 architecture đạt, sau đó thêm 3 test SQL và chạy riêng 3/3 đạt. Tổng bằng chứng 405 test, không skipped; chưa coi đây là một lần full suite 405 cho đến khi CI chạy commit cuối. PASS của dòng chỉ áp dụng assertions SQL, không thay UAT UI/staging. SKIP nghĩa coverage chưa đủ, không phải test runner bỏ qua.
+Lượt kiểm thử sau khi hoàn thiện gửi món qua QR chạy trên SQL Server 2022. **493 integration + 5 architecture = 498 PASS**, 0 lỗi, 0 bỏ qua. Tổng hợp và TRX nằm trong `artifacts/hai-sql-20261125T132550Z/`.
 
-| # | Tiêu chí | Chủ | Kết quả SQL/coverage |
-| --- | --- | --- | --- |
-| 1 | Unique identity, invoice and charge | Hiếu / Phương | PASS |
-| 2 | Variant and option ownership | Phương / Hiếu | PASS |
-| 3 | Concurrent seating open and transfer | Hiếu | PASS |
-| 4 | QR expiry, revocation and session isolation | Hiếu | SKIP |
-| 5 | Confirmation produces one charge and first ticket | Hiếu / Phương | SKIP |
-| 6 | Approved remake without new revenue | Hiếu | SKIP |
-| 7 | Cannot serve twice or after cancellation | Hiếu | PASS |
-| 8 | Concurrent collectors never overcollect | Phương | PASS |
-| 9 | Refund reservation under concurrency and unknown payout | Phương | PASS |
-| 10 | Prior-day refunds preserve prior snapshots | Phương | PASS |
-| 11 | Purchase snapshots survive unit conversion edits | Phương | PASS |
-| 12 | Archived stock remains countable and blocks structural changes | Phương | PASS |
-| 13 | Residual stock value and signed adjustments | Phương | PASS |
-| 14 | Atomic concurrent closing and late writers | Phương | PASS |
-| 15 | Closing rollback leaves no partial state | Phương | PASS |
-| 16 | Negative profit and distinct units | Phương | PASS |
-| 17 | Permission revocation affects existing access token | Hiếu | PASS |
+**17/17 tiêu chí** có bằng chứng SQL. Hai vòng UAT ghi kết quả trong hồ sơ nghiệm thu staging.
 
-14/17 dòng đủ bằng chứng; Sau khi merge cf40c97, đã bổ sung SQL tranh chấp giao món cho dòng 7; SQL test mới đã PASS trong nhóm Fulfillment 34/34, đang chạy lại pipeline cuối. Dòng 4/5/6 cần public ordering, kiểm confirm→consumer tích hợp và incidents/remake. Nguồn: artifacts/hai-week7-verified/*.trx và artifacts/hai-week7-matrix-additions/*.trx. Mapping cụ thể: scripts/release/matrix.json. Toàn bộ matrix vẫn BLOCKED.
+| # | Tiêu chí | Trạng thái |
+| --- | --- | --- |
+| 1 | Unique identity, invoice and charge | PASS |
+| 2 | Variant and option ownership | PASS |
+| 3 | Concurrent seating open and transfer | PASS |
+| 4 | QR expiry, revocation and session isolation | PASS |
+| 5 | Confirmation produces one charge and first ticket | PASS |
+| 6 | Approved remake without new revenue | PASS |
+| 7 | Cannot serve twice or after cancellation | PASS |
+| 8 | Concurrent collectors never overcollect | PASS |
+| 9 | Refund reservation under concurrency and unknown payout | PASS |
+| 10 | Prior-day refunds preserve prior snapshots | PASS |
+| 11 | Purchase snapshots survive unit conversion edits | PASS |
+| 12 | Archived stock remains countable and blocks structural changes | PASS |
+| 13 | Residual stock value and signed adjustments | PASS |
+| 14 | Atomic concurrent closing and late writers | PASS |
+| 15 | Closing rollback leaves no partial state | PASS |
+| 16 | Negative profit and distinct units | PASS |
+| 17 | Permission revocation affects existing access token | PASS |
+
+Tiêu chí 4 kiểm tra API gửi món và theo dõi đợt của đúng khách, gửi lại cùng khóa, mã bàn dùng một mình, token hết hạn/thu hồi và khách gửi món đồng thời với đóng phiên. Bộ Seating kiểm thêm invitation một lần và token cũ sau khi bàn mở phiên mới.
+
+Tiêu chí 6 kiểm remake đồng thời/idempotency, không thêm doanh thu, chặn giao khi pending, rollback Billing/Outbox và kiểm quyền. E2E thật bổ sung: `web/e2e-hai-live/incident-remake.spec.ts`; bằng chứng `artifacts/hai-live-demo/incident-remake-evidence.json`.
+
+Danh sách test theo tiêu chí nằm trong `scripts/release/matrix.json`. Bằng chứng máy đọc gồm `summary.json` và hai file TRX của lượt kiểm thử trên.

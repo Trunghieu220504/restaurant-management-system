@@ -1,0 +1,66 @@
+name: restaurant-hai-demo
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${DEMO_SQL_PASSWORD:?}
+      MSSQL_MEMORY_LIMIT_MB: "1536"
+    mem_limit: 2g
+    volumes: [demo-sql:/var/opt/mssql]
+    networks: [demo]
+    healthcheck:
+      test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -Q 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  api:
+    image: restaurant-api:hai-demo
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.api
+      labels:
+        org.opencontainers.image.revision: ${DEMO_REVISION:-local-working-tree}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Restaurant: "Server=sqlserver;Database=${DEMO_DATABASE:?};User Id=sa;Password=${DEMO_SQL_PASSWORD:?};Encrypt=True;TrustServerCertificate=True"
+      Jwt__SigningKey: ${DEMO_JWT_KEY:?}
+      Jwt__Issuer: restaurant-local-demo
+      Jwt__Audience: restaurant-local-demo-web
+      ReverseProxy__KnownProxies__0: 172.30.79.10
+      Outbox__Enabled: "true"
+      Outbox__PollSeconds: "1"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks: [demo]
+  web:
+    image: restaurant-web:hai-demo
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        API_URL: http://api:8080
+        NEXT_PUBLIC_IDENTITY_REFRESH_ENABLED: "true"
+      labels:
+        org.opencontainers.image.revision: ${DEMO_REVISION:-local-working-tree}
+    environment:
+      API_URL: http://api:8080
+    networks: [demo]
+  nginx:
+    image: nginx:stable-alpine
+    ports: ["127.0.0.1:3187:80"]
+    volumes:
+      - ./nginx/demo.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api, web]
+    networks:
+      demo:
+        ipv4_address: 172.30.79.10
+volumes:
+  demo-sql:
+networks:
+  demo:
+    ipam:
+      config: [{subnet: 172.30.79.0/24}]

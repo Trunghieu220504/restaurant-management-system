@@ -1,3 +1,5 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurant.Modules.Billing.Application;
 using Restaurant.Modules.Billing.Domain;
@@ -8,6 +10,61 @@ namespace Restaurant.IntegrationTests;
 
 public sealed class BillingRefundReviewSqlServerTests : DayLedgerSqlFixture
 {
+    [SqlServerFact]
+    public async Task Cash_receipt_can_commit_while_another_invoices_payment_is_uncommitted()
+    {
+        await using var scope = services!.CreateAsyncScope();
+        var billing = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+        var connection = new SqlConnectionStringBuilder(billing.Database.GetConnectionString()!);
+        var database = connection.InitialCatalog;
+        Assert.StartsWith("RestaurantDayLedger_", database);
+        connection.InitialCatalog = "master";
+        await using (var admin = new SqlConnection(connection.ConnectionString))
+        {
+            await admin.OpenAsync();
+            await using var command = admin.CreateCommand();
+            command.CommandText = $"ALTER DATABASE [{database}] SET READ_COMMITTED_SNAPSHOT OFF WITH ROLLBACK IMMEDIATE";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var held = new HoaDon { DonHangId = 1, MaHoaDon = "HD1", NgayBanLapId = day, TaoLuc = DateTime.UtcNow };
+        var independent = new HoaDon { DonHangId = 2, MaHoaDon = "HD2", NgayBanLapId = day, TaoLuc = DateTime.UtcNow };
+        billing.AddRange(held, independent);
+        await billing.SaveChangesAsync();
+        billing.Add(new DongHoaDon { HoaDonId = independent.Id, ChiTietDonId = 2, TenMonChot = "Tea", ThanhTienGoc = 100 });
+        await billing.SaveChangesAsync();
+
+        await using var transaction = await billing.Database.BeginTransactionAsync();
+        var now = DateTime.UtcNow;
+        billing.Add(new ThanhToan
+        {
+            HoaDonId = held.Id,
+            NgayBanId = day,
+            SoTien = 100,
+            PhuongThuc = "TIEN_MAT",
+            TienKhachDua = 100,
+            TienThua = 0,
+            TrangThai = "THANH_CONG",
+            NguoiThuId = actor,
+            TaoLuc = now,
+            XacNhanLuc = now,
+            KhoaYeuCau = Guid.NewGuid()
+        });
+        await billing.SaveChangesAsync();
+
+        await using var request = services!.CreateAsyncScope();
+        var ledger = request.ServiceProvider.GetRequiredService<IBillingLedger>();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await ledger.CollectAsync(independent.Id, new(day, "TIEN_MAT", 100, 100, null), actor, Guid.NewGuid(), timeout.Token);
+        Assert.Null(result.Error);
+        var invoice = await ledger.FindAsync(independent.Id, timeout.Token);
+        Assert.NotNull(invoice);
+        Assert.Equal(0, invoice.Due);
+        Assert.Equal(result.ResourceId, Assert.Single(invoice.Payments).Id);
+        Assert.Equal("PHIEU_THU", Assert.Single(invoice.Documents).Kind);
+        await transaction.RollbackAsync();
+    }
+
     [SqlServerFact]
     public async Task Refund_approval_does_not_record_a_bank_payout_reference()
     {

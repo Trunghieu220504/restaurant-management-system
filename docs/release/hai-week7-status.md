@@ -1,54 +1,236 @@
-# Tình trạng nhiệm vụ Hải đến tuần 7 — 24/11/2026
+# Tiến độ công việc của Hải — 28/11/2026
 
-Đã đọc PDF `công việc chi tiết.pdf` trước rồi đối chiếu `tom-tat-cong-viec-hai.md`. Bản tóm tắt cũ chỉ phản ánh kiểm tra ban đầu; `develop` mới nhất khi bắt đầu là `b3acf64` (PR #101). Đã fetch lại và tích hợp `cf40c97` gồm PR #103/#104 của Hiếu (consumer và state API Fulfillment). Nhánh triển khai: `feature/hai-week7-delivery-20261124`. Tác giả/committer yêu cầu: Hai249.
+## Staging và nghiệm thu tuần 7
 
-**Chưa thể ghi toàn bộ tuần 7 Done.** Tuần 7 trong PDF là 21–25/12/2026. Có thể chuẩn bị công cụ ngay, nhưng UAT với chủ repo, tập huấn thiết bị thật, production, R2 và các API phụ thuộc cần bằng chứng thực tế.
+- [Staging](https://staging.quanlynh.id.vn) chạy frontend và backend `de2f449b664a865c4faddaae1f0ae03414a257ad` từ ngày 28/11/2026. Jenkins #8 đã kiểm thử và tải gói lên VPS. Sau khi Hải duyệt SHA, helper staging triển khai từ gói đã kiểm checksum.
+- VPS đã sao lưu có CHECKSUM, khôi phục vào cơ sở dữ liệu riêng, áp dụng migration hai lượt và kiểm tra readiness của cả hai phiên bản API trên bản khôi phục. Sau triển khai, HTTPS, đăng nhập, refresh, `/orders` và WebSocket xác thực đều đạt.
+- Trên `d56783a`, trình duyệt Chromium ở viewport 360 px gửi và theo dõi đơn QR `DH-0005`. Quyền theo phiên được giữ khi chuyển bàn và được thu hồi khi đóng phiên. Màn bar nhận phiếu mới, bắt đầu, sẵn sàng và giao món. Hai bàn thử đã được lưu trữ và món giá 0 đ dùng cho lượt kiểm thử đã được ngừng bán.
+- [PR #128](https://github.com/Trunghieu220504/restaurant-management-system/pull/128) cập nhật QR trên nhánh `feature/hai-week7-qr-ordering`. Bản `de2f449` kế thừa tối ưu JavaScript và sửa cấp mã đơn của `d56783a`, đồng thời cô lập truy vấn thanh toán theo hóa đơn. GitHub CI đạt. Jenkins #8 đạt 495 integration test, 5 architecture test và ma trận 17/17.
+- Hồi quy staging trên `de2f449` đạt HTTPS, WebSocket, QR và k6. Bài tải thu tiền đạt đủ 56 phản hồi đúng trên tám lượt, 0 lỗi, p95 thu tiền 188 ms. Các hóa đơn thử đã được đối soát về số dư 0.
+- Hướng dẫn theo vai trò, tình trạng UAT và các hạng mục vận hành còn mở được ghi trong [hồ sơ bàn giao tuần 7](hai-uat-and-handoff.md).
 
-## Đối chiếu nhiệm vụ
+## Đối chiếu GitHub
 
-| Mã | Đầu ra hiện có hoặc thêm trong nhánh này | Trạng thái nghiệm thu / còn thiếu |
+- Nhật ký GitHub của nhánh `feature/hai-week7-qr-ordering` ghi tài khoản thực hiện các lần push là **Hai249**. Tài khoản mở PR #128, author và committer của các commit bổ sung đều là **Hai249**.
+- Lịch sử tích hợp của PR kế thừa merge commit `3efe017` từ PR #119 do `Trunghieu220504` merge trên GitHub. Nhật ký hai nhánh tích hợp cũ `chore/hai-6.1-uat-integration` và `feature/hai-week7-delivery-20261124` cũng ghi hoạt động riêng của chủ repo. Các commit cập nhật tiến độ dùng danh tính Hai249 của repository local.
+
+## Việc còn mở theo phân công
+
+| Mã | Đã kiểm chứng | Điều kiện hoàn tất |
 | --- | --- | --- |
-| HAI-2.0 | Audit SSH/UFW/fail2ban/updates/certbot; readiness thực tế đạt | Staging vẫn chạy `8af7ab3`, chưa phải develop mới |
-| HAI-2.1 | Chưa có seed/reset demo đầy đủ các module | Cần dữ liệu dùng riêng, public ordering/Fulfillment hoàn chỉnh; không reset staging chung |
-| HAI-2.2 | API ảnh R2 đã có trên develop; cấu hình bucket/token và kiểm public/private nằm trong runbook | Chưa có quyền/tài khoản R2 để tạo/kiểm bucket |
-| HAI-2.3 | Smoke HTTPS 3/3 PASS; monitor ngưỡng/backup age; log rotation override | Chưa cài timer/alert receiver trên VPS |
-| HAI-2.4 | Helper pool test dùng chung cho 5 fixture; SQL local shared-memory; Linux SQL runner riêng, kiểm no-skips | Test thật và giới hạn tải ghi phần kiểm chứng; chưa yêu cầu thành viên xác nhận bàn giao |
-| HAI-2.5 | Jenkinsfile, agent, multibranch XML; migration checksum; SSH forced-command; backup trước deploy và rollback digest | Jenkins được cấu hình cục bộ; VPS cần operator cài helper, credentials và migration compatibility trước deploy; chưa diễn tập thật |
-| HAI-2.6 | Backup checksum → age → private R2, readback digest, timer daily; restore DB riêng | Chưa chạy R2/restore/API probe thật |
-| HAI-3.1 | Audit Contracts/InitialAudit/API/query/tests đã có trên develop | Chưa deploy Audit mới; producer nhạy cảm phải đủ theo module |
-| HAI-3.2 | Smoke/API test có sẵn; chưa có E2E toàn bộ login → mở ngày → gọi → xác nhận → thu tiền sau deploy | Bản staging cũ; chưa có nghiệm thu UI nghiệp vụ |
-| HAI-3.3 | Security CI hiện có; Jenkins chạy NuGet/npm/Gitleaks trước publish | Kết quả Jenkins/GitHub CI cần xem theo SHA; không báo không có lỗ hổng khi chưa quét |
-| HAI-4.1 | Nginx WebSocket và k6 50 kết nối/30 phút | Consumer/state API Fulfillment đã merge; vẫn chưa có SignalR hub trên develop |
-| HAI-4.2 | Mã hóa age, local retention 7 ngày, R2 lifecycle runbook, monitor disk/RAM | Chưa cài và thử alert thật |
-| HAI-4.3 | Bảng thiết bị/reconnect/dedup trong UAT | API start/ready/deliver đã có; còn hub, tích hợp UI và Safari iOS/Android vật lý |
-| HAI-5.1 | Mapping đủ 17 tiêu chí, parser TRX, kiểm SHA bằng chứng, FAIL/SKIP rõ ràng | Các dòng chưa đủ test không được PASS |
-| HAI-5.2 | ZAP baseline runner, report high-severity gate | Chưa chạy ZAP image được pin và nghiệm thu header/CORS/rate limit mới |
-| HAI-5.3 | Restore tool, 14 bước UAT và biểu mẫu kết quả | Cần R2 và chủ repo xác nhận UAT |
-| HAI-6.1 | Biểu mẫu UAT vòng 1, backlog có chủ/mức ưu tiên | Chưa thực hiện buổi UAT |
-| HAI-6.2 | Compose/network/volume/secret riêng cho production, mặc định loopback | Chưa có quyết định VPS production/DNS/cert/secret/license SQL |
-| HAI-6.3 | k6 hot-flow fixture runner; Lighthouse 80/90; monitor; runbook | Chưa đo tải thật, chưa restore lần 2 |
-| HAI-7.1 | Biểu mẫu UAT vòng 2 và yêu cầu bằng chứng | Chưa thực hiện với chủ repo |
-| HAI-7.2 | Checklist phát hành/rollback, pipeline chỉ deploy develop | Chưa đủ release gates; chưa merge main/gắn v1.0.0/deploy production |
-| HAI-7.3 / ALL-7.3 | Runbook + UAT/device/backlog + biểu mẫu bàn giao | Tập huấn và ký nhận cần người dùng/nhóm tham dự |
+| HAI-4.1, HAI-4.3 | Soak 50 WebSocket/30 phút đạt trên `5f63861`. `d56783a` đạt reconnect và chống phát lại âm báo, p95 khoảng 1,42 giây trong hai phiên Chromium desktop | Kiểm nối lại, âm thanh và độ trễ trên iOS/Android thật |
+| HAI-5.1 | `de2f449` đạt 17/17 tiêu chí SQL Server | Chạy lại ma trận trên SHA được chọn để phát hành |
+| HAI-5.3, HAI-6.3 | Đã sao lưu cục bộ, thử khôi phục và API probe trong lần triển khai staging. Lighthouse trên `de2f449` đạt 98/100 và k6 đạt tất cả ngưỡng p95 dưới 500 ms | Hai restore từ R2 kèm API probe và cảnh báo thực nhận |
+| HAI-6.1, HAI-7.1 | Có kết quả kỹ thuật theo từng luồng và bảng ghi nhận 14 kịch bản | Người duyệt và nhóm chạy hai vòng UAT, ghi bằng chứng và ký nhận |
+| HAI-6.2, HAI-7.2 | Đã triển khai staging từ gói Jenkins theo SHA và diễn tập khôi phục image web ở demo. Kiểm cấu hình Compose production có project, volume SQL, database và JWT issuer riêng | Môi trường production riêng, nghiệm thu, release và diễn tập rollback bản phát hành |
+| HAI-7.3 | Có hướng dẫn thao tác theo vai trò và nội dung tập huấn | Nhóm tập huấn trên staging, ghi người tham dự, phản hồi và chủ xử lý |
 
-## Phát hiện đã kiểm chứng
+## Nhật ký chuẩn bị staging trước ngày 25/11/2026
 
-- VPS `103.69.97.224`: SSH chỉ khóa, root login/password login tắt; UFW chỉ 22/80/443, SQL/API không publish; security updates và certbot timer active.
-- API/web staging cùng revision `8af7ab35612a95cb5f2a07778fccf0b3c8f31b6e`; `/health/live`, `/health/ready`, `/login` đều HTTP 200 và có HSTS. Đây là smoke bản cũ, không phải nghiệm thu bản mới.
-- User deploy không được Docker socket; NOPASSWD chỉ có helper cũ theo SHA và helper audit. Chưa có quyền noninteractive cài helper CD mới.
-- Jenkins ở Docker Desktop, container `jenkins` đã dừng; đã khởi động lại, xác thực admin bằng credential setup có sẵn, giữ nguyên security realm và authorization. Đã tạo node `restaurant-linux`, agent image .NET/Node/Docker/Gitleaks và job multibranch `restaurant-management`. Jenkinsfile đã qua linter của Jenkins thật.
-- GitHub authenticated user là `Hai249`, repository permission `push=true`, `admin=false`. Không thay đổi ruleset hoặc tự duyệt/merge PR.
+Phần nhật ký dưới đây ghi tình trạng trước khi helper Jenkins được cài và bản QR `5f63861` được triển khai.
+
+## Điểm xuất phát
+
+- Repo: https://github.com/Trunghieu220504/restaurant-management-system
+- Đã fetch GitHub và tích hợp develop `f9fbeba` (QR session access, incidents/remake, sensitive-operation audit và UI của nhóm).
+- Nhánh làm việc: `feature/hai-2.5-staging-release`.
+- Code và gói release: `b2e15e55389f373a3c6b28c5c40d6b50de9a8663`. Source ứng dụng kế thừa UAT `cee11d6`.
+- Nhánh sửa lỗi: `fix/hai-5.1-pr105-incidents-ci`, head `dfa1c3a`; đã push cùng sửa đổi lên nhánh #105.
+- Commit mới đều có author/committer **Hai249** (`hoangphihai428@gmail.com`), không thêm đồng tác giả.
+- Không tự merge vào develop/main, không đổi ruleset, không gắn tag production.
+
+## Trạng thái GitHub ở mốc chuẩn bị
+
+| PR | Nhánh | Trạng thái |
+| --- | --- | --- |
+| #105 | feature/hai-week7-delivery-20261124 | `dfa1c3a`: tất cả check chạy đều SUCCESS; publish GHCR SKIPPED; mergeable |
+| #118 | chore/hai-6.1-uat-integration | `cee11d6`: backend/SQL/web/API sync SUCCESS; đã hết xung đột, mergeable |
+| #126 | feature/hai-2.5-staging-release | `b2e15e5`: backend/SQL SUCCESS; draft xếp lớp trên #118, mergeable |
+
+PR #116/#117 đã được merge vào nhánh delivery, #119 đã merge vào UAT trên GitHub trước lượt làm việc này. #105/#118/#126 vẫn mở. Chi tiết check theo SHA: `artifacts/hai-server-candidate/github-status.json`.
+
+## Những việc vừa hoàn thành
+
+1. Sửa lỗi #105 sau upstream incidents: fixture phân quyền đăng ký IFulfillmentIncidents, giữ toàn bộ 10 ca quyền. Sửa thêm fixture SQL truyền businessContext/audit sau khi merge develop; cả check push và PR với develop đã xanh.
+2. Giải quyết xung đột #118, tích hợp develop mới; giữ luồng Sales/Billing/Outbox atomic và màn đơn đọc/ghi API thật. Tái sinh OpenAPI/client có incidents và order query.
+3. Mọi đường vào `/orders`, kể cả view=service/orderId, chuyển về màn API thật; bỏ nhánh routing còn dùng giao diện giả lập. Nối thao tác sự cố/hoàn tiền theo đơn đã chọn.
+4. Khôi phục form sự cố ở bếp, hiển thị tên món/mã đơn, sửa accessible label. Phiếu LOI được xử lý như trạng thái kết thúc để không còn trong hàng chờ khi làm lại.
+5. Cài WebSocket middleware trước JWT để trình duyệt gửi token qua query được xác thực đúng; kiểm query/header trong test và xác nhận handshake WebSocket thật qua Nginx.
+6. Nghiệm thu thật bếp báo sự cố → Kitchen không có quyền duyệt (403) → Manager duyệt làm lại → replay cùng request không tạo phiếu thứ ba → cùng phần món, hóa đơn giữ nguyên 20.000 VND, không lỗi JavaScript.
+7. HAI-5.1 đạt **16/17** tiêu chí có bằng chứng SQL. Tiêu chí 4 vẫn BLOCKED: QR đã có cấp quyền/xem menu/expiry/revocation nhưng chưa có API khách gửi món, kiểm đơn khác phiên và race gửi món–đóng phiên. Không đánh PASS bằng mock.
+8. HAI-2.5: tạo installer/helper cho đúng một SHA; build image thật, xuất 9 migration, đóng gói checksum và chuyển lên VPS. Gói không chứa secret, seed hoặc database demo.
 
 ## Kiểm chứng
 
-Backend: full suite 397 integration + 5 architecture PASS trên SQL Server 2022, 0 skipped; bổ sung 3 test còn thiếu cho matrix và chạy riêng 3/3 PASS. Ma trận đạt 14/17 dòng; đã bổ sung SQL test giao đồng thời cho API mới và 10 test HTTP phân quyền; chờ full Jenkins trên head cuối. Còn public ordering, liên kết confirm đến consumer và incident/remake. Frontend: lint 0 error/11 warning, 71/71 test PASS, production build PASS. Release tooling: 9 test PASS (bao gồm các tình huống rollback mô phỏng); Bash syntax và ShellCheck PASS; compose production config PASS với giá trị giả. Jenkinsfile validation PASS, node restaurant-linux online. [Ma trận SQL](hai-matrix-results.md) vẫn BLOCKED bởi các tiêu chí thiếu coverage. Các log thử thất bại vẫn giữ trong `artifacts/hai-week7-*`; không đổi FAIL thành PASS bằng cách bỏ test.
+- Full SQL Server 2022: **482 integration + 5 architecture = 487 PASS**, 0 fail/skip. `artifacts/hai-sql-20261125T065302Z/summary.json` và TRX. Chạy trước thay đổi middleware cuối.
+- Sau thay đổi middleware: **20/20** test hub/phân quyền/incident PASS. `artifacts/hai-week7-tools/resume-targeted-final.log`. Không cộng hai lượt thành một lượt full suite.
+- Web cuối: lint **0 error, 2 warning** có sẵn; format PASS; **82/82 unit PASS**, production build PASS; **41/41 production browser fixture smoke PASS**. `artifacts/hai-week7-tools/server-web-checks.log`.
+- E2E thật gọi món/bếp/bar/giao/thu/đóng đơn PASS sau tích hợp. E2E incidents/remake PASS sau sửa form và WebSocket; `artifacts/hai-week7-tools/incident-verified.log`, `artifacts/hai-live-demo/incident-remake-evidence.json`.
+- Helper staging: Bash/ShellCheck PASS; **6/6** kiểm thử control flow trong container riêng: plan, success, migration/start/readiness failure và manifest bị sửa. `artifacts/hai-week7-tools/staging-helper-tests-final.log`. Đây chưa phải diễn tập rollback trên VPS.
+- Tool release cũ: **9/9** PASS trong Linux, Bash/ShellCheck toàn bộ scripts PASS; `artifacts/hai-week7-tools/release-tools-linux-final.log`. Lượt chạy nhầm shell tests trên Windows thất bại do môi trường, log được giữ.
+- Matrix máy đọc: `artifacts/hai-live-demo/matrix-resume.json`; báo cáo repo: `docs/release/hai-matrix-results.md`.
+- Soak 50 kết nối/30 phút, backup local và ZAP cũ thuộc bằng chứng lượt trước, **không chạy lại trên VPS mới** và không coi là nghiệm thu bản release hiện tại.
 
-Tài liệu vận hành: [runbook](hai-operations-runbook.md). Nghiệm thu/bàn giao: [UAT và backlog](hai-uat-and-handoff.md). Mapping máy đọc: `scripts/release/matrix.json`.
+## Server thật — đã xác minh và đã chuẩn bị
 
-## Cập nhật tích hợp Fulfillment
+- SSH khóa vào `deploy@103.69.97.224` thành công. Firewall 22/80/443, SQL/API không mở trực tiếp. Disk còn khoảng 28 GB khi kiểm.
+- URL đích: **https://staging.quanlynh.id.vn**. API/web hiện vẫn `8af7ab35612a95cb5f2a07778fccf0b3c8f31b6e`, `/health/ready` Healthy. Chưa thay runtime hoặc dữ liệu.
+- `sudo -n true` trả **sudo: a password is required**. Các NOPASSWD helper hiện có chỉ pin SHA cũ; không dùng chúng để deploy SHA mới.
+- Gói đã tải lên: `/home/deploy/restaurant-release-b2e15e55389f373a3c6b28c5c40d6b50de9a8663`.
+- Archive image: 213196503 bytes (~203 MiB). **Toàn bộ checksum đã OK trên chính VPS** sau upload.
+- API image ID: `sha256:598cd76e073c9b4fa276b440fa5c1074d2ca191ba1a75fe1e13302e81970dc3f`.
+- Web image ID: `sha256:dcb7a5badd953c4e1db4ebf519414f2ec998d9ded6eebaa6786e5b47f48d3f16`.
+- SHA256 manifest: `49bd21c0d408e807fb1cf5ab9863fe03225319fcb227a226427c7274151af96d`.
+- SHA256 installer: `a23cb2f7043a33b028f3c37d7d7f5b6e907221e95306a665a6b507cbc502d3ee`.
+- Gói và lệnh operator tại `artifacts/hai-server-candidate/`; bản hướng dẫn `docs/release/hai-staging-candidate.md`.
 
-Sau khi merge cf40c97, phát hiện endpoint deliver/cancel dùng cùng kiểm tra role bếp/bar: Staff bị chặn giao món, còn bếp lại được gọi giao/hủy. Đã đổi sang permission claim theo từng hành động: prepare theo trạm; deliver theo fulfillment.portions.serve; cancel theo fulfillment.incidents.approve. Thêm 10 ca HTTP và SQL tranh chấp giao món; nhóm Fulfillment chạy thật 34/34 PASS, 0 skipped. Không thay hình dạng request/response.
+## Quy trình cài thủ công ở mốc chuẩn bị
 
-Jenkins build #1 trên c29e2a5 đã SUCCESS: full SQL/web/security/migration; NuGet 0 finding, npm 7 finding nhưng 0 High/Critical, Gitleaks sạch; bundle có 9 module. Nhánh feature bỏ qua publish/deploy đúng thiết kế. Build mới sau tích hợp sẽ là bằng chứng cuối.
+Sau SSH vào VPS bằng khóa đã dùng, chạy:
 
-Backup/restore đã thử trong container SQL Server riêng: BACKUP/CHECKSUM/VERIFYONLY → age → rclone local alias → đọc lại checksum → giải mã → restore database mới → CHECKDB → sentinel đúng 1 dòng, PASS. Đây là kiểm thử local, không phải R2 thật hoặc API probe. Hai container test được xóa sau chạy; không tác động VPS.
+```bash
+bash ~/restaurant-install-b2e15e5.sh
+```
+
+Lệnh kiểm checksum installer rồi yêu cầu sudo trong phiên SSH. **Nhập mật khẩu sudo trên VPS, không gửi mật khẩu trong chat.** Installer sao chép và kiểm gói tại root-owned path, nạp image, chạy preflight rồi cấp wrapper zero-argument chỉ cho SHA này; **không tự deploy khi cài**.
+
+Sau khi operator báo cài thành công, tiếp tục bằng wrapper `sudo -n /usr/local/sbin/restaurant-deploy-approved-b2e15e55389f373a3c6b28c5c40d6b50de9a8663` cho bản đã được duyệt. Kế hoạch của nhóm yêu cầu staging từ develop; cần review/merge các PR phù hợp trước phát hành thường lệ, không vượt branch protection. Nếu SHA phát hành thay đổi sau merge thì build/xuất gói mới đúng SHA, không đổi nhãn gói cũ.
+
+Khi apply: backup/VERIFYONLY → restore DB scratch → migration hai lượt → old/new API readiness → dừng writer → migration live → thay API/web/Nginx → pin proxy IP thực tế → smoke/revision; lỗi sau dừng writer sẽ khôi phục image cũ/config proxy và vẫn báo FAILED. SQL container/volume giữ nguyên; không seed/reset/restore đè dữ liệu.
+
+## Danh sách công việc ở mốc chuẩn bị
+
+1. Operator cài helper bằng sudo; review/merge release theo quy trình nhóm rồi triển khai staging thật đúng SHA. Sau deploy kiểm browser HTTPS bằng tài khoản staging: login/refresh, gọi món, confirm, bếp/bar, giao, thu tiền/đóng đơn, incidents/remake và WebSocket. Không dùng tài khoản/dữ liệu demo để kết luận server đã hoàn tất.
+2. Phối hợp Hiếu hoàn thiện public guest ordering HIE-5.1; thêm test expiry/revocation/cross-session/race trước khi tăng matrix lên17/17.
+3. Jenkins controller đã được khởi động lại sau khi thấy container Exited; giữ cấu hình/credential. Chưa công bố build Jenkins mới thành công cho SHA release này. Cần GHCR write:packages, khóa CI forced-command/known_hosts và deploy từ develop để hoàn tất CD tự động; chuyển image qua SSH lần này không thay bằng chứng CD.
+4. R2 public images/private backups, tokens/CORS/lifecycle, age/rclone/timer/alert trên VPS; hai restore offsite có API probe vẫn chưa xong. Backup trong helper lần này là local.
+5. UAT đủ14 kịch bản hai vòng, iOS/Android thật, SignalR qua VPS/Cloudflare, perf/Lighthouse/cảnh báo thật; chốt production/DNS/cert/secret/admin/license, tập huấn và ký nhận. Chưa main/v1.0.0/production.
+
+**Chưa hoàn tất toàn bộ bảy tuần và chưa ghi server mới chạy thành công.** Bản local chỉ phục vụ kiểm thử kỹ thuật; mục tiêu bàn giao là hệ thống thật trên VPS.
+
+## File thay đổi từ điểm nghỉ 31368b7 đến gói release
+
+A = thêm, M = sửa. Danh sách gồm phần code của nhóm được tích hợp, không tuyên bố Hải viết toàn bộ.
+
+```text
+A	docs/api/fulfillment-incidents.md
+M	docs/api/fulfillment-realtime.md
+A	docs/api/guest-session-access.md
+M	docs/api/openapi.json
+A	docs/api/sensitive-operation-audit.md
+M	docs/release/hai-matrix-results.md
+A	docs/release/hai-staging-candidate.md
+M	docs/release/hai-week7-status.md
+A	docs/release/hai-zap-baseline.md
+M	infra/nginx/backend.https.conf
+M	infra/nginx/production.conf
+M	scripts/Export-FulfillmentOpenApi.cs
+A	scripts/Export-GuestMenuOpenApi.cs
+A	scripts/release/install-staging-candidate.sh
+M	scripts/release/matrix.json
+A	scripts/release/staging-candidate.sh
+A	scripts/release/staging_candidate_checks.py
+M	src/Host/Restaurant.Api/Configuration/AuthenticationConfiguration.cs
+A	src/Host/Restaurant.Api/Configuration/GuestMenuAccess.cs
+A	src/Host/Restaurant.Api/Modules/BusinessAudit.cs
+A	src/Host/Restaurant.Api/Modules/FulfillmentIncidentContext.cs
+M	src/Host/Restaurant.Api/Modules/ModuleRegistration.cs
+M	src/Host/Restaurant.Api/Modules/OperationsSnapshot.cs
+M	src/Host/Restaurant.Api/Modules/OrderClosing.cs
+M	src/Host/Restaurant.Api/Program.cs
+M	src/Host/Restaurant.Api/packages.lock.json
+A	src/Modules/Billing/Restaurant.Modules.Billing.Infrastructure/IncidentObligation.cs
+M	src/Modules/Catalog/Restaurant.Modules.Catalog.Presentation/CatalogEndpoints.cs
+A	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Application/IncidentContracts.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Domain/FulfillmentEntities.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Domain/FulfillmentRules.cs
+A	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/FulfillmentIncidents.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/FulfillmentModule.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/FulfillmentService.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Infrastructure/Messaging/BatchConfirmedHandler.cs
+M	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Presentation/FulfillmentEndpoints.cs
+A	src/Modules/Fulfillment/Restaurant.Modules.Fulfillment.Presentation/IncidentEndpoints.cs
+M	src/Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Accounts/AccountManagement.cs
+M	src/Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Authentication/IdentityAuthentication.cs
+M	src/Modules/Identity/Restaurant.Modules.Identity.Infrastructure/Restaurant.Modules.Identity.Infrastructure.csproj
+M	src/Modules/Identity/Restaurant.Modules.Identity.Infrastructure/packages.lock.json
+M	src/Modules/Sales/Restaurant.Modules.Sales.Infrastructure/EfOrderStore.cs
+M	src/Modules/Sales/Restaurant.Modules.Sales.Infrastructure/StaffPortions.cs
+M	src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/GuestAccess.cs
+M	src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/Restaurant.Modules.Seating.Infrastructure.csproj
+M	src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/SeatingCatalog.cs
+M	src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/SeatingSessions.cs
+M	src/Modules/Seating/Restaurant.Modules.Seating.Infrastructure/packages.lock.json
+A	src/Shared/Restaurant.Shared.Contracts/BusinessAudit.cs
+A	tests/Restaurant.IntegrationTests/BusinessAuditSqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/BusinessAuditTestSupport.cs
+M	tests/Restaurant.IntegrationTests/CatalogEndpointTests.cs
+M	tests/Restaurant.IntegrationTests/DayLedgerSqlFixture.cs
+A	tests/Restaurant.IntegrationTests/FulfillmentIncidentSqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/FulfillmentIncidentTests.cs
+M	tests/Restaurant.IntegrationTests/FulfillmentPermissionTests.cs
+M	tests/Restaurant.IntegrationTests/FulfillmentSqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/GuestMenuAccessTests.cs
+M	tests/Restaurant.IntegrationTests/IdentityAccountManagementSqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/IdentityBusinessAuditTests.cs
+M	tests/Restaurant.IntegrationTests/IdentityRefreshTokenSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/IdentitySqlServerAuthenticationTests.cs
+M	tests/Restaurant.IntegrationTests/IdentitySqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/IncidentEndpointTests.cs
+M	tests/Restaurant.IntegrationTests/OperationsHubTests.cs
+M	tests/Restaurant.IntegrationTests/OperationsSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/OutboxInboxSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/PhuongWeekFourSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/PhuongWeekThreeSqlServerTests.cs
+A	tests/Restaurant.IntegrationTests/SeatingBusinessAuditTests.cs
+M	tests/Restaurant.IntegrationTests/SeatingServiceSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/SeatingSessionLookupSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/SeatingSqlServerTests.cs
+M	tests/Restaurant.IntegrationTests/packages.lock.json
+A	web/e2e-hai-live/incident-remake.spec.ts
+A	web/e2e-production/guest-session-access.spec.ts
+M	web/e2e-production/week-three-orders.spec.ts
+M	web/src/app/(dashboard)/inventory/page.tsx
+M	web/src/app/(dashboard)/kitchen/page.tsx
+M	web/src/app/(dashboard)/orders/page.tsx
+M	web/src/app/globals.css
+A	web/src/features/billing/bill-documents.tsx
+A	web/src/features/billing/refund-actions.test.ts
+A	web/src/features/billing/refund-actions.ts
+A	web/src/features/billing/refund-panel.tsx
+M	web/src/features/guest/guest-access.tsx
+M	web/src/features/guest/guest-menu.tsx
+A	web/src/features/inventory/api.test.ts
+A	web/src/features/inventory/api.ts
+A	web/src/features/inventory/stock-adjustment.tsx
+M	web/src/features/kitchen/api.ts
+A	web/src/features/kitchen/incident-panel.tsx
+A	web/src/features/kitchen/kitchen-incidents.tsx
+M	web/src/features/kitchen/kitchen-live.tsx
+A	web/src/features/operations/operation-request.ts
+M	web/src/features/operations/week-one-demo.tsx
+M	web/src/features/orders/live-orders.tsx
+A	web/src/features/orders/service-live.tsx
+M	web/src/features/orders/staff-orders.tsx
+M	web/src/features/sales-day/api.test.ts
+M	web/src/features/sales-day/api.ts
+M	web/src/features/sales-day/demo-api.ts
+M	web/src/features/sales-day/sales-day-screen.tsx
+M	web/src/features/sales-day/sales-day.module.css
+M	web/src/lib/api/generated/schema.d.ts
+```
+
+Giữ stash cũ `Hai249: pending isolated demo seed and staging hardening`, không pop mù. Checkout riêng sửa #105 nằm trong `artifacts/hai-pr105-review`; branch fix đã push. Bản tiến độ trước lượt này được giữ tại `artifacts/hai-server-candidate/progress-before-resume.md`. Hai file tiến độ được đồng bộ local; tài liệu checkpoint này chưa commit/push, source release vẫn pin `b2e15e5`.
+
+## Mốc Jenkins trước khi cài helper CI — 25/11/2026
+
+- Jenkins hiện có đã khởi động tại http://localhost:8080, restart policy unless-stopped; agent restaurant-linux online. Không cài bản Jenkins trùng hoặc xóa volume cấu hình.
+- Tạo job riêng restaurant-deployment/staging; Jenkins validate pipeline thành công. Credential SSH riêng nằm trong folder đó, known_hosts lấy từ host key đã tin cậy. Không lưu mật khẩu sudo vào Jenkins.
+- Pipeline chuẩn bị checkout develop hoặc SHA duyệt → SQL/backend → web lint/format/unit/build → audit/secret gate → migration/image bất biến → SSH upload/deploy → HTTPS smoke. Chưa có lượt CD thành công; chưa bật được quyền remote cho khóa CI.
+- Fetch mới: develop e71521d, #105 đã merge. Đã tích hợp vào nhánh fix/hai-2.5-jenkins-auto-deploy; commit 8470387, tác giả/committer Hai249, đã push.
+- Tìm được lỗi installer trước: Compose trên VPS trả networks.internal=null; code cũ kiểm !=null nên preflight dừng. Đổi sang has("internal"), bổ sung test hồi quy và thông báo lỗi không in secret.
+- Linux release tests 12/12 và helper rollback checks 6/6 PASS; Bash/ShellCheck PASS. Đây là test công cụ, không thay kiểm chứng deploy thật.
+- Bộ xét duyệt tự động từ chối bước cài khóa CI + helper root-owned + sudo NOPASSWD có argument wildcard trên VPS; cần Hải đồng ý rõ phạm vi quyền. Không thực hiện bootstrap, không vượt chặn bằng đường khác.
+- Bản quyền cần duyệt: artifacts/hai-jenkins-cd/QUYEN-CAN-DUYET.txt. Bộ cài local: artifacts/hai-jenkins-cd/bootstrap/install-ci.sh và SHA256SUMS. Chưa upload/cài bootstrap này lên VPS.
+- Quyền dự kiến chỉ cho upload/deploy SHA, không shell/SFTP/forwarding; helper xác minh SHA current develop hoặc root-approved. Helper có thể dùng Docker, backup, migration staging và đổi API/web/Nginx/rollback; lỗi có thể ảnh hưởng downtime/schema staging. Không mở quyền production.
+- Chờ đồng ý cho quyền trên; sau đó cài bootstrap, chạy pipeline trên revision đã duyệt và xác minh frontend/backend thật qua HTTPS. Server mới CHƯA được tuyên bố deploy thành công.

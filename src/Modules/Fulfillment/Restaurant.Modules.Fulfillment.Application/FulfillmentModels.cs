@@ -4,7 +4,14 @@ namespace Restaurant.Modules.Fulfillment.Application;
 
 public sealed record TicketView(long Id, long PortionId, string Station, string Status, DateTime CreatedAt,
     Guid? StartedBy, DateTime? StartedAt, Guid? FinishedBy, DateTime? FinishedAt, Guid? DeliveredBy, DateTime? DeliveredAt,
-    string Version);
+    string Version)
+{
+    public string? DishName { get; init; }
+    public string? VariantName { get; init; }
+    public IReadOnlyList<string>? OptionNames { get; init; }
+    public string? Note { get; init; }
+    public string? OrderCode { get; init; }
+}
 
 public sealed record TicketCommand(string Version, Guid RequestKey, string Station);
 

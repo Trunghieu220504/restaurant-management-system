@@ -34,14 +34,31 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
                 .Select(x => (long?)x.Id)
                 .SingleOrDefaultAsync(ct);
 
+        public async Task<GuestBatchReceipt?> FindGuestBatchAsync(GuestSalesSession session, Guid requestKey, CancellationToken ct)
+        {
+            var previous = await (from batch in db.Batches.AsNoTracking()
+                                  join order in db.Orders on batch.DonHangId equals order.Id
+                                  where batch.KhoaYeuCau == requestKey && batch.QuyenTruyCapKhachId == session.GrantId &&
+                                      order.PhienSuDungId == session.SessionId
+                                  select new { batch.Id, batch.TrangThai }).SingleOrDefaultAsync(ct);
+            return previous is null ? null : GuestBatchReceipt.From(previous.Id, previous.TrangThai);
+        }
+
         public async Task<string> NextOrderCodeAsync(CancellationToken ct)
         {
-            var suffix = await db.Orders.AsNoTracking()
-                .Where(x => x.MaDon.StartsWith("DH-"))
-                .Select(x => x.MaDon)
-                .ToListAsync(ct);
-            var next = suffix.Select(x => int.TryParse(x[3..], out var value) ? value : 0).DefaultIfEmpty().Max() + 1;
-            return $"DH-{next:D4}";
+            // The transaction keeps this lock until the new order and its audit entry commit.
+            await db.Database.ExecuteSqlRawAsync("""
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock @Resource=N'restaurant:sales:order-code',
+                    @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+                IF @result < 0 THROW 51000, 'Could not allocate an order code', 1;
+                """, ct);
+            var last = await db.Database.SqlQueryRaw<long>("""
+                SELECT ISNULL(MAX(TRY_CONVERT(bigint, SUBSTRING(MaDon, 4, 29))), 0) AS [Value]
+                FROM [sales].[DonHang]
+                WHERE MaDon LIKE 'DH-%'
+                """).SingleAsync(ct);
+            return FormattableString.Invariant($"DH-{checked(last + 1):D4}");
         }
 
         public void Add(DonHang order) => db.Orders.Add(order);
@@ -103,6 +120,10 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_DonHang_PhienMo", StringComparison.OrdinalIgnoreCase) == true)
             {
                 throw new StoreConflictException(StoreConflict.OpenOrderForSession, ex);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_DonHang_MaDon", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                throw new StoreConflictException(StoreConflict.ConcurrentChange, ex);
             }
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UX_Outbox_SuKien", StringComparison.OrdinalIgnoreCase) == true)
             {
