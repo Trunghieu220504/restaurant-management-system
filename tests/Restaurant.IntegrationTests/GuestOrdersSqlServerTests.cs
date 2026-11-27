@@ -13,6 +13,7 @@ using Restaurant.Modules.Catalog.Application;
 using Restaurant.Modules.Identity.Infrastructure.Persistence;
 using Restaurant.Modules.Sales.Application;
 using Restaurant.Modules.Sales.Infrastructure.Persistence;
+using Restaurant.Modules.SalesDay.Application;
 using Restaurant.Modules.Seating.Application;
 using Restaurant.Modules.Seating.Infrastructure.Persistence;
 using Xunit;
@@ -57,6 +58,27 @@ public sealed class GuestOrdersSqlServerTests : IAsyncLifetime
     {
         if (factory is not null) await factory.DisposeAsync();
         if (configuration is not null) await DemoSeedCommand.ExecuteAsync("--reset-demo", configuration, "Testing");
+    }
+
+    [SqlServerFact]
+    public async Task Concurrent_takeaway_orders_receive_distinct_order_codes()
+    {
+        await using var setup = Services.CreateAsyncScope();
+        var day = (await setup.ServiceProvider.GetRequiredService<IBusinessDays>().CurrentAsync(default))!;
+        var command = new CreateOrderCommand("MANG_DI", null, day.Id, null, manager);
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requests = Enumerable.Range(0, 8).Select(async _ =>
+        {
+            await using var scope = Services.CreateAsyncScope();
+            await start.Task;
+            return await scope.ServiceProvider.GetRequiredService<IOrderCommands>().CreateOrderAsync(command, default);
+        }).ToArray();
+
+        start.SetResult();
+        var results = await Task.WhenAll(requests);
+        Assert.All(results, result => Assert.Null(result.Error));
+        var codes = results.Select(result => result.Value!.Code).Order().ToArray();
+        Assert.Equal(Enumerable.Range(1, 8).Select(number => $"DH-{number:D4}"), codes);
     }
 
     [SqlServerFact]

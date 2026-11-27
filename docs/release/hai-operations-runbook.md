@@ -76,7 +76,7 @@ node scripts/hai-signalr-soak.mjs
 
 Kết quả nằm ở `artifacts/release/staging-signalr-30min.json`. Runner dùng WebSocket, đăng ký nhận sự kiện, đọc snapshot và xác thực lại khi kết nối lại. Đo p95 sự kiện đến UI ≤2 giây và kiểm âm thanh trên thiết bị thật nằm trong kịch bản nghiệm thu riêng.
 
-`hot-flows.k6.js` yêu cầu `FLOW_FILE` riêng, `ALLOW_TEST_WRITES=true`, `BASE_URL`, `LOAD_USERNAME`, `LOAD_PASSWORD`. Fixture mô tả các bước login/order/confirm/payment đúng API của commit đang test, các bước cleanup/đóng đơn nếu có; không dùng dữ liệu kinh doanh thật. Mỗi bước có `operation`, `path`, `method`, `body`, `statuses`, `extract`; giá trị body `$name` lấy từ biến, `{name}` trong path lấy từ response trước. Không có fixture mẫu giả làm thật. Ngưỡng từng thao tác p95 <500 ms và không request sai; tải mặc định 2 VU/1 phút cần điều chỉnh theo rate limit và tài khoản riêng.
+`hot-flows.k6.js` dùng `FLOW_FILE`, `ALLOW_TEST_WRITES=true`, `BASE_URL`, `LOAD_USERNAME` và `LOAD_PASSWORD`. Chạy trên HTTPS với dữ liệu thử riêng hoặc trên demo `http://localhost:3187` bằng `demo.staff`. Fixture mô tả các bước đăng nhập, tạo đơn, xác nhận, thu tiền và dọn dữ liệu thử. Mỗi bước có `operation`, `path`, `method`, `body`, `statuses` và `extract`. Giá trị body `$name` lấy từ biến. Giá trị `{name}` trong path lấy từ response trước. Runner mặc định chạy 2 người dùng ảo, mỗi người 4 lượt, tối đa 1 phút. Ngưỡng cho từng thao tác là p95 dưới 500 ms và mọi phản hồi khớp trạng thái mong đợi.
 
 Lighthouse: cài LHCI đã khóa phiên bản trên agent, đặt `LIGHTHOUSE_QR_URL` là trang QR hoạt động rồi `lhci autorun --config=scripts/release/lighthouserc.cjs`. Ba lần chạy mobile 360px; performance ≥80, accessibility ≥90. Token trong URL QR và báo cáo phải giữ riêng, không upload public.
 

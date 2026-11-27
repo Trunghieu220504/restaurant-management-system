@@ -8,11 +8,11 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 
 | # | Kịch bản | Kiểm thử kỹ thuật | Vòng 1 | Vòng 2 |
 | --- | --- | --- | --- | --- |
-| 1 | Mở ngày và chặn lần mở thứ hai | Chờ ngày thử riêng | Chờ | Chờ |
-| 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | Đã kiểm một món QR tại bar trên VPS | Chờ | Chờ |
+| 1 | Mở ngày và chặn lần mở thứ hai | Demo từ chối lần mở thứ hai với 409 và giữ nguyên ngày đang mở | Chờ | Chờ |
+| 2 | Mở bàn, 3 món có size/topping, xác nhận, bếp/bar đúng trạm và âm thanh | Đã kiểm một món QR tại bar trên VPS. Luồng demo có bếp, bar và topping đã chạy lại | Chờ | Chờ |
 | 3 | QR gửi đợt, nhân viên xác nhận, khách theo dõi, đóng phiên thu hồi quyền | **Đạt trên staging**, trình duyệt Chromium 360 px và API thật | Chờ | Chờ |
 | 4 | Hoàn thành và giao từng phần, nối lại và kiểm âm thanh | Đã giao một phần QR trên VPS | Chờ | Chờ |
-| 5 | Thu nhiều lần, hai phương thức, tiền thừa và chặn thu dư | Ma trận SQL đạt phần thu đồng thời | Chờ | Chờ |
+| 5 | Thu nhiều lần, hai phương thức, tiền thừa và chặn thu dư | Ma trận SQL đạt phần thu đồng thời. Demo đã chạy thu tiền và đóng đơn trên SQL thật | Chờ | Chờ |
 | 6 | Gọi thêm sau thu đủ phát sinh số còn phải thu | Chờ chạy nghiệp vụ | Chờ | Chờ |
 | 7 | Miễn thu, đóng đơn, in chứng từ | Đã đóng đơn QR giá 0 đ trên VPS | Chờ | Chờ |
 | 8 | Báo sự cố, duyệt làm lại, doanh thu không tăng | Có ca trình duyệt dùng API thật trên demo độc lập | Chờ | Chờ |
@@ -20,10 +20,12 @@ Mỗi lần chạy phải lưu commit/digest API & web, môi trường, người
 | 10 | Chuyển bàn giữ quyền QR theo phiên | **Đạt trên staging**, giữ quyền xem đợt và hiển thị tên bàn đích | Chờ | Chờ |
 | 11 | Nhập kho, đếm bất thường, điều chỉnh có lý do | Chờ bộ dữ liệu kho thử | Chờ | Chờ |
 | 12 | Chốt bị chặn, chốt đồng thời, hủy chốt và tồn đầu ngày sau | Ma trận SQL đạt các ca đồng thời và rollback | Chờ | Chờ |
-| 13 | Phân quyền báo cáo, bếp/bar và Admin | Staff xem báo cáo và Kitchen bắt đầu phiếu bar đều nhận 403 trên VPS. Còn ca Admin | Chờ | Chờ |
-| 14 | Đổi mật khẩu thu hồi phiên và giới hạn đăng nhập | Đã kiểm refresh qua HTTPS. Còn phần đổi mật khẩu và hai IP | Chờ | Chờ |
+| 13 | Phân quyền báo cáo, bếp/bar và Admin | Staff xem báo cáo và Kitchen bắt đầu phiếu bar đều nhận 403 trên VPS. Admin nhận 403 khi đọc sơ đồ bàn trên demo | Chờ | Chờ |
+| 14 | Đổi mật khẩu thu hồi phiên và giới hạn đăng nhập | Refresh HTTPS đạt. Đổi mật khẩu ở phiên thứ nhất làm access token và refresh token của phiên thứ hai trả 401 trên demo | Chờ | Chờ |
 
 Lượt QR ngày 25/11 tạo `DH-0002` với món 0 đ và hai bàn tách khỏi bàn người dùng đang thử. Sau khi giao món, đơn và phiên đã đóng. Hai bàn được lưu trữ và món thử ngừng bán. Bằng chứng kỹ thuật được lưu trong `artifacts/release/staging-qr-uat.json`.
+
+Hai luồng Playwright trên demo Docker dùng API và SQL Server thật đã chạy lại với ứng viên frontend, gồm gọi món đến đóng đơn và báo sự cố đến duyệt làm lại mà doanh thu không tăng. Ca đổi mật khẩu đã vô hiệu hóa tài khoản thử khi kết thúc. Bằng chứng gồm `artifacts/hai-live-demo/core-flow-evidence.json` và `artifacts/release/demo-identity-salesday-uat.json`.
 
 ## Ma trận thiết bị và realtime
 
@@ -32,12 +34,16 @@ Lượt QR ngày 25/11 tạo `DH-0002` với món 0 đ và hai bàn tách khỏi
 | Chrome desktop | 768px, 1024px | Nhân viên/bếp/bar, bật âm thanh, reconnect, dedup | HTTPS login, refresh, màn đơn và WebSocket đã đạt trên VPS |
 | Safari iOS thiết bị thật | 360px trở lên | QR, chặn autoplay, resume, dấu hiệu thị giác | CẦN THIẾT BỊ |
 | Chrome Android thiết bị thật | 360px trở lên | QR, autoplay, nền/foreground, mất mạng | CẦN THIẾT BỊ |
-| Hai trình duyệt | Theo màn | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | Chờ đo đồng thời hai vai trò |
+| Hai trình duyệt | Theo màn | p95 sự kiện đến UI ≤2 giây, kiểm không phát lại âm thanh | Trên VPS, bốn mẫu từ gọi API đến khi màn bar đổi là 2.018, 1.462, 930 và 932 ms. Cần thêm mẫu để đánh giá p95 |
 | Lighthouse QR mobile | 360 × 800 | Hiệu năng ≥80, truy cập ≥90 | Hai lượt đo trên `5f63861` có trung vị hiệu năng 76 và 75, truy cập 100. Trung vị thời gian chặn luồng chính ở lượt đo chi tiết là 1.396 ms |
 
 Ứng viên frontend sau đó tải bộ xác thực và thông báo của nhân viên theo nhu cầu, đồng thời dừng tải trước trang đăng nhập ở luồng QR. So sánh ba lần cho mỗi image trên cùng demo Docker giảm dung lượng JavaScript trung vị từ 195.476 byte xuống 173.453 byte, khoảng 11%. Điểm hiệu năng demo từ 67 lên 68 và điểm truy cập vẫn 100. Cần đo lại trên staging trước khi nghiệm thu ngưỡng 80.
 
 Đo API đọc trên staging với hai luồng, 40 mẫu mỗi endpoint, không có lỗi HTTP. p95 là 93 ms cho thực đơn công khai, 54 ms cho sơ đồ bàn, 70 ms cho đơn đang mở và 62 ms cho snapshot phục vụ. Bằng chứng nằm tại `artifacts/release/staging-read-performance.json`. Đo tải luồng ghi gọi món, xác nhận và thu tiền còn mở.
+
+Ngày 27/11, k6 trong demo ghi nhận một HTTP 409 khi tạo đơn đồng thời. Bản sửa cấp mã đơn dưới khóa cấp phát của SQL Server và tính mã kế tiếp tại cơ sở dữ liệu. Ca hồi quy tám yêu cầu đồng thời đạt cùng 33 ca Sales/QR liên quan. Lượt đo sau sửa chạy đủ tám lần với 56/56 phản hồi đúng. Trong lượt đó, p95 xác nhận khoảng 2,86 giây và thu tiền 743 ms, vượt ngân sách 500 ms. Kết quả ghi tại `artifacts/release/demo-k6-summary.json`. Đo nghiệm thu luồng ghi trên staging còn mở.
+
+Lượt thử độc lập `DH-0004` lặp lại thành công luồng QR và chuyển bàn. Màn bar 1.024 × 768 nhận đủ phiếu mới, bắt đầu, sẵn sàng và loại phiếu khỏi hàng đợi sau khi giao. Đơn 0 đ, phiên đóng và dữ liệu thử đã được dọn bằng thao tác lưu trữ hoặc ngừng bán. Bằng chứng nằm tại `artifacts/release/staging-qr-uat-realtime.json`.
 
 ## Thao tác nghiệm thu theo vai trò
 
@@ -55,7 +61,7 @@ S1: mất dữ liệu/an ninh/ngừng toàn bộ. S2: chặn luồng chính ho�
 
 | ID | Loại | Mức/ưu tiên | Việc | Chủ | Điều kiện đóng |
 | --- | --- | --- | --- | --- | --- |
-| OPS-01 | Hạ tầng | P0 | Diễn tập rollback trong môi trường riêng | Hải/operator VPS | Helper triển khai staging đã chạy thành công. Cần log từ một lượt quay lui thật |
+| OPS-01 | Hạ tầng | P0 | Diễn tập rollback khi nghiệm thu release | Hải/operator VPS | Demo tạo lỗi web 502, khôi phục image ban đầu và kiểm `/login` cùng `/health/ready` đều 200. SQL giữ đúng container. Sáu ca helper trong container cô lập đều đạt. Lượt rollback release thực tế còn chờ |
 | OPS-02 | Hạ tầng | P0 | R2 public images/private backup, token, lifecycle, hai restore/API probe | Hải/chủ tài khoản R2 | Upload/read/deny + hai drill thật |
 | OPS-03 | Hạ tầng | P0 | Chọn VPS production, DNS/cert/secret riêng và license SQL | Chủ repo/Hải | Production readiness + smoke |
 | QA-01 | Nghiệm thu | P0 | 14 UAT cả hai vòng, thiết bị thật, ký nhận | Hải/chủ repo/nhóm | Bằng chứng và không còn S1/S2 |

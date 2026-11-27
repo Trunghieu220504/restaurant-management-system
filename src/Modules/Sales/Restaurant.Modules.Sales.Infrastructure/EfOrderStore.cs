@@ -46,12 +46,19 @@ internal sealed class EfOrderStore(SalesDbContext db, IBusinessAudit audit) : IO
 
         public async Task<string> NextOrderCodeAsync(CancellationToken ct)
         {
-            var suffix = await db.Orders.AsNoTracking()
-                .Where(x => x.MaDon.StartsWith("DH-"))
-                .Select(x => x.MaDon)
-                .ToListAsync(ct);
-            var next = suffix.Select(x => int.TryParse(x[3..], out var value) ? value : 0).DefaultIfEmpty().Max() + 1;
-            return $"DH-{next:D4}";
+            // The transaction keeps this lock until the new order and its audit entry commit.
+            await db.Database.ExecuteSqlRawAsync("""
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock @Resource=N'restaurant:sales:order-code',
+                    @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+                IF @result < 0 THROW 51000, 'Could not allocate an order code', 1;
+                """, ct);
+            var last = await db.Database.SqlQueryRaw<long>("""
+                SELECT ISNULL(MAX(TRY_CONVERT(bigint, SUBSTRING(MaDon, 4, 29))), 0) AS [Value]
+                FROM [sales].[DonHang]
+                WHERE MaDon LIKE 'DH-%'
+                """).SingleAsync(ct);
+            return FormattableString.Invariant($"DH-{checked(last + 1):D4}");
         }
 
         public void Add(DonHang order) => db.Orders.Add(order);
