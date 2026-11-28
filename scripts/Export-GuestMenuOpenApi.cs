@@ -22,7 +22,22 @@ var actual = JsonNode.Parse(await client.GetStringAsync("/openapi/v1.json"))!.As
 foreach (var name in new[] { "PublicMenu", "ProblemDetails" })
     if (!JsonNode.DeepEquals(committed["components"]!["schemas"]![name], actual["components"]!["schemas"]![name]))
         throw new InvalidOperationException("Shared schema changed: " + name);
-committed["paths"]!["/api/public/menu"] = actual["paths"]!["/api/public/menu"]!.DeepClone();
+var menu = actual["paths"]!["/api/public/menu"]!.DeepClone();
+var menuOperation = menu["get"]!;
+menuOperation["description"] = "Public read-only menu. When a Guest credential is supplied, it must be valid for the active session.";
+menuOperation["responses"]!["401"] ??= new JsonObject { ["description"] = "Unauthorized" };
+menuOperation["responses"]!["429"] ??= new JsonObject { ["description"] = "Too Many Requests" };
+committed["paths"]!["/api/public/menu"] = menu;
+var session = actual["paths"]!["/api/public/guest-access/session"]!.DeepClone();
+session["get"]!["description"] = "Requires the session-scoped Authorization: Guest <token> header.";
+session["get"]!["responses"]!["401"] ??= new JsonObject { ["description"] = "Unauthorized" };
+session["get"]!["responses"]!["429"] ??= new JsonObject { ["description"] = "Too Many Requests" };
+committed["paths"]!["/api/public/guest-access/session"] = session;
+foreach (var path in new[] { "/api/public/guest-access/batches", "/api/public/guest-access/batches/{id}",
+    "/api/public/guest-access/batches/{id}/cancel" })
+    committed["paths"]![path] = actual["paths"]![path]!.DeepClone();
+foreach (var name in new[] { "GuestSession", "GuestBatchRequest", "GuestBatchReceipt", "BatchLine" })
+    committed["components"]!["schemas"]![name] = actual["components"]!["schemas"]![name]!.DeepClone();
 var options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 await File.WriteAllTextAsync(output, committed.ToJsonString(options).Replace("\r\n", "\n") + "\n", new UTF8Encoding(false));
-Console.WriteLine("Exported actual guest menu endpoint; unrelated contracts preserved.");
+Console.WriteLine("Exported guest menu, session and ordering endpoints.");

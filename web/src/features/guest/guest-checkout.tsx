@@ -17,6 +17,7 @@ const statuses: Record<string, string> = {
     DANG_LAM: "Đang chế biến",
     DA_PHUC_VU: "Đã phục vụ",
 };
+const finalStatuses = ["DA_TU_CHOI", "DA_HUY", "HUY", "DA_PHUC_VU"];
 const endpoint = "/api/public/guest-access/batches";
 
 function waitMs(r: Response) {
@@ -49,6 +50,7 @@ export function GuestCheckout({
     const [busy, setBusy] = useState(false);
     const [until, setUntil] = useState(0);
     const [denied, setDenied] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
     const request = useRef<{ body: string; key: string } | null>(null);
     const pending = useRef(false);
     useEffect(() => {
@@ -60,8 +62,10 @@ export function GuestCheckout({
         return () => clearTimeout(timer);
     }, [until]);
     const id = receipt?.id;
+    const finished = !!receipt && finalStatuses.includes(receipt.status);
     useEffect(() => {
-        if (!token || !id || denied) return;
+        // A poll still in flight must not overwrite the result of a cancellation.
+        if (!token || !id || denied || withdrawing || finished) return;
         const controller = new AbortController();
         let timer: ReturnType<typeof setTimeout>;
         async function poll() {
@@ -94,12 +98,7 @@ export function GuestCheckout({
                     if (controller.signal.aborted) return;
                     setReceipt(data);
                     setTracking("");
-                    if (
-                        ["DA_TU_CHOI", "DA_HUY", "HUY", "DA_PHUC_VU"].includes(
-                            data.status,
-                        )
-                    )
-                        return;
+                    if (finalStatuses.includes(data.status)) return;
                 }
             } catch {
                 if (controller.signal.aborted) return;
@@ -112,7 +111,49 @@ export function GuestCheckout({
             controller.abort();
             clearTimeout(timer);
         };
-    }, [token, id, denied]);
+    }, [token, id, denied, withdrawing, finished]);
+    async function withdraw() {
+        if (!token || !id || withdrawing) return;
+        setWithdrawing(true);
+        setMessage("");
+        try {
+            const response = await fetch(
+                endpoint + "/" + encodeURIComponent(id) + "/cancel",
+                {
+                    method: "POST",
+                    credentials: "omit",
+                    cache: "no-store",
+                    headers: { Authorization: "Guest " + token },
+                },
+            );
+            if (response.status === 401 || response.status === 403) {
+                setDenied(true);
+                setMessage(
+                    "Phiên không còn hiệu lực. Hãy xin nhân viên mã mới.",
+                );
+                return;
+            }
+            if (!response.ok) {
+                setMessage(
+                    response.status === 409
+                        ? "Nhân viên đã xử lý đợt này nên không hủy được."
+                        : response.status === 429
+                          ? "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+                          : "Chưa hủy được đợt gọi món. Vui lòng thử lại.",
+                );
+                return;
+            }
+            const data: Receipt = await response.json();
+            if (data.id !== id || typeof data.status !== "string")
+                throw Error();
+            setReceipt(data);
+            setTracking("");
+        } catch {
+            setMessage("Chưa hủy được đợt gọi món. Vui lòng thử lại.");
+        } finally {
+            setWithdrawing(false);
+        }
+    }
     async function send() {
         if (!token || !count || !valid || pending.current || until || denied)
             return;
@@ -159,7 +200,6 @@ export function GuestCheckout({
                     : null;
             if (
                 problem?.code === "sales.batch.line_invalid" ||
-                response.status === 409 ||
                 response.status === 422
             ) {
                 onSoldOut();
@@ -201,6 +241,7 @@ export function GuestCheckout({
                             bàn chưa hỗ trợ gửi món.
                         </p>
                     )}
+                    {count > 50 && <p>Mỗi đợt gọi món tối đa 50 phần.</p>}
                     {!valid && (
                         <p>
                             Kiểm tra lại món trong giỏ và số tùy chọn cần chọn.
@@ -208,7 +249,14 @@ export function GuestCheckout({
                     )}
                     <button
                         className="rounded-lg bg-red-700 px-4 py-3 font-semibold text-white disabled:bg-slate-600"
-                        disabled={!token || !valid || busy || !!until || denied}
+                        disabled={
+                            !token ||
+                            !valid ||
+                            count > 50 ||
+                            busy ||
+                            !!until ||
+                            denied
+                        }
                         onClick={send}
                     >
                         {busy ? "Đang gửi…" : "Gửi đợt gọi món"}
@@ -222,6 +270,15 @@ export function GuestCheckout({
                 </p>
             )}
             {tracking && <p aria-live="polite">{tracking}</p>}
+            {token && !denied && receipt?.status === "CHO_XAC_NHAN" && (
+                <button
+                    className="min-h-11 rounded-lg px-3 text-sm underline disabled:opacity-60"
+                    disabled={withdrawing || busy}
+                    onClick={withdraw}
+                >
+                    {withdrawing ? "Đang hủy…" : "Hủy đợt đang chờ"}
+                </button>
+            )}
         </section>
     );
 }

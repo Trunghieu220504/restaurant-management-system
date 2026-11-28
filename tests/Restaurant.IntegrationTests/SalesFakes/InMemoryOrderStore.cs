@@ -86,6 +86,17 @@ public sealed class InMemoryOrderStore : IOrderStore
         public Task<string> NextOrderCodeAsync(CancellationToken ct) =>
             Task.FromResult($"DH-{++store.lastCode:D4}");
 
+        public Task<GuestBatchReceipt?> FindGuestBatchAsync(GuestSalesSession session, Guid requestKey, CancellationToken ct) =>
+            Task.FromResult(store.committed.Values.Where(x => x.PhienSuDungId == session.SessionId)
+                .SelectMany(x => x.Dots)
+                .Where(x => x.KhoaYeuCau == requestKey && x.QuyenTruyCapKhachId == session.GrantId)
+                .Select(x => GuestBatchReceipt.From(x.Id, x.TrangThai)).SingleOrDefault());
+
+        public Task<long?> FindGuestBatchOrderIdAsync(GuestSalesSession session, long batchId, CancellationToken ct) =>
+            Task.FromResult(store.committed.Values.Where(x => x.PhienSuDungId == session.SessionId)
+                .Where(x => x.Dots.Any(batch => batch.Id == batchId && batch.QuyenTruyCapKhachId == session.GrantId))
+                .Select(x => (long?)x.Id).SingleOrDefault());
+
         public void Add(DonHang order) => pending.Add(order);
 
         public Task StageBatchConfirmedAsync(BatchConfirmed message, long aggregateId, int aggregateVersion, CancellationToken ct) =>

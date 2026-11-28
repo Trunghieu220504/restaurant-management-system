@@ -10,6 +10,7 @@ using Restaurant.Modules.Seating.Presentation;
 using Restaurant.Modules.Catalog.Infrastructure;
 using Restaurant.Modules.Catalog.Presentation;
 using Restaurant.Modules.Sales.Infrastructure;
+using Restaurant.Modules.Sales.Application;
 using Restaurant.Modules.Sales.Presentation;
 using Restaurant.Modules.Fulfillment.Infrastructure;
 using Restaurant.Modules.Fulfillment.Presentation;
@@ -38,9 +39,12 @@ public static class ModuleRegistration
             .ValidateOnStart();
 
         services.AddIdentityModule();
+        services.AddScoped<ISessionClosureGuard, SessionOrderGuard>();
         services.AddSeatingModule();
         services.AddCatalogModule();
         services.AddSalesModule();
+        services.AddScoped<IGuestOrderSessions, GuestOrderSessions>();
+        services.AddScoped<GuestOrderService>();
         services.AddScoped<Restaurant.Modules.Sales.Contracts.IOrderSettlement, SettledPortions>();
         services.AddFulfillmentModule();
         services.AddScoped<Restaurant.Modules.Fulfillment.Application.IFulfillmentIncidentContext, FulfillmentIncidentContext>();
@@ -86,6 +90,7 @@ public static class ModuleRegistration
         endpoints.MapSeatingEndpoints();
         endpoints.MapCatalogEndpoints();
         endpoints.MapSalesEndpoints();
+        endpoints.MapGuestOrders();
         endpoints.MapFulfillmentEndpoints();
         endpoints.MapHub<OperationsHub>("/hubs/operations", options => options.CloseOnAuthenticationExpiration = true);
         endpoints.MapBillingEndpoints();
